@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Company>Biohazard Corp (Creator-NL)</Company>
+    <Authors>Creator-NL / Biohazard Corp</Authors>
+    <Product>Spectra Realtek Studio</Product>
+    <Description>Open-Source Realtek High Definition Audio (HDA) &amp; RltkAPO64 Control Console</Description>
+    <Copyright>Copyright (c) 2026 Creator-NL / Biohazard Corp. MIT License.</Copyright>
+    <RepositoryUrl>https://github.com/Creator-NL/SpectraRealtekStudio</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <LangVersion>latest</LangVersion>
+    <NuGetAudit>false</NuGetAudit>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+</Project>

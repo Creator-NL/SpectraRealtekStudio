@@ -1,0 +1,870 @@
+<Window x:Class="SpectraRealtekStudio.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Spectra Realtek Studio — Full HDA &amp; APO Control Console"
+        Height="860" Width="1340" MinHeight="700" MinWidth="1120"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
+        FontFamily="Segoe UI">
+    <Window.Resources>
+        <!-- Dark Button Style -->
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+            <Setter Property="Background" Value="#1A2140"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="13,6"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#263160"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Selected}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Magenta Accent Button -->
+        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="#3D1A52"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Magenta}"/>
+        </Style>
+
+        <!-- Styled CheckBox -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Margin" Value="0,4,12,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Styled Dark TextBox -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#0E1222"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="CaretBrush" Value="{StaticResource Cyan}"/>
+        </Style>
+
+        <!-- Dark ComboBox ToggleButton Template -->
+        <ControlTemplate x:Key="DarkComboBoxToggleButton" TargetType="ToggleButton">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="26"/>
+                </Grid.ColumnDefinitions>
+                <Border x:Name="Border" Grid.ColumnSpan="2" CornerRadius="4"
+                        Background="#151C36" BorderBrush="{StaticResource Line}" BorderThickness="1"/>
+                <Path Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      Data="M 0 0 L 4 4 L 8 0 Z" Fill="{StaticResource Cyan}"/>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                    <Setter TargetName="Border" Property="Background" Value="#1D264A"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- Dark ComboBox Style -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Background" Value="#151C36"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Name="ToggleButton" Template="{StaticResource DarkComboBoxToggleButton}"
+                                          Focusable="false" IsChecked="{Binding Path=IsDropDownOpen,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press"/>
+                            <ContentPresenter Name="ContentSite" IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              Margin="10,4,28,4" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                            <Popup Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                <Grid Name="DropDown" SnapsToDevicePixels="True"
+                                      MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border x:Name="DropDownBorder" Background="#121626" BorderThickness="1"
+                                            BorderBrush="{StaticResource Cyan}" CornerRadius="4"/>
+                                    <ScrollViewer Margin="2,4,2,4" SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Background" Value="#121626"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="#243055"/>
+                    <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource Selected}"/>
+                    <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Styled TabControl -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="{StaticResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TabPanel Grid.Row="0" IsItemsHost="True" Margin="0,0,0,0"/>
+                            <Border Grid.Row="1" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="0,4,4,4">
+                                <ContentPresenter ContentSource="SelectedContent"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+            <Setter Property="Background" Value="{StaticResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderThickness" Value="1,1,1,0"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="Margin" Value="0,0,3,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                CornerRadius="4,4,0,0" Margin="{TemplateBinding Margin}">
+                            <ContentPresenter x:Name="Content" ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1E2749"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                                <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsSelected" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Bd" Property="Background" Value="#171E38"/>
+                                <Setter Property="Foreground" Value="{StaticResource Text}"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ========================================================================= -->
+        <!-- TOP BRAND & HARDWARE HEADER BAR -->
+        <!-- ========================================================================= -->
+        <Border Grid.Row="0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" MaxWidth="435">
+                    <Border Background="#1B254B" BorderBrush="{StaticResource Cyan}" BorderThickness="1" CornerRadius="5" Padding="10,4" Margin="0,0,10,0">
+                        <TextBlock Text="SPECTRA" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="15"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="REALTEK AUDIO CONTROL STUDIO" Foreground="{StaticResource Text}" FontWeight="Bold" FontSize="14.5"/>
+                        <TextBlock x:Name="TxtCodecBanner" Text="Realtek ALC892 • Detecting Driver &amp; Endpoints..." Foreground="{StaticResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="335"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Master Volume & Live Peak Meter -->
+                <Border Grid.Column="1" Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="10,6" Margin="14,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="125"/>
+                            <ColumnDefinition Width="42"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Master:" VerticalAlignment="Center" Foreground="{StaticResource Cyan}" FontWeight="SemiBold" Margin="0,0,6,0"/>
+                        <Slider x:Name="SldHeaderMasterVol" Grid.Column="1" Minimum="0" Maximum="100" Value="100" VerticalAlignment="Center" ValueChanged="SldHeaderMasterVol_ValueChanged"/>
+                        <TextBlock x:Name="TxtHeaderMasterVol" Grid.Column="2" Text="100%" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{StaticResource Text}" FontWeight="Bold" Margin="4,0,8,0"/>
+                        <CheckBox x:Name="ChkHeaderMute" Grid.Column="3" Content="Mute" VerticalAlignment="Center" Checked="ChkHeaderMute_Changed" Unchecked="ChkHeaderMute_Changed" Margin="0,0,10,0"/>
+
+                        <!-- Live Stereo Peak Meter -->
+                        <StackPanel Grid.Column="4" VerticalAlignment="Center" MinWidth="80">
+                            <Grid Margin="0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="L" FontSize="10" Foreground="{StaticResource Muted}"/>
+                                <ProgressBar x:Name="PbPeakLeft" Grid.Column="1" Minimum="0" Maximum="100" Value="0" Height="6" Background="#0B0D14" Foreground="{StaticResource Cyan}" BorderBrush="{StaticResource Line}"/>
+                            </Grid>
+                            <Grid Margin="0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="R" FontSize="10" Foreground="{StaticResource Muted}"/>
+                                <ProgressBar x:Name="PbPeakRight" Grid.Column="1" Minimum="0" Maximum="100" Value="0" Height="6" Background="#0B0D14" Foreground="{StaticResource Magenta}" BorderBrush="{StaticResource Line}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Profile & Tray Controls -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BtnImportProfile" Content="Import Profile" Click="BtnImportProfile_Click"/>
+                    <Button x:Name="BtnExportProfile" Content="Export Profile" Click="BtnExportProfile_Click"/>
+                    <Button x:Name="BtnRefreshAll" Content="Refresh" Click="BtnRefreshAll_Click"/>
+                    <Button x:Name="BtnToTray" Content="To Tray" Style="{StaticResource AccentButton}" Margin="0" Click="BtnToTray_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ========================================================================= -->
+        <!-- ENDPOINT SELECTOR & MASTER DSP BAR -->
+        <!-- ========================================================================= -->
+        <Border Grid.Row="1" Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,8" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="320"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Playback Device:" VerticalAlignment="Center" Foreground="{StaticResource Cyan}" FontWeight="SemiBold" Margin="0,0,10,0"/>
+                <ComboBox x:Name="CmbPlaybackEndpoints" Grid.Column="1" DisplayMemberPath="DisplayLabel" SelectionChanged="CmbPlaybackEndpoints_SelectionChanged"/>
+                <Button x:Name="BtnSetDefaultPlayback" Grid.Column="2" Content="Set Default" Margin="10,0,14,0" Click="BtnSetDefaultPlayback_Click"/>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox x:Name="ChkEnableAllEnhancements" Content="Enable Realtek System Effects (RltkAPO64)" FontWeight="SemiBold" Foreground="{StaticResource Green}"
+                              Checked="ChkEnableAllEnhancements_Changed" Unchecked="ChkEnableAllEnhancements_Changed"/>
+                    <CheckBox x:Name="ChkImmediateMode" Content="Immediate Mode" ToolTip="Apply APO audio changes live without restarting audio streams"
+                              Checked="ChkImmediateMode_Changed" Unchecked="ChkImmediateMode_Changed"/>
+                </StackPanel>
+
+                <Button x:Name="BtnOpenWindowsSoundCpl" Grid.Column="4" Content="Windows Sound CPL" ToolTip="Open classic Windows Sound Control Panel (mmsys.cpl)" Margin="0" Click="BtnOpenWindowsSoundCpl_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- ========================================================================= -->
+        <!-- MAIN 6-TAB STUDIO WORKSPACE -->
+        <!-- ========================================================================= -->
+        <TabControl Grid.Row="2">
+            <!-- ================================================================= -->
+            <!-- TAB 1: 10-BAND GRAPHIC EQUALIZER & PRESETS -->
+            <!-- ================================================================= -->
+            <TabItem Header="1. Equalizer (10-Band)">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="135"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Equalizer Toolbar -->
+                    <Border Grid.Row="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="14,10" Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <CheckBox x:Name="ChkEqEnable" Grid.Column="0" Content="Enable 10-Band Equalizer" FontWeight="Bold" Foreground="{StaticResource Cyan}"
+                                      VerticalAlignment="Center" Margin="0,0,18,0" Checked="ChkEqEnable_Changed" Unchecked="ChkEqEnable_Changed"/>
+
+                            <TextBlock Grid.Column="1" Text="Preset:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,8,0"/>
+                            <ComboBox x:Name="CmbEqPresets" Grid.Column="2" DisplayMemberPath="Name" SelectionChanged="CmbEqPresets_SelectionChanged" Margin="0,0,12,0"/>
+
+                            <Button x:Name="BtnResetEqFlat" Grid.Column="3" Content="Reset Flat (0 dB)" Click="BtnResetEqFlat_Click"/>
+
+                            <TextBox x:Name="TxtCustomPresetName" Grid.Column="4" VerticalAlignment="Center" Margin="6,0,8,0" ToolTip="Enter name for custom EQ preset"/>
+                            <StackPanel Grid.Column="5" Orientation="Horizontal">
+                                <Button x:Name="BtnSaveCustomPreset" Content="Save Custom" Click="BtnSaveCustomPreset_Click"/>
+                                <Button x:Name="BtnDeleteCustomPreset" Content="Delete" Click="BtnDeleteCustomPreset_Click"/>
+                            </StackPanel>
+
+                            <Button x:Name="BtnTestEqTone" Grid.Column="7" Content="Play Test Chord" Style="{StaticResource AccentButton}" Margin="0" Click="BtnTestEqTone_Click"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Frequency Response Spline Curve Canvas -->
+                    <Border Grid.Row="1" Background="#0D1120" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Margin="0,0,0,12" ClipToBounds="True">
+                        <Grid>
+                            <Canvas x:Name="CanvasEqCurve" SizeChanged="CanvasEqCurve_SizeChanged"/>
+                            <TextBlock Text="FREQUENCY RESPONSE CURVE (31 Hz — 16 kHz • 0.1 dB Hardware APO Precision)"
+                                       Foreground="#4A5A88" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,8,0,0" IsHitTestVisible="False"/>
+                            <TextBlock x:Name="TxtActivePresetBadge" Text="Active Preset: Flat"
+                                       Foreground="{StaticResource Cyan}" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,12,0" IsHitTestVisible="False"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- 10 Vertical Band Faders -->
+                    <Border Grid.Row="2" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="48"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- dB Scale Labels -->
+                            <Grid Grid.Column="0" Margin="0,24,6,26">
+                                <TextBlock Text="+12 dB" VerticalAlignment="Top" HorizontalAlignment="Right" Foreground="{StaticResource Cyan}" FontSize="11"/>
+                                <TextBlock Text="0 dB" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{StaticResource Muted}" FontSize="11" FontWeight="Bold"/>
+                                <TextBlock Text="-12 dB" VerticalAlignment="Bottom" HorizontalAlignment="Right" Foreground="{StaticResource Magenta}" FontSize="11"/>
+                            </Grid>
+
+                            <UniformGrid x:Name="GridEqSliders" Grid.Column="1" Columns="10"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ================================================================= -->
+            <!-- TAB 2: SOUND EFFECTS, KARAOKE & SPATIAL STUDIO -->
+            <!-- ================================================================= -->
+            <TabItem Header="2. Sound Effects &amp; Spatial">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Column: EAX Environment Reverb & Karaoke Studio -->
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <!-- EAX Environment Card -->
+                            <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="ACOUSTIC ENVIRONMENT (EAX REVERB SIMULATION)" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="13" Margin="0,0,0,6"/>
+                                    <TextBlock Text="Simulates 23 real-world acoustic spaces inside RltkAPO64.dll ({4b361010-def7-43a1-a5dc-071d955b62f7},1 &amp; ,2)." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                    <CheckBox x:Name="ChkEnvironmentEnable" Content="Enable Environment Reverb Simulation" FontWeight="SemiBold" Foreground="{StaticResource Cyan}"
+                                              Checked="ChkEnvironmentEnable_Changed" Unchecked="ChkEnvironmentEnable_Changed" Margin="0,0,0,10"/>
+
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Environment Room:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <ComboBox x:Name="CmbEnvironmentPresets" Grid.Column="1" DisplayMemberPath="Name" SelectionChanged="CmbEnvironmentPresets_SelectionChanged"/>
+                                    </Grid>
+
+                                    <TextBlock Text="Quick Environment Presets:" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,6"/>
+                                    <WrapPanel>
+                                        <Button Content="None (Off)" Tag="0" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                        <Button Content="Generic" Tag="1" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                        <Button Content="Room" Tag="3" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                        <Button Content="Living Room" Tag="5" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                        <Button Content="Auditorium" Tag="7" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                        <Button Content="Concert Hall" Tag="8" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                        <Button Content="Arena" Tag="10" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                        <Button Content="Cave" Tag="9" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                        <Button Content="Forest" Tag="16" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                        <Button Content="Under Water" Tag="23" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Karaoke & Pitch Shift Card -->
+                            <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="KARAOKE &amp; DYNAMICS PROCESSING" Foreground="{StaticResource Magenta}" FontWeight="Bold" FontSize="13" Margin="0,0,0,6"/>
+                                    <TextBlock Text="Real-time Loudness Equalization, center-channel Vocal Cancellation, and semitone Pitch Shifting." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                    <CheckBox x:Name="ChkLoudnessEq" Content="Loudness Equalization (Reduces perceived volume differences)" FontWeight="SemiBold"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                    <CheckBox x:Name="ChkVoiceCancellation" Content="Voice Cancellation (Mutes center vocals for Karaoke playback)" FontWeight="SemiBold"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+
+                                    <Border Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="12,10" Margin="0,12,0,0">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,6">
+                                                <TextBlock Text="Karaoke Pitch Shift (Key Changer):" FontWeight="SemiBold"/>
+                                                <TextBlock x:Name="TxtPitchShiftVal" Text="0 Semitones (Original Key)" HorizontalAlignment="Right" Foreground="{StaticResource Cyan}" FontWeight="Bold"/>
+                                            </Grid>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="-4 st" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,8,0"/>
+                                                <Slider x:Name="SldPitchShift" Grid.Column="1" Minimum="-4" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Value="0" VerticalAlignment="Center" ValueChanged="SldPitchShift_ValueChanged"/>
+                                                <TextBlock Grid.Column="2" Text="+4 st" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="8,0,10,0"/>
+                                                <Button x:Name="BtnResetPitch" Grid.Column="3" Content="Reset (0)" Margin="0" Click="BtnResetPitch_Click"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Right Column: 3D Spatial, Surround & SounzReal Extended DSP -->
+                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                            <!-- Spatial & Surround Processing -->
+                            <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="3D SPATIAL, SURROUND &amp; SUBWOOFER PROCESSING" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="13" Margin="0,0,0,6"/>
+                                    <TextBlock Text="Hardware-accelerated multi-channel upmixing, headphone virtualization, and subwoofer bass management." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                    <CheckBox x:Name="ChkVirtualSurround" Content="Virtual Surround (Matrix surround encoding over stereo output)" FontWeight="SemiBold"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                    <CheckBox x:Name="ChkSpeakerFill" Content="Speaker Fill (Upmixes stereo audio sources across 5.1 / 7.1 surround speakers)" FontWeight="SemiBold"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                    <CheckBox x:Name="ChkHeadphoneVirt" Content="Headphone Virtualization (Creates home theater illusion on stereo headphones)" FontWeight="SemiBold"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                    <CheckBox x:Name="ChkSpeakerExpansion" Content="Speaker Expansion (Expands stereo soundstage to multi-channel speakers)" FontWeight="SemiBold"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                    <CheckBox x:Name="ChkBassManagement" Content="Bass Management (Redirects frequencies below crossover point to Subwoofer)" FontWeight="SemiBold"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                    <CheckBox x:Name="ChkSwapCenterSub" Content="Swap Center / Subwoofer Speaker Output (Fixes reversed C/LFE jacks)" FontWeight="SemiBold"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- SounzReal / OmniSound / BassBack Extended DSP -->
+                            <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="REALTEK SOUNZREAL &amp; OMNISOUND EXTENDED DSP" Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="13" Margin="0,0,0,6"/>
+                                    <TextBlock Text="Advanced psychoacoustic processing engines exposed by RtCOM64.dll (IPropSet20138) &amp; RtkApi64.dll." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                    <CheckBox x:Name="ChkOmniSound" Content="Realtek OmniSound 3D Soundstage Expansion"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                    <CheckBox x:Name="ChkOmniHeadphone" Content="SounzReal OmniHeadphone Binaural Spatializer"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                    <CheckBox x:Name="ChkVoiceBack" Content="SounzReal VoiceBack Dialog Clarity Booster"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                    <CheckBox x:Name="ChkBassBack" Content="Realtek BassBack Psychoacoustic Low-End Enhancer"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                    <CheckBox x:Name="ChkMp3Plus" Content="SounzReal MP3+ Compressed Audio Harmonic Restorer"
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================================================================= -->
+            <!-- TAB 3: SPEAKER CONFIGURATION, FORMAT & ROOM CORRECTION -->
+            <!-- ================================================================= -->
+            <TabItem Header="3. Speakers &amp; Room Correction">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="460"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Column: Speaker Config, Default Format & Channel Test Studio -->
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="DEFAULT FORMAT &amp; SPEAKER CONFIGURATION" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
+
+                                    <TextBlock Text="Speaker Channel Configuration:" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
+                                    <ComboBox x:Name="CmbSpeakerLayout" Margin="0,0,0,10">
+                                        <ComboBoxItem Content="Stereo (2.0 — Front L/R)" Tag="3"/>
+                                        <ComboBoxItem Content="Quadraphonic (4.0 — Front L/R + Rear L/R)" Tag="51"/>
+                                        <ComboBoxItem Content="5.1 Surround (Front L/R/C + Sub + Rear L/R)" Tag="63"/>
+                                        <ComboBoxItem Content="5.1 Surround Side (Front L/R/C + Sub + Side L/R)" Tag="1551"/>
+                                        <ComboBoxItem Content="7.1 Surround (Front L/R/C + Sub + Rear L/R + Side L/R)" Tag="1599"/>
+                                    </ComboBox>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                            <TextBlock Text="Sample Rate:" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
+                                            <ComboBox x:Name="CmbSampleRate">
+                                                <ComboBoxItem Content="44,100 Hz (CD)" Tag="44100"/>
+                                                <ComboBoxItem Content="48,000 Hz (DVD/Studio)" Tag="48000"/>
+                                                <ComboBoxItem Content="96,000 Hz (Hi-Res)" Tag="96000"/>
+                                                <ComboBoxItem Content="192,000 Hz (Ultra Hi-Res)" Tag="192000"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                            <TextBlock Text="Bit Depth:" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
+                                            <ComboBox x:Name="CmbBitDepth">
+                                                <ComboBoxItem Content="16-bit PCM" Tag="16"/>
+                                                <ComboBoxItem Content="24-bit Studio PCM" Tag="24"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <CheckBox x:Name="ChkFullRangeFront" Content="Full-Range Front Left and Right Speakers" IsChecked="True"/>
+                                    <CheckBox x:Name="ChkFullRangeSurround" Content="Full-Range Surround Speakers"/>
+                                    <CheckBox x:Name="ChkExclusiveAllowed" Content="Allow applications to take exclusive control of this device" IsChecked="True"/>
+                                    <CheckBox x:Name="ChkExclusivePriority" Content="Give exclusive mode applications priority" IsChecked="True"/>
+
+                                    <Button x:Name="BtnApplyFormatAndSpeakers" Content="Apply Format &amp; Speaker Configuration" Style="{StaticResource AccentButton}" Margin="0,10,0,0" Click="BtnApplyFormatAndSpeakers_Click"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Per-Channel Interactive Speaker Test Studio -->
+                            <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="INTERACTIVE SPEAKER CHANNEL TEST STUDIO" Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="13" Margin="0,0,0,6"/>
+                                    <TextBlock Text="Click any speaker channel below to play a harmonic test chime and verify channel routing &amp; EQ response." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                    <UniformGrid Columns="3" Rows="3">
+                                        <Button Content="Front Left (FL)" Tag="0" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
+                                        <Button Content="Center (C)" Tag="2" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
+                                        <Button Content="Front Right (FR)" Tag="1" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
+                                        <Button Content="Side Left (SL)" Tag="6" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
+                                        <Button Content="Subwoofer (68Hz)" Tag="3" Style="{StaticResource AccentButton}" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
+                                        <Button Content="Side Right (SR)" Tag="7" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
+                                        <Button Content="Rear Left (RL)" Tag="4" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
+                                        <Button Content="All Channels" Tag="8" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
+                                        <Button Content="Rear Right (RR)" Tag="5" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Right Column: Room Correction Per-Speaker Distance & Gain Trim -->
+                        <Border Grid.Column="1" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="ROOM CORRECTION (PER-SPEAKER DISTANCE &amp; GAIN TRIM)" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="13"/>
+                                    <CheckBox x:Name="ChkRoomCorrectionEnable" Content="Enable Room Correction" HorizontalAlignment="Right" FontWeight="Bold" Foreground="{StaticResource Cyan}"
+                                              Checked="ChkRoomCorrectionEnable_Changed" Unchecked="ChkRoomCorrectionEnable_Changed" Margin="0"/>
+                                </Grid>
+                                <TextBlock Text="Compensates for speaker placement distances and individual speaker dB trim levels ({4b361010-def7-43a1-a5dc-071d955b62f7},14, 15, 16)."
+                                           Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                <StackPanel x:Name="PanelRoomCorrectionChannels"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <Button x:Name="BtnApplyRoomCorrection" Content="Apply Room Correction" Style="{StaticResource AccentButton}" Click="BtnApplyRoomCorrection_Click"/>
+                                    <Button x:Name="BtnResetRoomCorrection" Content="Reset Distances &amp; Gains (0 dB)" Click="BtnResetRoomCorrection_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================================================================= -->
+            <!-- TAB 4: ANALOG MIXER, BALANCE & HARDWARE DIRECT MONITORING -->
+            <!-- ================================================================= -->
+            <TabItem Header="4. Analog Mixer &amp; Levels">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                    <StackPanel>
+                        <!-- Master Output & L/R Balance Card -->
+                        <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="MASTER OUTPUT &amp; STEREO CHANNEL BALANCE" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="70"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Front Left Channel:" VerticalAlignment="Center"/>
+                                    <Slider x:Name="SldBalanceLeft" Grid.Column="1" Minimum="0" Maximum="100" Value="100" VerticalAlignment="Center" ValueChanged="SldBalance_ValueChanged"/>
+                                    <TextBlock x:Name="TxtBalanceLeft" Grid.Column="2" Text="100%" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"/>
+                                </Grid>
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="170"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="70"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Front Right Channel:" VerticalAlignment="Center"/>
+                                    <Slider x:Name="SldBalanceRight" Grid.Column="1" Minimum="0" Maximum="100" Value="100" VerticalAlignment="Center" ValueChanged="SldBalance_ValueChanged"/>
+                                    <TextBlock x:Name="TxtBalanceRight" Grid.Column="2" Text="100%" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"/>
+                                </Grid>
+                                <Button x:Name="BtnCenterBalance" Content="Equalize Left / Right Balance" HorizontalAlignment="Left" Margin="0,8,0,0" Click="BtnCenterBalance_Click"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Hardware Direct Input Monitoring Subunits -->
+                        <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="HARDWARE ANALOG TOPOLOGY &amp; DIRECT INPUT MONITORING (SINGLELINEOUTTOPO)" Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="13" Margin="0,0,0,6"/>
+                                <TextBlock Text="Zero-latency analog hardware passthrough controls inside the Realtek ALC892 mixer (Line In, Rear Pink Mic In, Front Pink Mic In)."
+                                           Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                <StackPanel x:Name="PanelAnalogSubunits"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================================================================= -->
+            <!-- TAB 5: MICROPHONE, LINE-IN & RECORDING DSP -->
+            <!-- ================================================================= -->
+            <TabItem Header="5. Mic &amp; Recording DSP">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Column: Recording Device, Volume & Mic Boost -->
+                        <Border Grid.Column="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="RECORDING ENDPOINT, LEVEL &amp; MICROPHONE BOOST" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
+
+                                <TextBlock Text="Active Recording / Capture Device:" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
+                                <ComboBox x:Name="CmbCaptureEndpoints" DisplayMemberPath="DisplayLabel" SelectionChanged="CmbCaptureEndpoints_SelectionChanged" Margin="0,0,0,10"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                    <Button x:Name="BtnSetDefaultCapture" Content="Set Default Recording Device" Click="BtnSetDefaultCapture_Click"/>
+                                    <Button x:Name="BtnEnableStereoMix" Content="Enable Stereo Mix Visibility" Click="BtnEnableStereoMix_Click"/>
+                                </StackPanel>
+
+                                <Border Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,6">
+                                            <TextBlock Text="Recording Input Volume:" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="TxtCaptureVol" Text="100%" HorizontalAlignment="Right" Foreground="{StaticResource Cyan}" FontWeight="Bold"/>
+                                        </Grid>
+                                        <Slider x:Name="SldCaptureVol" Minimum="0" Maximum="100" Value="100" ValueChanged="SldCaptureVol_ValueChanged"/>
+                                        <CheckBox x:Name="ChkCaptureMute" Content="Mute Recording Input" Margin="0,8,0,0" Checked="ChkCaptureMute_Changed" Unchecked="ChkCaptureMute_Changed"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="12">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,6">
+                                            <TextBlock Text="Analog Microphone Boost (Pre-Amp Gain):" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="TxtMicBoostDb" Text="+0.0 dB" HorizontalAlignment="Right" Foreground="{StaticResource Magenta}" FontWeight="Bold"/>
+                                        </Grid>
+                                        <Slider x:Name="SldMicBoostDb" Minimum="0" Maximum="30" TickFrequency="10" IsSnapToTickEnabled="True" Value="0" ValueChanged="SldMicBoostDb_ValueChanged"/>
+                                        <TextBlock Text="Steps: +0 dB (Standard), +10 dB, +20 dB, +30 dB (Maximum Pre-Amp)" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Right Column: Realtek Recording DSP Enhancements -->
+                        <Border Grid.Column="1" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="REALTEK RECORDING &amp; VOICE DSP ENHANCEMENTS" Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="13" Margin="0,0,0,6"/>
+                                <TextBlock Text="Hardware &amp; APO voice processing on Microphone / Line-In ({07b93a42-...}, {911dff54-...}, {83f774ae-...})."
+                                           Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                <CheckBox x:Name="ChkMicNoiseSuppression" Content="Noise Suppression (Reduces static background hiss &amp; fan noise)" FontWeight="SemiBold"
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                <CheckBox x:Name="ChkMicAec" Content="Acoustic Echo Cancellation (AEC — Removes speaker playback echo)" FontWeight="SemiBold"
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                <CheckBox x:Name="ChkMicBeamForming" Content="Beam Forming (Directional 30° pickup cone for stereo microphone)" FontWeight="SemiBold"
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                <CheckBox x:Name="ChkMicDcOffset" Content="DC Offset Cancellation (Centers input waveform DC voltage bias)" FontWeight="SemiBold"
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                <CheckBox x:Name="ChkMicMono" Content="Mono Microphone Mode (Duplicates mono mic capsule to Left + Right)" FontWeight="SemiBold"
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                <CheckBox x:Name="ChkMicConference" Content="Conference Call Multi-User Mode (Wide-angle voice pickup)" FontWeight="SemiBold"
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                <CheckBox x:Name="ChkMicKeystroke" Content="Keystroke Noise Suppression (Suppresses mechanical keyboard typing)" FontWeight="SemiBold"
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+
+                                <Separator Background="{StaticResource Line}" Margin="0,12"/>
+                                <CheckBox x:Name="ChkCaptureDisableAll" Content="Disable All Microphone Sound Effects" Foreground="{StaticResource Amber}"
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================================================================= -->
+            <!-- TAB 6: JACK RETASKING, DRIVER TWEAKS, HOTKEYS & FX INSPECTOR -->
+            <!-- ================================================================= -->
+            <TabItem Header="6. Jacks, Tweaks &amp; Inspector">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Top Row: Physical Jack Retasking & Kernel Driver Tweaks -->
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.25*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Physical Jack Panel & Retasking -->
+                        <Border Grid.Column="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="14" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="PHYSICAL JACK TOPOLOGY &amp; JACK RETASKING (HDA PINCONFIGOVERRIDEVERBS)" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="12.5" Margin="0,0,0,8"/>
+                                <ScrollViewer MaxHeight="190" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="PanelJackPins"/>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Kernel Driver Tweaks & Global Hotkeys -->
+                        <Border Grid.Column="1" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="14" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="KERNEL DRIVER TWEAKS &amp; GLOBAL IN-GAME HOTKEYS" Foreground="{StaticResource Magenta}" FontWeight="Bold" FontSize="12.5" Margin="0,0,0,6"/>
+                                <CheckBox x:Name="ChkDrvMuteRearOnHp" Content="Mute rear output when front headphone plugged in"/>
+                                <CheckBox x:Name="ChkDrvIndependentStreams" Content="Make front and rear output devices playback two independent streams"/>
+                                <CheckBox x:Name="ChkDrvFrontHdaMode" Content="Front Panel HD Audio Jack Detection (Uncheck for AC97 / Disable FPJD)"/>
+                                <CheckBox x:Name="ChkDrvAntiPopPower" Content="Anti-Pop Power Management (Prevent codec D3 sleep pop)"/>
+                                <CheckBox x:Name="ChkDrvSwapCenLfe" Content="Driver-Level Center / Subwoofer Swap"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,8">
+                                    <Button x:Name="BtnApplyDriverTweaks" Content="Apply Driver Tweaks" Style="{StaticResource AccentButton}" Click="BtnApplyDriverTweaks_Click"/>
+                                    <CheckBox x:Name="ChkGlobalHotkeys" Content="Enable Global Hotkeys (Ctrl+Alt+E / N / L / K)" IsChecked="True"
+                                              Checked="ChkGlobalHotkeys_Changed" Unchecked="ChkGlobalHotkeys_Changed" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="Hotkeys: Ctrl+Alt+E (Toggle EQ) • Ctrl+Alt+N (Next EQ Preset) • Ctrl+Alt+L (Loudness) • Ctrl+Alt+K (Voice Cancel)"
+                                           Foreground="{StaticResource Muted}" FontSize="10.5" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Bottom Row: Live FxProperties & Raw HDA Verb Diagnostic Inspector -->
+                    <Border Grid.Row="1" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="14">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="230"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="LIVE FXPROPERTIES &amp; APO INSPECTOR:" Foreground="{StaticResource Green}" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBox x:Name="TxtPropFilter" Grid.Column="1" TextChanged="TxtPropFilter_TextChanged" ToolTip="Search by PROPERTYKEY GUID, name, or category"/>
+
+                                <!-- Raw HDA Verb Console -->
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="HDA Verb:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,6,0"/>
+                                    <TextBox x:Name="TxtHdaWidget" Width="54" Text="0x00" ToolTip="Widget ID (hex)" Margin="0,0,4,0"/>
+                                    <TextBox x:Name="TxtHdaVerb" Width="64" Text="0xF00" ToolTip="Verb ID (hex, e.g. 0xF00 GetParameter)" Margin="0,0,4,0"/>
+                                    <TextBox x:Name="TxtHdaPayload" Width="54" Text="0x00" ToolTip="Payload (hex)" Margin="0,0,6,0"/>
+                                    <Button x:Name="BtnSendHdaVerb" Content="Send Verb" Click="BtnSendHdaVerb_Click"/>
+                                </StackPanel>
+
+                                <Button x:Name="BtnExportDiagReport" Grid.Column="3" Content="Export Community Diagnostic JSON" Margin="0" Click="BtnExportDiagReport_Click"/>
+                            </Grid>
+
+                            <DataGrid x:Name="GridPropertiesInspector" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
+                                      Background="#0D1120" RowBackground="#11162A" AlternatingRowBackground="#151C34"
+                                      Foreground="{StaticResource Text}" BorderBrush="{StaticResource Line}" GridLinesVisibility="Horizontal"
+                                      HorizontalGridLinesBrush="#1D2545" HeadersVisibility="Column">
+                                <DataGrid.Resources>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="Background" Value="#1B2342"/>
+                                        <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Padding" Value="8,6"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+                                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                    </Style>
+                                </DataGrid.Resources>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Store" Binding="{Binding StoreName}" Width="95"/>
+                                    <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="130"/>
+                                    <DataGridTextColumn Header="Feature / Property Name" Binding="{Binding FriendlyName}" Width="250"/>
+                                    <DataGridTextColumn Header="PROPERTYKEY" Binding="{Binding KeyString}" Width="285"/>
+                                    <DataGridTextColumn Header="Type" Binding="{Binding ValueType}" Width="125"/>
+                                    <DataGridTextColumn Header="Decoded Value" Binding="{Binding DecodedValue}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- ========================================================================= -->
+        <!-- BOTTOM STATUS BAR -->
+        <!-- ========================================================================= -->
+        <Border Grid.Row="3" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="12,6" Margin="0,8,0,0">
+            <Grid>
+                <TextBlock x:Name="TxtStatusBar" Text="Ready. Connected to Realtek High Definition Audio APO (RltkAPO64.dll)." Foreground="{StaticResource Cyan}" FontSize="12"/>
+                <TextBlock x:Name="TxtRightStatus" Text="Open-Source Community Edition • Non-Admin RPC Active" HorizontalAlignment="Right" Foreground="{StaticResource Muted}" FontSize="11.5"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
