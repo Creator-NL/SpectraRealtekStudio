@@ -49,6 +49,125 @@
             <Setter Property="BorderBrush" Value="{StaticResource Magenta}"/>
         </Style>
 
+        <!-- Bright Electric Cyan Primary Button (matches Webpage EQ Lab) -->
+        <Style x:Key="CyanActionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="#070A12"/>
+            <Setter Property="Background" Value="{StaticResource Cyan}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Cyan}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#5CF0FF"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#5CF0FF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#14BBD4"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Rounded Quick-Preset Chip Pill Style (matches Webpage EQ Lab) -->
+        <Style x:Key="PresetChipButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Background" Value="#151C36"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,3"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" CornerRadius="11">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                                <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#172A44"/>
+                            </Trigger>
+                            <Trigger Property="Tag" Value="ACTIVE">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                                <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#132E47"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Webpage-Style Vertical EQ Slider (Glowing Cyan Fill + Light Silver Upper Track + Circular Metallic Thumb) -->
+        <Style x:Key="SpectraEqSliderStyle" TargetType="Slider">
+            <Setter Property="Orientation" Value="Vertical"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Width="26" HorizontalAlignment="Center">
+                            <Track x:Name="PART_Track" HorizontalAlignment="Center">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" Cursor="Hand">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Width="6" Background="{StaticResource Cyan}" CornerRadius="3" HorizontalAlignment="Center"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" Cursor="Hand">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Width="6" Background="#DCE8FF" CornerRadius="3" HorizontalAlignment="Center"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="18" Height="18" Cursor="Hand">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse x:Name="ThumbCircle" Width="18" Height="18" Fill="#5B6785" Stroke="#F0F6FF" StrokeThickness="2"/>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ThumbCircle" Property="Fill" Value="#6F7FA6"/>
+                                                        <Setter TargetName="ThumbCircle" Property="Stroke" Value="{StaticResource Cyan}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="ThumbCircle" Property="Fill" Value="{StaticResource Cyan}"/>
+                                                        <Setter TargetName="ThumbCircle" Property="Stroke" Value="#FFFFFF"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Styled CheckBox -->
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="{StaticResource Text}"/>
@@ -208,6 +327,124 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Dark Spectra ToolTip Style -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="#131930"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Cyan}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="MaxWidth" Value="340"/>
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{StaticResource Text}"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Compact Auto-Gain Toggle Pill -->
+        <Style x:Key="AutoGainPillStyle" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+            <Setter Property="Background" Value="#13192E"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                                <Setter Property="Foreground" Value="{StaticResource Text}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#103629"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Green}"/>
+                                <Setter Property="Foreground" Value="{StaticResource Green}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Dark ContextMenu & MenuItem for Settings Cogwheel -->
+        <Style TargetType="ContextMenu">
+            <Setter Property="Background" Value="#12172B"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Cyan}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="MenuItem">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="CheckGlyph" Grid.Column="0" Text="✓" Foreground="{StaticResource Green}" FontWeight="Bold"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed"/>
+                                <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" Margin="2,0,10,0"/>
+                                <Path x:Name="SubArrow" Grid.Column="2" Data="M 0 0 L 4 4 L 0 8 Z" Fill="{StaticResource Cyan}"
+                                      VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed"/>
+                                <Popup x:Name="PART_Popup" Placement="Right" IsOpen="{TemplateBinding IsSubmenuOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                    <Border Background="#12172B" BorderBrush="{StaticResource Cyan}" BorderThickness="1" CornerRadius="5" Padding="4" Margin="2,0,0,0">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="HasItems" Value="True">
+                                <Setter TargetName="SubArrow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#212D56"/>
+                                <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="14">
@@ -221,7 +458,7 @@
         <!-- ========================================================================= -->
         <!-- TOP BRAND & HARDWARE HEADER BAR -->
         <!-- ========================================================================= -->
-        <Border Grid.Row="0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,10">
+        <Border Grid.Row="0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -229,59 +466,154 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" MaxWidth="435">
-                    <Border Background="#1B254B" BorderBrush="{StaticResource Cyan}" BorderThickness="1" CornerRadius="5" Padding="10,4" Margin="0,0,10,0">
-                        <TextBlock Text="SPECTRA" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="15"/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" MaxWidth="350">
+                    <Border Background="#1B254B" BorderBrush="{StaticResource Cyan}" BorderThickness="1" CornerRadius="5" Padding="9,4" Margin="0,0,9,0"
+                            ToolTip="Spectra Realtek Studio — Open-Source Realtek HDA &amp; RltkAPO64 Control Console">
+                        <TextBlock Text="SPECTRA" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="14.5"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="REALTEK AUDIO CONTROL STUDIO" Foreground="{StaticResource Text}" FontWeight="Bold" FontSize="14.5"/>
-                        <TextBlock x:Name="TxtCodecBanner" Text="Realtek ALC892 • Detecting Driver &amp; Endpoints..." Foreground="{StaticResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="335"/>
+                        <TextBlock Text="REALTEK AUDIO CONTROL STUDIO" Foreground="{StaticResource Text}" FontWeight="Bold" FontSize="13.5"/>
+                        <TextBlock x:Name="TxtCodecBanner" Text="Realtek ALC892 • Detecting Driver &amp; Endpoints..." Foreground="{StaticResource Muted}" FontSize="10.5" TextTrimming="CharacterEllipsis" MaxWidth="255"/>
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Master Volume & Live Peak Meter -->
-                <Border Grid.Column="1" Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="10,6" Margin="14,0">
+                <!-- Master Volume, Rotary Preamp Gain Knob, Auto-Gain Anti-Clip & Live Peak Meter -->
+                <Border Grid.Column="1" Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="10,4" Margin="10,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="125"/>
-                            <ColumnDefinition Width="42"/>
+                            <ColumnDefinition Width="98"/>
+                            <ColumnDefinition Width="38"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="Master:" VerticalAlignment="Center" Foreground="{StaticResource Cyan}" FontWeight="SemiBold" Margin="0,0,6,0"/>
-                        <Slider x:Name="SldHeaderMasterVol" Grid.Column="1" Minimum="0" Maximum="100" Value="100" VerticalAlignment="Center" ValueChanged="SldHeaderMasterVol_ValueChanged"/>
-                        <TextBlock x:Name="TxtHeaderMasterVol" Grid.Column="2" Text="100%" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{StaticResource Text}" FontWeight="Bold" Margin="4,0,8,0"/>
-                        <CheckBox x:Name="ChkHeaderMute" Grid.Column="3" Content="Mute" VerticalAlignment="Center" Checked="ChkHeaderMute_Changed" Unchecked="ChkHeaderMute_Changed" Margin="0,0,10,0"/>
 
-                        <!-- Live Stereo Peak Meter -->
-                        <StackPanel Grid.Column="4" VerticalAlignment="Center" MinWidth="80">
+                        <TextBlock Grid.Column="0" Text="Master:" VerticalAlignment="Center" Foreground="{StaticResource Cyan}" FontWeight="SemiBold" Margin="0,0,5,0"
+                                   ToolTip="Windows Master Output Volume for the active playback device (synced live with Windows Taskbar &amp; Tab 4 Balance)"/>
+                        <Slider x:Name="SldHeaderMasterVol" Grid.Column="1" Minimum="0" Maximum="100" Value="100" VerticalAlignment="Center" ValueChanged="SldHeaderMasterVol_ValueChanged"
+                                ToolTip="Adjust Windows Master Output Volume (0%–100%). Syncs live with Tab 4 Left/Right Stereo Balance and Windows volume controls."/>
+                        <TextBlock x:Name="TxtHeaderMasterVol" Grid.Column="2" Text="100%" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{StaticResource Text}" FontWeight="Bold" Margin="3,0,7,0"/>
+                        <CheckBox x:Name="ChkHeaderMute" Grid.Column="3" Content="Mute" VerticalAlignment="Center" Checked="ChkHeaderMute_Changed" Unchecked="ChkHeaderMute_Changed" Margin="0,0,8,0"
+                                  ToolTip="Mute or unmute the active playback device immediately"/>
+
+                        <!-- Divider -->
+                        <Border Grid.Column="4" Width="1" Background="{StaticResource Line}" Margin="0,2,8,2"/>
+
+                        <!-- Studio Rotary Master Preamp / Headroom Gain Knob -->
+                        <Grid x:Name="GainKnobControl" Grid.Column="5" Width="34" Height="34" Margin="0,0,7,0" Cursor="SizeNS" Background="Transparent"
+                              MouseLeftButtonDown="GainKnob_MouseLeftButtonDown" MouseMove="GainKnob_MouseMove" MouseLeftButtonUp="GainKnob_MouseLeftButtonUp"
+                              MouseWheel="GainKnob_MouseWheel" MouseRightButtonUp="GainKnob_MouseRightButtonUp"
+                              ToolTip="Master Pre-Mix Digital Gain (-24.0 dB to +12.0 dB). Drag up/down or scroll wheel to adjust. Negative dB trims digital stream level BEFORE the Windows Mixer &amp; Peak Meters (works even with RltkAPO64 OFF!) to stop clipping immediately. Positive dB boosts via RltkAPO64. Double-click or right-click to reset to 0.0 dB.">
+                            <!-- Outer bezel -->
+                            <Ellipse Width="34" Height="34" Fill="#0D1224" Stroke="#2A3866" StrokeThickness="1.2"/>
+                            <!-- Background track arc (-135° to +135°) -->
+                            <Path Data="M 6.4,27.6 A 15,15 0 1 1 27.6,27.6" Stroke="#233058" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                            <!-- Dynamic active gain arc -->
+                            <Path x:Name="GainKnobValueArc" Stroke="{StaticResource Cyan}" StrokeThickness="2.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                            <!-- Inner metallic dial cap -->
+                            <Ellipse Width="22" Height="22" Fill="#1B2547" Stroke="#384B84" StrokeThickness="1"/>
+                            <!-- Rotating pointer notch -->
+                            <Grid RenderTransformOrigin="0.5,0.5">
+                                <Grid.RenderTransform>
+                                    <RotateTransform x:Name="GainKnobRotate" Angle="0"/>
+                                </Grid.RenderTransform>
+                                <Rectangle Width="2.4" Height="7.5" Fill="{StaticResource Cyan}" RadiusX="1" RadiusY="1" VerticalAlignment="Top" Margin="0,7,0,0"/>
+                            </Grid>
+                        </Grid>
+
+                        <!-- Gain Readout & Auto-Gain Anti-Clip Toggle -->
+                        <StackPanel Grid.Column="6" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                <TextBlock Text="GAIN " FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtMasterGainDb" Text="0.0 dB" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource Cyan}" VerticalAlignment="Center" MinWidth="42" TextAlignment="Right"/>
+                            </StackPanel>
+                            <ToggleButton x:Name="BtnAutoGain" Content="Auto 80%" Style="{StaticResource AutoGainPillStyle}"
+                                          Checked="BtnAutoGain_Changed" Unchecked="BtnAutoGain_Changed"
+                                          ToolTip="Auto-Gain Anti-Clip Limiter: automatically pulls down gain whenever audio peaks exceed your ceiling (default 80%) so loud tracks never clip or distort, then smoothly recovers when audio quiets down. Customize ceiling (70%–95%) and mode in Settings (⚙)."/>
+                        </StackPanel>
+
+                        <!-- Divider -->
+                        <Border Grid.Column="7" Width="1" Background="{StaticResource Line}" Margin="0,2,8,2"/>
+
+                        <!-- Live Stereo Peak Meter with Auto-Gain Ceiling Line & Clip Indicator -->
+                        <StackPanel Grid.Column="8" VerticalAlignment="Center" MinWidth="84"
+                                    ToolTip="Live stereo digital output peak meter (L / R). Flashes red if peaks approach 0 dBFS clipping. Green tick marks show your active Auto-Gain ceiling.">
                             <Grid Margin="0,1">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="12"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="L" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                <ProgressBar x:Name="PbPeakLeft" Grid.Column="1" Minimum="0" Maximum="100" Value="0" Height="6" Background="#0B0D14" Foreground="{StaticResource Cyan}" BorderBrush="{StaticResource Line}"/>
+                                <TextBlock Text="L" FontSize="9.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+                                <Grid Grid.Column="1">
+                                    <ProgressBar x:Name="PbPeakLeft" Minimum="0" Maximum="100" Value="0" Height="6" Background="#0B0D14" Foreground="{StaticResource Cyan}" BorderBrush="{StaticResource Line}"/>
+                                    <Canvas IsHitTestVisible="False">
+                                        <Rectangle x:Name="MeterCeilingMarkL" Width="1.5" Height="8" Fill="{StaticResource Green}" Canvas.Top="-1" Visibility="Collapsed"/>
+                                    </Canvas>
+                                </Grid>
+                                <TextBlock x:Name="TxtClipBadge" Grid.Column="2" Text="OK" FontSize="8.5" FontWeight="Bold" Foreground="{StaticResource Muted}" Margin="5,0,0,0" VerticalAlignment="Center" MinWidth="24" TextAlignment="Center"/>
                             </Grid>
                             <Grid Margin="0,1">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="12"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="R" FontSize="10" Foreground="{StaticResource Muted}"/>
-                                <ProgressBar x:Name="PbPeakRight" Grid.Column="1" Minimum="0" Maximum="100" Value="0" Height="6" Background="#0B0D14" Foreground="{StaticResource Magenta}" BorderBrush="{StaticResource Line}"/>
+                                <TextBlock Text="R" FontSize="9.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+                                <Grid Grid.Column="1">
+                                    <ProgressBar x:Name="PbPeakRight" Minimum="0" Maximum="100" Value="0" Height="6" Background="#0B0D14" Foreground="{StaticResource Magenta}" BorderBrush="{StaticResource Line}"/>
+                                    <Canvas IsHitTestVisible="False">
+                                        <Rectangle x:Name="MeterCeilingMarkR" Width="1.5" Height="8" Fill="{StaticResource Green}" Canvas.Top="-1" Visibility="Collapsed"/>
+                                    </Canvas>
+                                </Grid>
+                                <TextBlock x:Name="TxtAutoLimitActive" Grid.Column="2" Text="" FontSize="8.5" FontWeight="Bold" Foreground="{StaticResource Amber}" Margin="5,0,0,0" VerticalAlignment="Center" MinWidth="24" TextAlignment="Center"/>
                             </Grid>
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <!-- Profile & Tray Controls -->
+                <!-- Profile, Refresh, Tray & Settings Cogwheel -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="BtnImportProfile" Content="Import Profile" Click="BtnImportProfile_Click"/>
-                    <Button x:Name="BtnExportProfile" Content="Export Profile" Click="BtnExportProfile_Click"/>
-                    <Button x:Name="BtnRefreshAll" Content="Refresh" Click="BtnRefreshAll_Click"/>
-                    <Button x:Name="BtnToTray" Content="To Tray" Style="{StaticResource AccentButton}" Margin="0" Click="BtnToTray_Click"/>
+                    <Button x:Name="BtnImportProfile" Content="Import" Padding="10,6" Click="BtnImportProfile_Click"
+                            ToolTip="Import a saved JSON studio profile (EQ bands, sound effects, and mic settings)"/>
+                    <Button x:Name="BtnExportProfile" Content="Export" Padding="10,6" Click="BtnExportProfile_Click"
+                            ToolTip="Export your current EQ, spatial effects, speaker format, and mic settings to a shareable JSON profile"/>
+                    <Button x:Name="BtnRefreshAll" Content="Refresh" Padding="10,6" Click="BtnRefreshAll_Click"
+                            ToolTip="Re-read all audio endpoints, hardware DSP properties, and physical jack states"/>
+                    <Button x:Name="BtnToTray" Content="To Tray" Padding="10,6" Style="{StaticResource AccentButton}" Margin="0,0,6,0" Click="BtnToTray_Click"
+                            ToolTip="Minimize Spectra Realtek Studio to the Windows system tray (right-click tray icon to switch EQ presets anytime)"/>
+                    <Button x:Name="BtnSettingsMenu" Width="34" Padding="0" Margin="0" Click="BtnSettingsMenu_Click"
+                            ToolTip="Settings: toggle tooltips, configure Auto-Gain limiter ceiling &amp; mode, check for GitHub updates, and view About info">
+                        <Path Width="15" Height="15" Stretch="Uniform" Fill="{StaticResource Cyan}"
+                              Data="M19.14,12.94 C19.18,12.64 19.2,12.33 19.2,12 C19.2,11.68 19.18,11.36 19.13,11.06 L21.16,9.48 C21.34,9.34 21.39,9.07 21.28,8.87 L19.36,5.55 C19.24,5.33 18.99,5.26 18.77,5.33 L16.38,6.29 C15.88,5.91 15.35,5.59 14.76,5.35 L14.4,2.81 C14.36,2.57 14.16,2.4 13.92,2.4 L10.08,2.4 C9.84,2.4 9.65,2.57 9.61,2.81 L9.25,5.35 C8.66,5.59 8.12,5.92 7.63,6.29 L5.24,5.33 C5.02,5.25 4.77,5.33 4.65,5.55 L2.74,8.87 C2.62,9.08 2.66,9.34 2.86,9.48 L4.89,11.06 C4.84,11.36 4.8,11.69 4.8,12 C4.8,12.31 4.82,12.64 4.87,12.94 L2.84,14.52 C2.66,14.66 2.61,14.93 2.72,15.13 L4.64,18.45 C4.76,18.67 5.01,18.74 5.23,18.67 L7.62,17.71 C8.12,18.09 8.65,18.41 9.24,18.65 L9.6,21.19 C9.65,21.43 9.84,21.6 10.08,21.6 L13.92,21.6 C14.16,21.6 14.36,21.43 14.39,21.19 L14.75,18.65 C15.34,18.41 15.88,18.09 16.37,17.71 L18.76,18.67 C18.98,18.75 19.23,18.67 19.35,18.45 L21.27,15.13 C21.39,14.91 21.34,14.66 21.15,14.52 L19.14,12.94 Z M12,15.6 C10.02,15.6 8.4,13.98 8.4,12 C8.4,10.02 10.02,8.4 12,8.4 C13.98,8.4 15.6,10.02 15.6,12 C15.6,13.98 13.98,15.6 12,15.6 Z"/>
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="CtxSettingsMenu">
+                                <MenuItem x:Name="MnuShowTooltips" Header="Show Helpful Tooltips" IsCheckable="True" IsChecked="True" Click="MnuShowTooltips_Click"/>
+                                <Separator Background="{StaticResource Line}" Margin="4,4"/>
+                                <MenuItem Header="Auto-Gain Peak Ceiling">
+                                    <MenuItem x:Name="MnuCeiling70" Header="70% Peak Ceiling (Extra Headroom)" Tag="70" IsCheckable="True" Click="MnuAutoGainCeiling_Click"/>
+                                    <MenuItem x:Name="MnuCeiling75" Header="75% Peak Ceiling" Tag="75" IsCheckable="True" Click="MnuAutoGainCeiling_Click"/>
+                                    <MenuItem x:Name="MnuCeiling80" Header="80% Peak Ceiling (Recommended)" Tag="80" IsCheckable="True" IsChecked="True" Click="MnuAutoGainCeiling_Click"/>
+                                    <MenuItem x:Name="MnuCeiling85" Header="85% Peak Ceiling" Tag="85" IsCheckable="True" Click="MnuAutoGainCeiling_Click"/>
+                                    <MenuItem x:Name="MnuCeiling90" Header="90% Peak Ceiling" Tag="90" IsCheckable="True" Click="MnuAutoGainCeiling_Click"/>
+                                    <MenuItem x:Name="MnuCeiling95" Header="95% Peak Ceiling (Clip Guard Only)" Tag="95" IsCheckable="True" Click="MnuAutoGainCeiling_Click"/>
+                                </MenuItem>
+                                <MenuItem Header="Auto-Gain Limiter Mode">
+                                    <MenuItem x:Name="MnuModePreamp" Header="Pre-Mix Digital Headroom (Anti-Clip — Works in All Modes)" Tag="Preamp" IsCheckable="True" IsChecked="True" Click="MnuAutoGainMode_Click"/>
+                                    <MenuItem x:Name="MnuModeMasterVol" Header="Master Output Volume Limiter (Windows Mixer)" Tag="MasterVolume" IsCheckable="True" Click="MnuAutoGainMode_Click"/>
+                                </MenuItem>
+                                <MenuItem Header="Reset Master Gain to 0.0 dB" Click="MnuResetGain_Click"/>
+                                <Separator Background="{StaticResource Line}" Margin="4,4"/>
+                                <MenuItem x:Name="MnuCheckUpdates" Header="Check for Updates..." Click="MnuCheckUpdates_Click"/>
+                                <MenuItem Header="Open GitHub Project Page" Click="MnuOpenGitHub_Click"/>
+                                <MenuItem x:Name="MnuAboutApp" Header="About Spectra Realtek Studio" Click="MnuAboutApp_Click"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
@@ -300,13 +632,16 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0" Text="Playback Device:" VerticalAlignment="Center" Foreground="{StaticResource Cyan}" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                <ComboBox x:Name="CmbPlaybackEndpoints" Grid.Column="1" DisplayMemberPath="DisplayLabel" SelectionChanged="CmbPlaybackEndpoints_SelectionChanged"/>
-                <Button x:Name="BtnSetDefaultPlayback" Grid.Column="2" Content="Set Default" Margin="10,0,14,0" Click="BtnSetDefaultPlayback_Click"/>
+                <ComboBox x:Name="CmbPlaybackEndpoints" Grid.Column="1" DisplayMemberPath="DisplayLabel" SelectionChanged="CmbPlaybackEndpoints_SelectionChanged"
+                          ToolTip="Select the playback audio endpoint to configure (Speakers, Headphones, Digital S/PDIF, etc.)"/>
+                <Button x:Name="BtnSetDefaultPlayback" Grid.Column="2" Content="Set Default" Margin="10,0,14,0" Click="BtnSetDefaultPlayback_Click"
+                        ToolTip="Set the selected playback device as the Windows Default Multimedia and Communications output"/>
 
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                     <CheckBox x:Name="ChkEnableAllEnhancements" Content="Enable Realtek System Effects (RltkAPO64)" FontWeight="SemiBold" Foreground="{StaticResource Green}"
-                              Checked="ChkEnableAllEnhancements_Changed" Unchecked="ChkEnableAllEnhancements_Changed"/>
-                    <CheckBox x:Name="ChkImmediateMode" Content="Immediate Mode" ToolTip="Apply APO audio changes live without restarting audio streams"
+                              Checked="ChkEnableAllEnhancements_Changed" Unchecked="ChkEnableAllEnhancements_Changed"
+                              ToolTip="Master switch for Realtek's RltkAPO64 audio processing engine. Must be checked for 10-band EQ, Master Preamp Gain, Reverb, Loudness EQ, and Spatial effects to be active."/>
+                    <CheckBox x:Name="ChkImmediateMode" Content="Immediate Mode" ToolTip="Apply Realtek APO audio effect changes live without restarting active audio streams"
                               Checked="ChkImmediateMode_Changed" Unchecked="ChkImmediateMode_Changed"/>
                 </StackPanel>
 
@@ -315,79 +650,107 @@
         </Border>
 
         <!-- ========================================================================= -->
-        <!-- MAIN 6-TAB STUDIO WORKSPACE -->
+        <!-- MAIN 7-TAB STUDIO WORKSPACE -->
         <!-- ========================================================================= -->
-        <TabControl Grid.Row="2">
+        <TabControl x:Name="MainTabControl" Grid.Row="2" SelectionChanged="MainTabControl_SelectionChanged">
             <!-- ================================================================= -->
             <!-- TAB 1: 10-BAND GRAPHIC EQUALIZER & PRESETS -->
             <!-- ================================================================= -->
-            <TabItem Header="1. Equalizer (10-Band)">
-                <Grid Margin="16">
+            <TabItem Header="1. Equalizer (10-Band)" ToolTip="Shape audio tone across 10 frequency bands (31 Hz to 16 kHz) with 0.1 dB precision and built-in/custom presets">
+                <Grid Margin="14,12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="135"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="130"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Equalizer Toolbar -->
-                    <Border Grid.Row="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="14,10" Margin="0,0,0,12">
+                    <!-- Row 0: Equalizer Controls & Custom Preset Toolbar -->
+                    <Border Grid.Row="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="220"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="175"/>
+                                <ColumnDefinition Width="140"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <CheckBox x:Name="ChkEqEnable" Grid.Column="0" Content="Enable 10-Band Equalizer" FontWeight="Bold" Foreground="{StaticResource Cyan}"
-                                      VerticalAlignment="Center" Margin="0,0,18,0" Checked="ChkEqEnable_Changed" Unchecked="ChkEqEnable_Changed"/>
+                            <CheckBox x:Name="ChkEqEnable" Grid.Column="0" Content="Enable 10-Band EQ" FontWeight="Bold" Foreground="{StaticResource Cyan}"
+                                      VerticalAlignment="Center" Margin="0,0,14,0" Checked="ChkEqEnable_Changed" Unchecked="ChkEqEnable_Changed"
+                                      ToolTip="Turn the 10-band hardware APO graphic equalizer ON or OFF (Global Hotkey: Ctrl+Alt+E)"/>
 
-                            <TextBlock Grid.Column="1" Text="Preset:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="CmbEqPresets" Grid.Column="2" DisplayMemberPath="Name" SelectionChanged="CmbEqPresets_SelectionChanged" Margin="0,0,12,0"/>
+                            <TextBlock Grid.Column="1" Text="Preset:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,6,0"/>
+                            <ComboBox x:Name="CmbEqPresets" Grid.Column="2" DisplayMemberPath="Name" SelectionChanged="CmbEqPresets_SelectionChanged" Margin="0,0,10,0"
+                                      ToolTip="Choose from 13 official Realtek EQ presets or any custom presets you saved (Cycle Hotkey: Ctrl+Alt+N)"/>
 
-                            <Button x:Name="BtnResetEqFlat" Grid.Column="3" Content="Reset Flat (0 dB)" Click="BtnResetEqFlat_Click"/>
-
-                            <TextBox x:Name="TxtCustomPresetName" Grid.Column="4" VerticalAlignment="Center" Margin="6,0,8,0" ToolTip="Enter name for custom EQ preset"/>
-                            <StackPanel Grid.Column="5" Orientation="Horizontal">
-                                <Button x:Name="BtnSaveCustomPreset" Content="Save Custom" Click="BtnSaveCustomPreset_Click"/>
-                                <Button x:Name="BtnDeleteCustomPreset" Content="Delete" Click="BtnDeleteCustomPreset_Click"/>
+                            <TextBox x:Name="TxtCustomPresetName" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="Type a name here and click 'Save' to save your current 10-band EQ curve"/>
+                            <StackPanel Grid.Column="4" Orientation="Horizontal">
+                                <Button x:Name="BtnSaveCustomPreset" Content="Save" Padding="10,5" Click="BtnSaveCustomPreset_Click"
+                                        ToolTip="Save the current 10-band EQ slider values as a reusable custom preset"/>
+                                <Button x:Name="BtnDeleteCustomPreset" Content="Delete" Padding="10,5" Click="BtnDeleteCustomPreset_Click"
+                                        ToolTip="Delete the currently selected custom EQ preset (built-in Realtek presets cannot be deleted)"/>
                             </StackPanel>
 
-                            <Button x:Name="BtnTestEqTone" Grid.Column="7" Content="Play Test Chord" Style="{StaticResource AccentButton}" Margin="0" Click="BtnTestEqTone_Click"/>
+                            <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="BtnTestEqTone" Content="▶ Play Studio Test Chord" Style="{StaticResource CyanActionButton}" Padding="14,6" Margin="0,0,8,0" Click="BtnTestEqTone_Click"
+                                        ToolTip="Play a rich harmonic reference chord to immediately audition your EQ curve and tone changes"/>
+                                <Button x:Name="BtnResetEqFlat" Content="Reset Flat (0.0 dB)" Padding="12,6" Margin="0" BorderBrush="{StaticResource Cyan}" Click="BtnResetEqFlat_Click"
+                                        ToolTip="Reset all 10 frequency bands to 0.0 dB flat neutral response"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
 
-                    <!-- Frequency Response Spline Curve Canvas -->
-                    <Border Grid.Row="1" Background="#0D1120" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Margin="0,0,0,12" ClipToBounds="True">
+                    <!-- Row 1: Quick Preset Selector Chips (matches Webpage EQ Lab) -->
+                    <WrapPanel x:Name="PanelEqPresetChips" Grid.Row="1" Margin="2,0,2,8"/>
+
+                    <!-- Row 2: Smooth Cyan -> Violet -> Magenta Bezier Frequency Curve -->
+                    <Border Grid.Row="2" Background="#0A0E1B" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,10" ClipToBounds="True">
                         <Grid>
                             <Canvas x:Name="CanvasEqCurve" SizeChanged="CanvasEqCurve_SizeChanged"/>
                             <TextBlock Text="FREQUENCY RESPONSE CURVE (31 Hz — 16 kHz • 0.1 dB Hardware APO Precision)"
-                                       Foreground="#4A5A88" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,8,0,0" IsHitTestVisible="False"/>
+                                       Foreground="#4A5A88" FontSize="10" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,6,0,0" IsHitTestVisible="False"/>
                             <TextBlock x:Name="TxtActivePresetBadge" Text="Active Preset: Flat"
-                                       Foreground="{StaticResource Cyan}" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,12,0" IsHitTestVisible="False"/>
+                                       Foreground="{StaticResource Cyan}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,12,0" IsHitTestVisible="False"/>
                         </Grid>
                     </Border>
 
-                    <!-- 10 Vertical Band Faders -->
-                    <Border Grid.Row="2" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16,12">
+                    <!-- Row 3: 10 Vertical Webpage-Style Cyan Faders -->
+                    <Border Grid.Row="3" Background="#0A0E1B" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,10">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="48"/>
+                                <ColumnDefinition Width="46"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
                             <!-- dB Scale Labels -->
                             <Grid Grid.Column="0" Margin="0,24,6,26">
-                                <TextBlock Text="+12 dB" VerticalAlignment="Top" HorizontalAlignment="Right" Foreground="{StaticResource Cyan}" FontSize="11"/>
-                                <TextBlock Text="0 dB" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{StaticResource Muted}" FontSize="11" FontWeight="Bold"/>
-                                <TextBlock Text="-12 dB" VerticalAlignment="Bottom" HorizontalAlignment="Right" Foreground="{StaticResource Magenta}" FontSize="11"/>
+                                <TextBlock Text="+12 dB" VerticalAlignment="Top" HorizontalAlignment="Right" Foreground="{StaticResource Cyan}" FontSize="10.5" FontFamily="Consolas"/>
+                                <TextBlock Text="0 dB" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{StaticResource Muted}" FontSize="10.5" FontWeight="Bold" FontFamily="Consolas"/>
+                                <TextBlock Text="-12 dB" VerticalAlignment="Bottom" HorizontalAlignment="Right" Foreground="{StaticResource Magenta}" FontSize="10.5" FontFamily="Consolas"/>
                             </Grid>
 
                             <UniformGrid x:Name="GridEqSliders" Grid.Column="1" Columns="10"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Row 4: Live 40-Byte VT_BLOB Hardware Payload Strip (matches Webpage EQ Lab) -->
+                    <Border Grid.Row="4" Background="#0A0E1B" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="12,7"
+                            ToolTip="Live 40-byte little-endian int32[10] binary payload written directly into RltkAPO64.dll via Windows IPolicyConfig (hundredths of a dB)">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="0,0,0,4">
+                                <TextBlock Text="Live 40-Byte VT_BLOB Payload → {4b361010-def7-43a1-a5dc-071d955b62f7},6" Foreground="{StaticResource Muted}" FontSize="10.5" FontFamily="Consolas"/>
+                                <TextBlock Text="1/100th dB int32[10]" HorizontalAlignment="Right" Foreground="{StaticResource Green}" FontSize="10.5" FontWeight="Bold" FontFamily="Consolas"/>
+                            </Grid>
+                            <TextBlock x:Name="TxtEqBlobHex" Grid.Row="1" Text="00 00 00 00 | 00 00 00 00 | 00 00 00 00 | 00 00 00 00 | 00 00 00 00 | 00 00 00 00 | 00 00 00 00 | 00 00 00 00 | 00 00 00 00 | 00 00 00 00"
+                                       Foreground="{StaticResource Cyan}" FontSize="11" FontFamily="Consolas" TextTrimming="CharacterEllipsis"/>
                         </Grid>
                     </Border>
                 </Grid>
@@ -396,7 +759,7 @@
             <!-- ================================================================= -->
             <!-- TAB 2: SOUND EFFECTS, KARAOKE & SPATIAL STUDIO -->
             <!-- ================================================================= -->
-            <TabItem Header="2. Sound Effects &amp; Spatial">
+            <TabItem Header="2. Sound Effects &amp; Spatial" ToolTip="Configure EAX acoustic room reverb, Loudness EQ, Karaoke vocal cancel &amp; pitch shift, surround upmixing, and SounzReal DSP">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -413,7 +776,8 @@
                                     <TextBlock Text="Simulates 23 real-world acoustic spaces inside RltkAPO64.dll ({4b361010-def7-43a1-a5dc-071d955b62f7},1 &amp; ,2)." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
                                     <CheckBox x:Name="ChkEnvironmentEnable" Content="Enable Environment Reverb Simulation" FontWeight="SemiBold" Foreground="{StaticResource Cyan}"
-                                              Checked="ChkEnvironmentEnable_Changed" Unchecked="ChkEnvironmentEnable_Changed" Margin="0,0,0,10"/>
+                                              Checked="ChkEnvironmentEnable_Changed" Unchecked="ChkEnvironmentEnable_Changed" Margin="0,0,0,10"
+                                              ToolTip="Enable or bypass Realtek's hardware-accelerated EAX acoustic room reverb engine"/>
 
                                     <Grid Margin="0,0,0,12">
                                         <Grid.ColumnDefinitions>
@@ -421,21 +785,22 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="Environment Room:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                        <ComboBox x:Name="CmbEnvironmentPresets" Grid.Column="1" DisplayMemberPath="Name" SelectionChanged="CmbEnvironmentPresets_SelectionChanged"/>
+                                        <ComboBox x:Name="CmbEnvironmentPresets" Grid.Column="1" DisplayMemberPath="Name" SelectionChanged="CmbEnvironmentPresets_SelectionChanged"
+                                                  ToolTip="Choose from 23 acoustic spaces (Room, Living Room, Concert Hall, Arena, Cave, Forest, Under Water, etc.)"/>
                                     </Grid>
 
                                     <TextBlock Text="Quick Environment Presets:" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,6"/>
                                     <WrapPanel>
-                                        <Button Content="None (Off)" Tag="0" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
-                                        <Button Content="Generic" Tag="1" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
-                                        <Button Content="Room" Tag="3" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
-                                        <Button Content="Living Room" Tag="5" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
-                                        <Button Content="Auditorium" Tag="7" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
-                                        <Button Content="Concert Hall" Tag="8" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
-                                        <Button Content="Arena" Tag="10" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
-                                        <Button Content="Cave" Tag="9" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
-                                        <Button Content="Forest" Tag="16" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
-                                        <Button Content="Under Water" Tag="23" Click="BtnQuickEnv_Click" Margin="0,0,6,6"/>
+                                        <Button Content="None (Off)" Tag="0" Click="BtnQuickEnv_Click" Margin="0,0,6,6" ToolTip="Turn off acoustic reverb simulation (dry direct studio sound)"/>
+                                        <Button Content="Generic" Tag="1" Click="BtnQuickEnv_Click" Margin="0,0,6,6" ToolTip="Apply subtle Generic acoustic room ambience"/>
+                                        <Button Content="Room" Tag="3" Click="BtnQuickEnv_Click" Margin="0,0,6,6" ToolTip="Simulate a compact studio/bedroom acoustic reflection"/>
+                                        <Button Content="Living Room" Tag="5" Click="BtnQuickEnv_Click" Margin="0,0,6,6" ToolTip="Simulate warm medium-sized living room acoustics"/>
+                                        <Button Content="Auditorium" Tag="7" Click="BtnQuickEnv_Click" Margin="0,0,6,6" ToolTip="Simulate a large lecture hall / auditorium reverb tail"/>
+                                        <Button Content="Concert Hall" Tag="8" Click="BtnQuickEnv_Click" Margin="0,0,6,6" ToolTip="Simulate expansive symphonic concert hall acoustics"/>
+                                        <Button Content="Arena" Tag="10" Click="BtnQuickEnv_Click" Margin="0,0,6,6" ToolTip="Simulate wide stadium/arena echoes"/>
+                                        <Button Content="Cave" Tag="9" Click="BtnQuickEnv_Click" Margin="0,0,6,6" ToolTip="Simulate deep rocky cavern reverb reflections"/>
+                                        <Button Content="Forest" Tag="16" Click="BtnQuickEnv_Click" Margin="0,0,6,6" ToolTip="Simulate open-air forest sound dispersion"/>
+                                        <Button Content="Under Water" Tag="23" Click="BtnQuickEnv_Click" Margin="0,0,6,6" ToolTip="Apply muffled underwater low-pass acoustic effect"/>
                                     </WrapPanel>
                                 </StackPanel>
                             </Border>
@@ -447,9 +812,11 @@
                                     <TextBlock Text="Real-time Loudness Equalization, center-channel Vocal Cancellation, and semitone Pitch Shifting." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
                                     <CheckBox x:Name="ChkLoudnessEq" Content="Loudness Equalization (Reduces perceived volume differences)" FontWeight="SemiBold"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Automatically evens out quiet dialogue and loud explosions/tracks using Realtek's built-in dynamics normalizer (Global Hotkey: Ctrl+Alt+L)"/>
                                     <CheckBox x:Name="ChkVoiceCancellation" Content="Voice Cancellation (Mutes center vocals for Karaoke playback)" FontWeight="SemiBold"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Cancels center-panned lead vocals in stereo music tracks for Karaoke singing (Global Hotkey: Ctrl+Alt+K)"/>
 
                                     <Border Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="12,10" Margin="0,12,0,0">
                                         <StackPanel>
@@ -465,9 +832,11 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="-4 st" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,8,0"/>
-                                                <Slider x:Name="SldPitchShift" Grid.Column="1" Minimum="-4" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Value="0" VerticalAlignment="Center" ValueChanged="SldPitchShift_ValueChanged"/>
+                                                <Slider x:Name="SldPitchShift" Grid.Column="1" Minimum="-4" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True" Value="0" VerticalAlignment="Center" ValueChanged="SldPitchShift_ValueChanged"
+                                                        ToolTip="Shift music playback pitch down or up by up to ±4 musical semitones without changing playback speed"/>
                                                 <TextBlock Grid.Column="2" Text="+4 st" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="8,0,10,0"/>
-                                                <Button x:Name="BtnResetPitch" Grid.Column="3" Content="Reset (0)" Margin="0" Click="BtnResetPitch_Click"/>
+                                                <Button x:Name="BtnResetPitch" Grid.Column="3" Content="Reset (0)" Margin="0" Click="BtnResetPitch_Click"
+                                                        ToolTip="Reset playback pitch back to original 0 semitones"/>
                                             </Grid>
                                         </StackPanel>
                                     </Border>
@@ -484,17 +853,23 @@
                                     <TextBlock Text="Hardware-accelerated multi-channel upmixing, headphone virtualization, and subwoofer bass management." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
                                     <CheckBox x:Name="ChkVirtualSurround" Content="Virtual Surround (Matrix surround encoding over stereo output)" FontWeight="SemiBold"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Creates a wider surround sound illusion on stereo speakers or Dolby Pro Logic matrix receivers"/>
                                     <CheckBox x:Name="ChkSpeakerFill" Content="Speaker Fill (Upmixes stereo audio sources across 5.1 / 7.1 surround speakers)" FontWeight="SemiBold"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Duplicates and upmixes 2-channel stereo music/videos across Rear, Side, and Center channels in Quad/5.1/7.1 speaker setups"/>
                                     <CheckBox x:Name="ChkHeadphoneVirt" Content="Headphone Virtualization (Creates home theater illusion on stereo headphones)" FontWeight="SemiBold"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Applies HRTF binaural filtering so multi-channel movies and games feel like physical speakers around your head on stereo headphones"/>
                                     <CheckBox x:Name="ChkSpeakerExpansion" Content="Speaker Expansion (Expands stereo soundstage to multi-channel speakers)" FontWeight="SemiBold"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Widens stereo separation and fills multi-channel speakers with an expanded front soundstage"/>
                                     <CheckBox x:Name="ChkBassManagement" Content="Bass Management (Redirects frequencies below crossover point to Subwoofer)" FontWeight="SemiBold"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Routes deep sub-bass frequencies away from small satellite speakers to your dedicated LFE Subwoofer channel"/>
                                     <CheckBox x:Name="ChkSwapCenterSub" Content="Swap Center / Subwoofer Speaker Output (Fixes reversed C/LFE jacks)" FontWeight="SemiBold"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Swaps the Center and Subwoofer (LFE) audio channels on the Orange jack if your 5.1/7.1 cable wiring is reversed"/>
                                 </StackPanel>
                             </Border>
 
@@ -505,15 +880,20 @@
                                     <TextBlock Text="Advanced psychoacoustic processing engines exposed by RtCOM64.dll (IPropSet20138) &amp; RtkApi64.dll." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
                                     <CheckBox x:Name="ChkOmniSound" Content="Realtek OmniSound 3D Soundstage Expansion"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Enables Realtek's OmniSound surround spatializer for a wider, room-filling soundstage (if licensed/enabled by your codec APO)"/>
                                     <CheckBox x:Name="ChkOmniHeadphone" Content="SounzReal OmniHeadphone Binaural Spatializer"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Enables SounzReal 3D headphone angular virtualization for immersive gaming and movies"/>
                                     <CheckBox x:Name="ChkVoiceBack" Content="SounzReal VoiceBack Dialog Clarity Booster"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Enhances spoken dialog presence and vocal clarity in movies, streams, and podcasts"/>
                                     <CheckBox x:Name="ChkBassBack" Content="Realtek BassBack Psychoacoustic Low-End Enhancer"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Synthesizes upper bass harmonics to create deeper perceived bass punch on smaller speakers without overloading the woofer"/>
                                     <CheckBox x:Name="ChkMp3Plus" Content="SounzReal MP3+ Compressed Audio Harmonic Restorer"
-                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"/>
+                                              Checked="PlaybackEffectToggle_Changed" Unchecked="PlaybackEffectToggle_Changed"
+                                              ToolTip="Restores upper high-frequency brilliance lost during lossy MP3/AAC/streaming audio compression"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -524,7 +904,7 @@
             <!-- ================================================================= -->
             <!-- TAB 3: SPEAKER CONFIGURATION, FORMAT & ROOM CORRECTION -->
             <!-- ================================================================= -->
-            <TabItem Header="3. Speakers &amp; Room Correction">
+            <TabItem Header="3. Speakers &amp; Room Correction" ToolTip="Configure Stereo/Quad/5.1/7.1 layouts, sample rate &amp; bit depth, test individual channels, and calibrate per-speaker distances &amp; trims">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -539,7 +919,8 @@
                                     <TextBlock Text="DEFAULT FORMAT &amp; SPEAKER CONFIGURATION" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
 
                                     <TextBlock Text="Speaker Channel Configuration:" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
-                                    <ComboBox x:Name="CmbSpeakerLayout" Margin="0,0,0,10">
+                                    <ComboBox x:Name="CmbSpeakerLayout" Margin="0,0,0,10"
+                                              ToolTip="Select the physical number of speakers connected to your sound card (Stereo 2.0, Quad 4.0, 5.1, or 7.1 Surround)">
                                         <ComboBoxItem Content="Stereo (2.0 — Front L/R)" Tag="3"/>
                                         <ComboBoxItem Content="Quadraphonic (4.0 — Front L/R + Rear L/R)" Tag="51"/>
                                         <ComboBoxItem Content="5.1 Surround (Front L/R/C + Sub + Rear L/R)" Tag="63"/>
@@ -554,7 +935,8 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,6,0">
                                             <TextBlock Text="Sample Rate:" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
-                                            <ComboBox x:Name="CmbSampleRate">
+                                            <ComboBox x:Name="CmbSampleRate"
+                                                      ToolTip="Shared-mode Windows Audio Engine sample rate. 48,000 Hz is the native standard for Windows, games, and video; 96/192 kHz is for hi-res DAC playback.">
                                                 <ComboBoxItem Content="44,100 Hz (CD)" Tag="44100"/>
                                                 <ComboBoxItem Content="48,000 Hz (DVD/Studio)" Tag="48000"/>
                                                 <ComboBoxItem Content="96,000 Hz (Hi-Res)" Tag="96000"/>
@@ -563,19 +945,25 @@
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Margin="6,0,0,0">
                                             <TextBlock Text="Bit Depth:" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
-                                            <ComboBox x:Name="CmbBitDepth">
+                                            <ComboBox x:Name="CmbBitDepth"
+                                                      ToolTip="PCM quantization precision sent to the Realtek DAC. 24-bit Studio PCM gives maximum dynamic range and lowest quantization noise floor.">
                                                 <ComboBoxItem Content="16-bit PCM" Tag="16"/>
                                                 <ComboBoxItem Content="24-bit Studio PCM" Tag="24"/>
                                             </ComboBox>
                                         </StackPanel>
                                     </Grid>
 
-                                    <CheckBox x:Name="ChkFullRangeFront" Content="Full-Range Front Left and Right Speakers" IsChecked="True"/>
-                                    <CheckBox x:Name="ChkFullRangeSurround" Content="Full-Range Surround Speakers"/>
-                                    <CheckBox x:Name="ChkExclusiveAllowed" Content="Allow applications to take exclusive control of this device" IsChecked="True"/>
-                                    <CheckBox x:Name="ChkExclusivePriority" Content="Give exclusive mode applications priority" IsChecked="True"/>
+                                    <CheckBox x:Name="ChkFullRangeFront" Content="Full-Range Front Left and Right Speakers" IsChecked="True"
+                                              ToolTip="Check if your Front L/R speakers can reproduce deep bass on their own; uncheck if you rely on a Subwoofer via Bass Management"/>
+                                    <CheckBox x:Name="ChkFullRangeSurround" Content="Full-Range Surround Speakers"
+                                              ToolTip="Check if your Rear/Side surround speakers are full-size towers capable of handling full bass"/>
+                                    <CheckBox x:Name="ChkExclusiveAllowed" Content="Allow applications to take exclusive control of this device" IsChecked="True"
+                                              ToolTip="Allows WASAPI Exclusive mode audio apps (DAWs, Foobar2000, Tidal, Kodi) to bypass the Windows mixer for bit-perfect output"/>
+                                    <CheckBox x:Name="ChkExclusivePriority" Content="Give exclusive mode applications priority" IsChecked="True"
+                                              ToolTip="Lets exclusive-mode audio software preempt shared-mode background sounds"/>
 
-                                    <Button x:Name="BtnApplyFormatAndSpeakers" Content="Apply Format &amp; Speaker Configuration" Style="{StaticResource AccentButton}" Margin="0,10,0,0" Click="BtnApplyFormatAndSpeakers_Click"/>
+                                    <Button x:Name="BtnApplyFormatAndSpeakers" Content="Apply Format &amp; Speaker Configuration" Style="{StaticResource AccentButton}" Margin="0,10,0,0" Click="BtnApplyFormatAndSpeakers_Click"
+                                            ToolTip="Commit the chosen speaker layout, sample rate, bit depth, and exclusive mode settings via Windows IPolicyConfig"/>
                                 </StackPanel>
                             </Border>
 
@@ -586,15 +974,15 @@
                                     <TextBlock Text="Click any speaker channel below to play a harmonic test chime and verify channel routing &amp; EQ response." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
                                     <UniformGrid Columns="3" Rows="3">
-                                        <Button Content="Front Left (FL)" Tag="0" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
-                                        <Button Content="Center (C)" Tag="2" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
-                                        <Button Content="Front Right (FR)" Tag="1" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
-                                        <Button Content="Side Left (SL)" Tag="6" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
-                                        <Button Content="Subwoofer (68Hz)" Tag="3" Style="{StaticResource AccentButton}" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
-                                        <Button Content="Side Right (SR)" Tag="7" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
-                                        <Button Content="Rear Left (RL)" Tag="4" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
-                                        <Button Content="All Channels" Tag="8" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
-                                        <Button Content="Rear Right (RR)" Tag="5" Click="BtnTestSpeakerChannel_Click" Margin="3"/>
+                                        <Button Content="Front Left (FL)" Tag="0" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play harmonic test chime on Front Left speaker only"/>
+                                        <Button Content="Center (C)" Tag="2" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play harmonic test chime on Center dialog speaker only (5.1/7.1)"/>
+                                        <Button Content="Front Right (FR)" Tag="1" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play harmonic test chime on Front Right speaker only"/>
+                                        <Button Content="Side Left (SL)" Tag="6" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play harmonic test chime on Side Left surround speaker (7.1)"/>
+                                        <Button Content="Subwoofer (68Hz)" Tag="3" Style="{StaticResource AccentButton}" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play a smooth 68 Hz deep low-frequency sine sweep to test Subwoofer / LFE output"/>
+                                        <Button Content="Side Right (SR)" Tag="7" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play harmonic test chime on Side Right surround speaker (7.1)"/>
+                                        <Button Content="Rear Left (RL)" Tag="4" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play harmonic test chime on Rear Left speaker (Quad/5.1/7.1)"/>
+                                        <Button Content="All Channels" Tag="8" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play a full balanced test chord simultaneously across all active channels"/>
+                                        <Button Content="Rear Right (RR)" Tag="5" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play harmonic test chime on Rear Right speaker (Quad/5.1/7.1)"/>
                                     </UniformGrid>
                                 </StackPanel>
                             </Border>
@@ -606,7 +994,8 @@
                                 <Grid Margin="0,0,0,8">
                                     <TextBlock Text="ROOM CORRECTION (PER-SPEAKER DISTANCE &amp; GAIN TRIM)" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="13"/>
                                     <CheckBox x:Name="ChkRoomCorrectionEnable" Content="Enable Room Correction" HorizontalAlignment="Right" FontWeight="Bold" Foreground="{StaticResource Cyan}"
-                                              Checked="ChkRoomCorrectionEnable_Changed" Unchecked="ChkRoomCorrectionEnable_Changed" Margin="0"/>
+                                              Checked="ChkRoomCorrectionEnable_Changed" Unchecked="ChkRoomCorrectionEnable_Changed" Margin="0"
+                                              ToolTip="Enable Realtek's hardware Room Correction time-alignment delays and per-speaker dB gain trims"/>
                                 </Grid>
                                 <TextBlock Text="Compensates for speaker placement distances and individual speaker dB trim levels ({4b361010-def7-43a1-a5dc-071d955b62f7},14, 15, 16)."
                                            Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
@@ -614,8 +1003,10 @@
                                 <StackPanel x:Name="PanelRoomCorrectionChannels"/>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                    <Button x:Name="BtnApplyRoomCorrection" Content="Apply Room Correction" Style="{StaticResource AccentButton}" Click="BtnApplyRoomCorrection_Click"/>
-                                    <Button x:Name="BtnResetRoomCorrection" Content="Reset Distances &amp; Gains (0 dB)" Click="BtnResetRoomCorrection_Click"/>
+                                    <Button x:Name="BtnApplyRoomCorrection" Content="Apply Room Correction" Style="{StaticResource AccentButton}" Click="BtnApplyRoomCorrection_Click"
+                                            ToolTip="Send all 8 per-speaker distances (meters) and dB gain trims to Realtek's Room Correction engine"/>
+                                    <Button x:Name="BtnResetRoomCorrection" Content="Reset Distances &amp; Gains (0 dB)" Click="BtnResetRoomCorrection_Click"
+                                            ToolTip="Reset all speaker distances to 0.00 m and all channel gain trims back to 0 dB"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
@@ -626,7 +1017,7 @@
             <!-- ================================================================= -->
             <!-- TAB 4: ANALOG MIXER, BALANCE & HARDWARE DIRECT MONITORING -->
             <!-- ================================================================= -->
-            <TabItem Header="4. Analog Mixer &amp; Levels">
+            <TabItem Header="4. Analog Mixer &amp; Levels" ToolTip="Control Left/Right stereo balance (synced live with Master volume) and zero-latency analog input passthrough monitoring">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
                         <!-- Master Output & L/R Balance Card -->
@@ -640,7 +1031,8 @@
                                         <ColumnDefinition Width="70"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="Front Left Channel:" VerticalAlignment="Center"/>
-                                    <Slider x:Name="SldBalanceLeft" Grid.Column="1" Minimum="0" Maximum="100" Value="100" VerticalAlignment="Center" ValueChanged="SldBalance_ValueChanged"/>
+                                    <Slider x:Name="SldBalanceLeft" Grid.Column="1" Minimum="0" Maximum="100" Value="100" VerticalAlignment="Center" ValueChanged="SldBalance_ValueChanged"
+                                            ToolTip="Adjust Left stereo output channel level (0%–100%). Syncs live with the top Master slider and Windows Volume Mixer."/>
                                     <TextBlock x:Name="TxtBalanceLeft" Grid.Column="2" Text="100%" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"/>
                                 </Grid>
                                 <Grid Margin="0,4">
@@ -650,10 +1042,12 @@
                                         <ColumnDefinition Width="70"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="Front Right Channel:" VerticalAlignment="Center"/>
-                                    <Slider x:Name="SldBalanceRight" Grid.Column="1" Minimum="0" Maximum="100" Value="100" VerticalAlignment="Center" ValueChanged="SldBalance_ValueChanged"/>
+                                    <Slider x:Name="SldBalanceRight" Grid.Column="1" Minimum="0" Maximum="100" Value="100" VerticalAlignment="Center" ValueChanged="SldBalance_ValueChanged"
+                                            ToolTip="Adjust Right stereo output channel level (0%–100%). Syncs live with the top Master slider and Windows Volume Mixer."/>
                                     <TextBlock x:Name="TxtBalanceRight" Grid.Column="2" Text="100%" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"/>
                                 </Grid>
-                                <Button x:Name="BtnCenterBalance" Content="Equalize Left / Right Balance" HorizontalAlignment="Left" Margin="0,8,0,0" Click="BtnCenterBalance_Click"/>
+                                <Button x:Name="BtnCenterBalance" Content="Equalize Left / Right Balance" HorizontalAlignment="Left" Margin="0,8,0,0" Click="BtnCenterBalance_Click"
+                                        ToolTip="Match Left and Right channels to the exact same volume level for perfectly centered stereo imaging"/>
                             </StackPanel>
                         </Border>
 
@@ -674,7 +1068,7 @@
             <!-- ================================================================= -->
             <!-- TAB 5: MICROPHONE, LINE-IN & RECORDING DSP -->
             <!-- ================================================================= -->
-            <TabItem Header="5. Mic &amp; Recording DSP">
+            <TabItem Header="5. Mic &amp; Recording DSP" ToolTip="Control Microphone, Line-In, and Stereo Mix levels, +30 dB hardware Mic Boost, Noise Suppression, AEC, and voice DSP">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -688,11 +1082,14 @@
                                 <TextBlock Text="RECORDING ENDPOINT, LEVEL &amp; MICROPHONE BOOST" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
 
                                 <TextBlock Text="Active Recording / Capture Device:" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,0,0,4"/>
-                                <ComboBox x:Name="CmbCaptureEndpoints" DisplayMemberPath="DisplayLabel" SelectionChanged="CmbCaptureEndpoints_SelectionChanged" Margin="0,0,0,10"/>
+                                <ComboBox x:Name="CmbCaptureEndpoints" DisplayMemberPath="DisplayLabel" SelectionChanged="CmbCaptureEndpoints_SelectionChanged" Margin="0,0,0,10"
+                                          ToolTip="Select a real physical recording input (Line In, Microphone, Stereo Mix, or active USB mic) to configure"/>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                    <Button x:Name="BtnSetDefaultCapture" Content="Set Default Recording Device" Click="BtnSetDefaultCapture_Click"/>
-                                    <Button x:Name="BtnEnableStereoMix" Content="Enable Stereo Mix Visibility" Click="BtnEnableStereoMix_Click"/>
+                                    <Button x:Name="BtnSetDefaultCapture" Content="Set Default Recording Device" Click="BtnSetDefaultCapture_Click"
+                                            ToolTip="Set the selected capture endpoint as the Windows Default Recording and Communications microphone"/>
+                                    <Button x:Name="BtnEnableStereoMix" Content="Enable Stereo Mix Visibility" Click="BtnEnableStereoMix_Click"
+                                            ToolTip="Unhide and enable Realtek's hardware 'Stereo Mix' loopback recording device in Windows Sound Settings"/>
                                 </StackPanel>
 
                                 <Border Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,12">
@@ -701,8 +1098,10 @@
                                             <TextBlock Text="Recording Input Volume:" FontWeight="SemiBold"/>
                                             <TextBlock x:Name="TxtCaptureVol" Text="100%" HorizontalAlignment="Right" Foreground="{StaticResource Cyan}" FontWeight="Bold"/>
                                         </Grid>
-                                        <Slider x:Name="SldCaptureVol" Minimum="0" Maximum="100" Value="100" ValueChanged="SldCaptureVol_ValueChanged"/>
-                                        <CheckBox x:Name="ChkCaptureMute" Content="Mute Recording Input" Margin="0,8,0,0" Checked="ChkCaptureMute_Changed" Unchecked="ChkCaptureMute_Changed"/>
+                                        <Slider x:Name="SldCaptureVol" Minimum="0" Maximum="100" Value="100" ValueChanged="SldCaptureVol_ValueChanged"
+                                                ToolTip="Adjust the recording capture gain level (0%–100%) for the selected Microphone or Line-In device"/>
+                                        <CheckBox x:Name="ChkCaptureMute" Content="Mute Recording Input" Margin="0,8,0,0" Checked="ChkCaptureMute_Changed" Unchecked="ChkCaptureMute_Changed"
+                                                  ToolTip="Mute or unmute the selected recording input at the Windows audio endpoint level"/>
                                     </StackPanel>
                                 </Border>
 
@@ -712,7 +1111,8 @@
                                             <TextBlock Text="Analog Microphone Boost (Pre-Amp Gain):" FontWeight="SemiBold"/>
                                             <TextBlock x:Name="TxtMicBoostDb" Text="+0.0 dB" HorizontalAlignment="Right" Foreground="{StaticResource Magenta}" FontWeight="Bold"/>
                                         </Grid>
-                                        <Slider x:Name="SldMicBoostDb" Minimum="0" Maximum="30" TickFrequency="10" IsSnapToTickEnabled="True" Value="0" ValueChanged="SldMicBoostDb_ValueChanged"/>
+                                        <Slider x:Name="SldMicBoostDb" Minimum="0" Maximum="30" TickFrequency="10" IsSnapToTickEnabled="True" Value="0" ValueChanged="SldMicBoostDb_ValueChanged"
+                                                ToolTip="Hardware analog pre-amplifier gain on the Realtek codec (+0, +10, +20, or +30 dB). Keep as low as possible for lowest background hiss."/>
                                         <TextBlock Text="Steps: +0 dB (Standard), +10 dB, +20 dB, +30 dB (Maximum Pre-Amp)" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0"/>
                                     </StackPanel>
                                 </Border>
@@ -727,23 +1127,31 @@
                                            Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
                                 <CheckBox x:Name="ChkMicNoiseSuppression" Content="Noise Suppression (Reduces static background hiss &amp; fan noise)" FontWeight="SemiBold"
-                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"
+                                          ToolTip="Filters steady background noise like PC fans, AC hum, and analog hiss from your microphone recording"/>
                                 <CheckBox x:Name="ChkMicAec" Content="Acoustic Echo Cancellation (AEC — Removes speaker playback echo)" FontWeight="SemiBold"
-                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"
+                                          ToolTip="Cancels speaker audio bleeding back into your microphone during voice chat and calls"/>
                                 <CheckBox x:Name="ChkMicBeamForming" Content="Beam Forming (Directional 30° pickup cone for stereo microphone)" FontWeight="SemiBold"
-                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"
+                                          ToolTip="Focuses pickup directly in front of a dual/stereo mic array while rejecting off-axis room noise"/>
                                 <CheckBox x:Name="ChkMicDcOffset" Content="DC Offset Cancellation (Centers input waveform DC voltage bias)" FontWeight="SemiBold"
-                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"
+                                          ToolTip="Removes constant DC voltage bias from cheap analog mic capsules to prevent clicks and headroom loss"/>
                                 <CheckBox x:Name="ChkMicMono" Content="Mono Microphone Mode (Duplicates mono mic capsule to Left + Right)" FontWeight="SemiBold"
-                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"
+                                          ToolTip="Mirrors a single-channel mono microphone cleanly across both Left and Right recording channels"/>
                                 <CheckBox x:Name="ChkMicConference" Content="Conference Call Multi-User Mode (Wide-angle voice pickup)" FontWeight="SemiBold"
-                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"
+                                          ToolTip="Optimizes microphone pickup for multiple speakers sitting around a desk or room"/>
                                 <CheckBox x:Name="ChkMicKeystroke" Content="Keystroke Noise Suppression (Suppresses mechanical keyboard typing)" FontWeight="SemiBold"
-                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"
+                                          ToolTip="Attenuates sharp transient mechanical keyboard clicks during voice calls and streaming"/>
 
                                 <Separator Background="{StaticResource Line}" Margin="0,12"/>
                                 <CheckBox x:Name="ChkCaptureDisableAll" Content="Disable All Microphone Sound Effects" Foreground="{StaticResource Amber}"
-                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"/>
+                                          Checked="CaptureEffectToggle_Changed" Unchecked="CaptureEffectToggle_Changed"
+                                          ToolTip="Bypass all Realtek capture APO effects for raw, unprocessed studio/Line-In recording"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -753,7 +1161,7 @@
             <!-- ================================================================= -->
             <!-- TAB 6: JACK RETASKING, DRIVER TWEAKS, HOTKEYS & FX INSPECTOR -->
             <!-- ================================================================= -->
-            <TabItem Header="6. Jacks, Tweaks &amp; Inspector">
+            <TabItem Header="6. Jacks, Tweaks &amp; Inspector" ToolTip="Live physical jack plug-sense, instant jack retasking, kernel driver tweaks, global hotkeys, raw HDA verbs, and live APO FxProperties inspector">
                 <Grid Margin="16">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -770,8 +1178,19 @@
                         <!-- Physical Jack Panel & Retasking -->
                         <Border Grid.Column="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="14" Margin="0,0,8,0">
                             <StackPanel>
-                                <TextBlock Text="PHYSICAL JACK TOPOLOGY &amp; JACK RETASKING (HDA PINCONFIGOVERRIDEVERBS)" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="12.5" Margin="0,0,0,8"/>
-                                <ScrollViewer MaxHeight="190" VerticalScrollBarVisibility="Auto">
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="PHYSICAL JACK TOPOLOGY &amp; LIVE RETASKING" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="12.5" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TxtJackSenseBadge" Grid.Column="1" Text="● AUTO JACK-SENSE" Foreground="{StaticResource Green}" FontSize="10.5" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"
+                                               ToolTip="Live hardware jack plug/unplug detection polls automatically every second"/>
+                                    <Button x:Name="BtnResetDefaultJacks" Grid.Column="2" Content="Reset Defaults" Padding="8,2" FontSize="10.5" Margin="0" Click="BtnResetDefaultJacks_Click"
+                                            ToolTip="Restore all 8 physical analog jacks back to motherboard factory roles"/>
+                                </Grid>
+                                <ScrollViewer MaxHeight="208" VerticalScrollBarVisibility="Auto">
                                     <StackPanel x:Name="PanelJackPins"/>
                                 </ScrollViewer>
                             </StackPanel>
@@ -781,16 +1200,23 @@
                         <Border Grid.Column="1" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="14" Margin="8,0,0,0">
                             <StackPanel>
                                 <TextBlock Text="KERNEL DRIVER TWEAKS &amp; GLOBAL IN-GAME HOTKEYS" Foreground="{StaticResource Magenta}" FontWeight="Bold" FontSize="12.5" Margin="0,0,0,6"/>
-                                <CheckBox x:Name="ChkDrvMuteRearOnHp" Content="Mute rear output when front headphone plugged in"/>
-                                <CheckBox x:Name="ChkDrvIndependentStreams" Content="Make front and rear output devices playback two independent streams"/>
-                                <CheckBox x:Name="ChkDrvFrontHdaMode" Content="Front Panel HD Audio Jack Detection (Uncheck for AC97 / Disable FPJD)"/>
-                                <CheckBox x:Name="ChkDrvAntiPopPower" Content="Anti-Pop Power Management (Prevent codec D3 sleep pop)"/>
-                                <CheckBox x:Name="ChkDrvSwapCenLfe" Content="Driver-Level Center / Subwoofer Swap"/>
+                                <CheckBox x:Name="ChkDrvMuteRearOnHp" Content="Mute rear output when front headphone plugged in"
+                                          ToolTip="Automatically silences your rear Green speaker jack whenever headphones are plugged into the front panel jack"/>
+                                <CheckBox x:Name="ChkDrvIndependentStreams" Content="Make front and rear output devices playback two independent streams"
+                                          ToolTip="Splits Front Headphone and Rear Speakers into two separate Windows playback devices so you can play different audio on each"/>
+                                <CheckBox x:Name="ChkDrvFrontHdaMode" Content="Front Panel HD Audio Jack Detection (Uncheck for AC97 / Disable FPJD)"
+                                          ToolTip="Enable standard HD Audio front panel jack-sense. Uncheck if you have an older AC97 PC case header or broken front jack switch."/>
+                                <CheckBox x:Name="ChkDrvAntiPopPower" Content="Anti-Pop Power Management (Prevent codec D3 sleep pop)"
+                                          ToolTip="Disables idle D3 power-down on the Realtek HDA codec so your speakers/amp never make a loud 'pop' when audio starts or stops"/>
+                                <CheckBox x:Name="ChkDrvSwapCenLfe" Content="Driver-Level Center / Subwoofer Swap"
+                                          ToolTip="Swaps Center and Subwoofer channels inside the Realtek kernel driver GlobalSettings"/>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,6,0,8">
-                                    <Button x:Name="BtnApplyDriverTweaks" Content="Apply Driver Tweaks" Style="{StaticResource AccentButton}" Click="BtnApplyDriverTweaks_Click"/>
+                                    <Button x:Name="BtnApplyDriverTweaks" Content="Apply Driver Tweaks" Style="{StaticResource AccentButton}" Click="BtnApplyDriverTweaks_Click"
+                                            ToolTip="Save the checked kernel driver GlobalSettings and PowerSettings tweaks to the Realtek driver"/>
                                     <CheckBox x:Name="ChkGlobalHotkeys" Content="Enable Global Hotkeys (Ctrl+Alt+E / N / L / K)" IsChecked="True"
-                                              Checked="ChkGlobalHotkeys_Changed" Unchecked="ChkGlobalHotkeys_Changed" VerticalAlignment="Center"/>
+                                              Checked="ChkGlobalHotkeys_Changed" Unchecked="ChkGlobalHotkeys_Changed" VerticalAlignment="Center"
+                                              ToolTip="Register system-wide keyboard shortcuts so you can toggle EQ, cycle presets, Loudness, and Karaoke even inside full-screen games"/>
                                 </StackPanel>
                                 <TextBlock Text="Hotkeys: Ctrl+Alt+E (Toggle EQ) • Ctrl+Alt+N (Next EQ Preset) • Ctrl+Alt+L (Loudness) • Ctrl+Alt+K (Voice Cancel)"
                                            Foreground="{StaticResource Muted}" FontSize="10.5" TextWrapping="Wrap"/>
@@ -814,18 +1240,20 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="LIVE FXPROPERTIES &amp; APO INSPECTOR:" Foreground="{StaticResource Green}" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <TextBox x:Name="TxtPropFilter" Grid.Column="1" TextChanged="TxtPropFilter_TextChanged" ToolTip="Search by PROPERTYKEY GUID, name, or category"/>
+                                <TextBox x:Name="TxtPropFilter" Grid.Column="1" TextChanged="TxtPropFilter_TextChanged" ToolTip="Filter the live APO FxProperties table by PROPERTYKEY GUID, name, category, or decoded value"/>
 
                                 <!-- Raw HDA Verb Console -->
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <TextBlock Text="HDA Verb:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,6,0"/>
-                                    <TextBox x:Name="TxtHdaWidget" Width="54" Text="0x00" ToolTip="Widget ID (hex)" Margin="0,0,4,0"/>
-                                    <TextBox x:Name="TxtHdaVerb" Width="64" Text="0xF00" ToolTip="Verb ID (hex, e.g. 0xF00 GetParameter)" Margin="0,0,4,0"/>
-                                    <TextBox x:Name="TxtHdaPayload" Width="54" Text="0x00" ToolTip="Payload (hex)" Margin="0,0,6,0"/>
-                                    <Button x:Name="BtnSendHdaVerb" Content="Send Verb" Click="BtnSendHdaVerb_Click"/>
+                                    <TextBox x:Name="TxtHdaWidget" Width="54" Text="0x00" ToolTip="Intel HDA Node / Widget ID in hex (e.g., 0x00 Root, 0x14 Rear Green Pin)" Margin="0,0,4,0"/>
+                                    <TextBox x:Name="TxtHdaVerb" Width="64" Text="0xF00" ToolTip="Intel HDA Verb ID in hex (e.g., 0xF00 Get Parameter, 0xF09 Get Pin Sense)" Margin="0,0,4,0"/>
+                                    <TextBox x:Name="TxtHdaPayload" Width="54" Text="0x00" ToolTip="Intel HDA Verb Payload in hex (e.g., 0x00 Vendor/Device ID)" Margin="0,0,6,0"/>
+                                    <Button x:Name="BtnSendHdaVerb" Content="Send Verb" Click="BtnSendHdaVerb_Click"
+                                            ToolTip="Send a direct low-level Intel HD Audio codec command verb via RtCOM64 IPropSet20080 and display the 32-bit hardware response"/>
                                 </StackPanel>
 
-                                <Button x:Name="BtnExportDiagReport" Grid.Column="3" Content="Export Community Diagnostic JSON" Margin="0" Click="BtnExportDiagReport_Click"/>
+                                <Button x:Name="BtnExportDiagReport" Grid.Column="3" Content="Export Community Diagnostic JSON" Margin="0" Click="BtnExportDiagReport_Click"
+                                        ToolTip="Export a complete JSON snapshot of your codec, driver tweaks, jack topology, endpoints, and FxProperties for troubleshooting"/>
                             </Grid>
 
                             <DataGrid x:Name="GridPropertiesInspector" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
@@ -851,6 +1279,146 @@
                                     <DataGridTextColumn Header="Decoded Value" Binding="{Binding DecodedValue}" Width="*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ================================================================= -->
+            <!-- TAB 7: LIVE AUDIO SPECTRUM & STUDIO VISUALIZER (60 FPS WASAPI) -->
+            <!-- ================================================================= -->
+            <TabItem x:Name="TabVisualizer" Header="7. Visualizer" ToolTip="Real-time 60 FPS WASAPI loopback audio spectrum (up to 256-band FFT), Mirror Wave, Stereo Oscilloscope, Spectrogram Waterfall, Phase Vectorscope, and Radial Halo">
+                <Grid Margin="14,12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Visualizer Control Toolbar -->
+                    <Border Grid.Row="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="154"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="82"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="Mode:" VerticalAlignment="Center" Foreground="{StaticResource Cyan}" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                            <ComboBox x:Name="CmbVisMode" Grid.Column="1" SelectedIndex="0" Margin="0,0,8,0" SelectionChanged="VisSetting_Changed"
+                                      ToolTip="Choose the live 60 FPS audio visualization mode">
+                                <ComboBoxItem Content="Spectrum Bars (FFT)" Tag="Bars"/>
+                                <ComboBoxItem Content="Mirror Spectrum Wave" Tag="Mirror"/>
+                                <ComboBoxItem Content="Stereo Oscilloscope" Tag="Oscilloscope"/>
+                                <ComboBoxItem Content="Spectrogram Waterfall" Tag="Waterfall"/>
+                                <ComboBoxItem Content="Stereo Vectorscope" Tag="Vectorscope"/>
+                                <ComboBoxItem Content="Radial Cyber Halo" Tag="Radial"/>
+                            </ComboBox>
+
+                            <TextBlock Grid.Column="2" Text="Range:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
+                            <ComboBox x:Name="CmbVisRange" Grid.Column="3" SelectedIndex="0" Margin="0,0,8,0" SelectionChanged="VisSetting_Changed"
+                                      ToolTip="Frequency range &amp; scale: 5 Hz–48 kHz shows deep infrasonic sub-bass down to 5 Hz and ultrasonic highs up to 48 kHz (requires 96/192 kHz sample rate in Tab 3 for audio above 24 kHz Nyquist)">
+                                <ComboBoxItem Content="5 Hz – 48 kHz (Full)" Tag="5:48000:Log"/>
+                                <ComboBoxItem Content="5 Hz – 24 kHz (Studio)" Tag="5:24000:Log"/>
+                                <ComboBoxItem Content="0 Hz – 48 kHz (Linear)" Tag="0:48000:Lin"/>
+                                <ComboBoxItem Content="20 Hz – 20 kHz (EQ)" Tag="20:20000:Log"/>
+                            </ComboBox>
+
+                            <TextBlock Grid.Column="4" Text="Bands:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
+                            <ComboBox x:Name="CmbVisBands" Grid.Column="5" SelectedIndex="2" Margin="0,0,8,0" SelectionChanged="VisSetting_Changed"
+                                      ToolTip="FFT spectrum resolution (64 chunky LED bars, 128 studio bars, or 256 ultra hi-res frequency bins)">
+                                <ComboBoxItem Content="64" Tag="64"/>
+                                <ComboBoxItem Content="128" Tag="128"/>
+                                <ComboBoxItem Content="256" Tag="256"/>
+                            </ComboBox>
+
+                            <TextBlock Grid.Column="6" Text="Theme:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
+                            <ComboBox x:Name="CmbVisPalette" Grid.Column="7" SelectedIndex="0" Margin="0,0,10,0" SelectionChanged="VisSetting_Changed"
+                                      ToolTip="Select the neon color palette for the spectrum and waterfall heat map">
+                                <ComboBoxItem Content="Spectra Neon" Tag="Spectra"/>
+                                <ComboBoxItem Content="Studio RTA" Tag="Studio"/>
+                                <ComboBoxItem Content="Electric Ice" Tag="Ice"/>
+                                <ComboBoxItem Content="Plasma Fire" Tag="Fire"/>
+                            </ComboBox>
+
+                            <CheckBox x:Name="ChkVisPeakHold" Grid.Column="8" Content="Peaks" IsChecked="True" VerticalAlignment="Center" Margin="0,0,10,0"
+                                      ToolTip="Show floating peak-hold markers with gravity decay above each spectrum bar"/>
+
+                            <StackPanel Grid.Column="9" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="Sens:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,0,4,0"/>
+                                <Slider x:Name="SldVisSensitivity" Width="62" Minimum="0.4" Maximum="2.0" Value="1.0" VerticalAlignment="Center" Margin="0,0,8,0"
+                                        ToolTip="Adjust vertical sensitivity / input gain boost for quiet or loud music"/>
+                                <TextBlock Text="Smooth:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,0,4,0"/>
+                                <Slider x:Name="SldVisSmoothing" Width="62" Minimum="0.25" Maximum="0.90" Value="0.72" VerticalAlignment="Center"
+                                        ToolTip="Adjust spectrum decay smoothness (left = snappy transient response, right = silky fluid motion)"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="10" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="BtnVisPause" Content="Pause" Padding="9,5" Margin="0,0,6,0" Click="BtnVisPause_Click"
+                                        ToolTip="Freeze or resume the live visualizer frame to inspect a frequency peak or waveform"/>
+                                <Button Content="▶ Test" Style="{StaticResource CyanActionButton}" Padding="9,5" Margin="0" Click="BtnTestEqTone_Click"
+                                        ToolTip="Play a harmonic studio chord to test the live spectrum immediately"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Main 60 FPS Visualizer Viewport -->
+                    <Border Grid.Row="1" Background="#070A14" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" ClipToBounds="True"
+                            ToolTip="Live 60 FPS audio visualizer captured directly from Windows WASAPI loopback (0% CPU when switching away from Tab 7)">
+                        <Grid x:Name="VisualizerViewport" SizeChanged="VisualizerViewport_SizeChanged">
+                            <Image x:Name="ImgVisualizer" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                            <TextBlock x:Name="TxtVisHeaderTag" Text="256-BAND LOGARITHMIC FFT SPECTRUM (5 Hz — 48 kHz)"
+                                       Foreground="#56699C" FontSize="10.5" FontWeight="Bold" FontFamily="Consolas"
+                                       HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,8,0,0" IsHitTestVisible="False"/>
+                            <TextBlock x:Name="TxtVisStreamBadge" Text="● STANDBY"
+                                       Foreground="{StaticResource Green}" FontSize="10.5" FontWeight="Bold" FontFamily="Consolas"
+                                       HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,12,0" IsHitTestVisible="False"/>
+                            <TextBlock x:Name="TxtVisIdleHint" Text="Waiting for audio playback... Play music or click '▶ Test' above to see the live spectrum!"
+                                       Foreground="{StaticResource Muted}" FontSize="13" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Dynamic Pixel-Aligned Frequency Axis Labels (5 Hz -> 48 kHz / 0 Hz Linear / 20 Hz -> 20 kHz) -->
+                    <Canvas x:Name="CanvasVisFreqAxis" Grid.Row="2" Height="20" Margin="0,4,0,6" ClipToBounds="False" SizeChanged="CanvasVisFreqAxis_SizeChanged"/>
+
+                    <!-- Live Mastering Telemetry Strip -->
+                    <Border Grid.Row="3" Background="#0A0E1B" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,7">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center"
+                                        ToolTip="Frequency of the loudest spectral peak currently playing (Hz)">
+                                <TextBlock Text="DOMINANT PEAK: " Foreground="{StaticResource Muted}" FontSize="10.5" FontWeight="Bold" FontFamily="Consolas"/>
+                                <TextBlock x:Name="TxtVisDomFreq" Text="—" Foreground="{StaticResource Cyan}" FontSize="11" FontWeight="Bold" FontFamily="Consolas"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,18,0"
+                                        ToolTip="Real-time stereo Root-Mean-Square (RMS) loudness in dBFS">
+                                <TextBlock Text="RMS LOUDNESS: " Foreground="{StaticResource Muted}" FontSize="10.5" FontWeight="Bold" FontFamily="Consolas"/>
+                                <TextBlock x:Name="TxtVisRmsDb" Text="-90.0 dBFS" Foreground="{StaticResource Green}" FontSize="11" FontWeight="Bold" FontFamily="Consolas"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                                        ToolTip="Stereo Phase Correlation: +1.0 = centered mono, 0.0 = wide stereo, negative = out-of-phase">
+                                <TextBlock Text="STEREO PHASE: " Foreground="{StaticResource Muted}" FontSize="10.5" FontWeight="Bold" FontFamily="Consolas"/>
+                                <TextBlock x:Name="TxtVisPhase" Text="+1.00 (Mono)" Foreground="{StaticResource Magenta}" FontSize="11" FontWeight="Bold" FontFamily="Consolas"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+                                        ToolTip="Active Windows WASAPI loopback stream sample rate, channel count, and format">
+                                <TextBlock x:Name="TxtVisFormatInfo" Text="WASAPI Loopback Ready" Foreground="{StaticResource Muted}" FontSize="10.5" FontFamily="Consolas"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>

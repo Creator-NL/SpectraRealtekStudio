@@ -85,7 +85,7 @@ internal static class Program
                 {
                     GeneratedUtc = DateTime.UtcNow,
                     Hardware = studio.DriverHardware.ReadHardwareTweaks(),
-                    JackPins = studio.DriverHardware.ReadJackPins(),
+                    JackPins = studio.QueryLiveJackPins(endpoints),
                     Endpoints = endpoints,
                     ActiveSpeakerState = defaultSpeaker != null ? studio.ReadPlaybackState(defaultSpeaker.EndpointId) : null,
                     ActiveSpeakerFormat = defaultSpeaker != null ? studio.ReadFormatState(defaultSpeaker.EndpointId) : null,
@@ -148,12 +148,13 @@ internal static class Program
             Console.WriteLine($"  Room Correction   : {(pb.RoomCorrectionEnabled ? "ON" : "OFF")} | BassMgt={(pb.BassManagementEnabled ? "ON" : "OFF")} | SwapCenterSub={(pb.SwapCenterSubwooferEnabled ? "ON" : "OFF")}");
         }
 
-        var jacks = studio.DriverHardware.ReadJackPins(studio.RealtekCom.TryQueryJackPlugStatesFromCom());
+        var jacks = studio.QueryLiveJackPins(endpoints);
         Console.WriteLine();
-        Console.WriteLine("--- Physical Jack Pins (HDA PinConfigOverrideVerbs) ---");
+        Console.WriteLine("--- Physical Jack Pins (Live Hardware Jack-Sense & Retask Roles) ---");
         foreach (var j in jacks.Where(p => p.IsPhysicalJack))
         {
-            Console.WriteLine($"  Pin 0x{j.PinWidgetId:X2} [{j.PanelLocation,-11}] {j.JackColorName,-28} -> {j.AssignedRoleName,-25} (Config=0x{j.RawPinConfig:X8})");
+            string plugStr = j.IsPluggedIn ? "PLUGGED" : "IDLE   ";
+            Console.WriteLine($"  Pin 0x{j.PinWidgetId:X2} [{j.PanelLocation,-11}] {j.JackColorName,-28} [{plugStr}] -> {j.AssignedRoleName,-25} (Role={j.RetaskRoleCode}, Mask=0x{j.SupportedRolesMask:X4})");
         }
     }
 
@@ -216,6 +217,67 @@ internal static class Program
             if (mixerNodes.Count == 0)
                 throw new InvalidOperationException("No analog mixer subunits discovered.");
             Console.WriteLine($"  [PASS] 5. Analog Hardware Monitoring Subunits ({mixerNodes.Count} nodes) verified.");
+            passed++;
+        }
+
+        // 6. Jack Retask Role Bitmask & Live Endpoint Fallback Verification
+        var testPin14 = DriverHardwareService.DecodeHdaPinConfig(8, 0x14, 0x01015410u);
+        testPin14.SupportedRolesMask = 0x0015;
+        var roles14 = DriverHardwareService.GetSupportedRolesForPin(testPin14).Select(r => r.RetaskCode).ToArray();
+        if (roles14.Length != 3 || !roles14.Contains((byte)4) || !roles14.Contains((byte)2) || !roles14.Contains((byte)0))
+            throw new InvalidOperationException("Supported retask role bitmask filtering failed for Pin 0x14.");
+
+        var mockUnplugged = new System.Collections.Generic.List<RealtekEndpointInfo>
+        {
+            new() { FriendlyName = "Speakers", DataFlow = AudioEndpointFlow.Render, IsRealtek = true, DeviceState = 8 },
+            new() { FriendlyName = "Line In", DataFlow = AudioEndpointFlow.Capture, IsRealtek = true, DeviceState = 8 }
+        };
+        if (DriverHardwareService.InferPluggedFromEndpoints(testPin14, mockUnplugged))
+            throw new InvalidOperationException("Endpoint fallback falsely reported unplugged Speakers as plugged.");
+        mockUnplugged[0].DeviceState = 1;
+        if (!DriverHardwareService.InferPluggedFromEndpoints(testPin14, mockUnplugged))
+            throw new InvalidOperationException("Endpoint fallback failed to report active Speakers as plugged.");
+        Console.WriteLine("  [PASS] 6. Live Jack-Sense Bitmask Filtering & Non-Hardcoded Endpoint Fallback verified.");
+        passed++;
+
+        // 7. Clean Capture Endpoint Filtering (No 0x10000004 Ghost Duplicates) & SemVer Update Parser
+        var ghostCaptures = endpoints.Where(e => (e.DeviceState & 0x00000004u) != 0).ToList();
+        if (ghostCaptures.Count > 0)
+            throw new InvalidOperationException($"Found {ghostCaptures.Count} stale NOTPRESENT ghost endpoints in discovery list.");
+        if (!UpdateCheckService.TryParseSemanticVersion("v1.0.1", out var vNew) ||
+            !UpdateCheckService.TryParseSemanticVersion("v1.0.0", out var vOld) ||
+            !(vNew! > vOld!))
+            throw new InvalidOperationException("Semantic version update comparison check failed.");
+        Console.WriteLine($"  [PASS] 7. Clean Endpoint Filtering (0 ghost duplicates) & Update Version Parser verified.");
+        passed++;
+
+        // 8. 8192-pt Radix-2 FFT & 256-Band (5 Hz – 48 kHz) Logarithmic Audio Visualizer Verification
+        using (var vis = new WasapiLoopbackAnalyzer())
+        {
+            float[] sineL = new float[4096];
+            float[] sineR = new float[4096];
+            for (int i = 0; i < 4096; i++)
+            {
+                float s = (float)(0.5 * Math.Sin(2.0 * Math.PI * 1000.0 * i / 48000.0));
+                sineL[i] = s;
+                sineR[i] = s;
+            }
+            vis.InjectStereoSamplesForTest(sineL, sineR, 48000);
+            var frame = vis.ComputeFrame(256, 1.0, 0.25, 5.0, 48000.0);
+            int peakBand = Array.IndexOf(frame.Spectrum, frame.Spectrum.Max());
+            if (frame.Spectrum.Length != 256 || !frame.HasSignal || frame.DominantFrequencyHz < 985 || frame.DominantFrequencyHz > 1015 || peakBand < 142 || peakBand > 154)
+                throw new InvalidOperationException($"FFT visualizer verification failed: Dom={frame.DominantFrequencyHz:0.0}Hz PeakBand={peakBand}");
+
+            // Also verify 96 kHz ultrasonic response (36 kHz tone) up to 48 kHz ceiling
+            float[] ultra = new float[8192];
+            for (int i = 0; i < 8192; i++)
+                ultra[i] = (float)(0.5 * Math.Sin(2.0 * Math.PI * 36000.0 * i / 96000.0));
+            vis.InjectStereoSamplesForTest(ultra, ultra, 96000);
+            var uFrame = vis.ComputeFrame(256, 1.0, 0.25, 5.0, 48000.0);
+            if (uFrame.DominantFrequencyHz < 35900 || uFrame.DominantFrequencyHz > 36100)
+                throw new InvalidOperationException($"Ultrasonic 48 kHz FFT check failed: Dom={uFrame.DominantFrequencyHz:0.0}Hz");
+
+            Console.WriteLine($"  [PASS] 8. 8192-pt Radix-2 FFT & 256-Band (5 Hz – 48 kHz) Visualizer verified (1 kHz -> {frame.DominantFrequencyHz:0.0} Hz Band #{peakBand}/256, 36 kHz@96k -> {uFrame.DominantFrequencyHz:0.0} Hz, {frame.RmsDb:0.0} dBFS).");
             passed++;
         }
 

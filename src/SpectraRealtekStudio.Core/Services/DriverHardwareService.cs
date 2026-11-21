@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Principal;
+using System.Text;
 using Microsoft.Win32;
+using SpectraRealtekStudio.Core.Interop;
 using SpectraRealtekStudio.Core.Models;
 
 namespace SpectraRealtekStudio.Core.Services;
@@ -13,11 +16,103 @@ namespace SpectraRealtekStudio.Core.Services;
 /// <summary>
 /// Reads and configures Realtek High Definition Audio kernel driver settings,
 /// decodes Intel HDA Pin Configuration Default verbs (0x71C..0x71F) for all physical jacks,
-/// supports Jack Retasking, and reads fallback analog mixer monitoring nodes.
+/// supports live Jack Retasking (non-admin RtCOM64 IPropSet20146 + hidden elevated fallback),
+/// and reads fallback analog mixer monitoring nodes.
 /// </summary>
 public sealed class DriverHardwareService
 {
     private const string MediaClassRegistryPath = @"SYSTEM\CurrentControlSet\Control\Class\{4d36e96c-e325-11ce-bfc1-08002be10318}";
+
+    /// <summary>
+    /// Complete Realtek RtskDevType jack retasking roles (matches Settings\Drv...\PinXX and RtCOM64 SetDeviceTypeWidget).
+    /// </summary>
+    public static readonly IReadOnlyList<JackRetaskRoleOption> RetaskRoles = new JackRetaskRoleOption[]
+    {
+        new(4, "Front Speaker Out (L/R)", 0x0, 0x1, 0x0),
+        new(2, "Headphone Out",           0x2, 0x2, 0x0),
+        new(5, "Rear Speaker Out (RL/RR)",0x0, 0x1, 0x2),
+        new(6, "Center / Subwoofer Out",  0x0, 0x1, 0x1),
+        new(7, "Side Speaker Out (SL/SR)",0x0, 0x1, 0x4),
+        new(0, "Line In",                 0x8, 0x3, 0xF),
+        new(1, "Microphone In",           0xA, 0x3, 0x0)
+    };
+
+    public static JackRetaskRoleOption GetRetaskRoleOption(byte retaskRoleCode)
+    {
+        foreach (var opt in RetaskRoles)
+        {
+            if (opt.RetaskCode == retaskRoleCode)
+                return opt;
+        }
+        return RetaskRoles[0];
+    }
+
+    public static byte GetFactoryRetaskRoleForWidget(byte widgetId, byte hdaDefDev = 0x0, byte hdaSeq = 0x0)
+    {
+        return widgetId switch
+        {
+            0x14 => 4, // Rear Lime Green: Front Speaker Out
+            0x15 => 5, // Rear Black: Rear Speaker Out
+            0x16 => 6, // Rear Orange: Center / Subwoofer Out
+            0x17 => 7, // Rear Grey: Side Speaker Out
+            0x18 => 1, // Rear Pink: Microphone In
+            0x19 => 1, // Front Pink: Microphone In
+            0x1A => 0, // Rear Light Blue: Line In
+            0x1B => 2, // Front Lime Green: Headphone Out
+            _ => InferRetaskRoleFromHdaConfig(widgetId, hdaDefDev, hdaSeq)
+        };
+    }
+
+    public static byte InferRetaskRoleFromHdaConfig(byte widgetId, byte hdaDefDev, byte hdaSeq)
+    {
+        return hdaDefDev switch
+        {
+            0x2 => 2, // Headphone Out
+            0x8 => 0, // Line In
+            0xA => 1, // Microphone In
+            0x0 => hdaSeq switch
+            {
+                0x0 => 4, // Front Speaker Out
+                0x1 => 6, // Center / Subwoofer Out
+                0x2 => 5, // Rear Speaker Out
+                0x4 => 7, // Side Speaker Out
+                _ => widgetId switch
+                {
+                    0x15 => 5,
+                    0x16 => 6,
+                    0x17 => 7,
+                    _ => 4
+                }
+            },
+            _ => 4
+        };
+    }
+
+    public static ushort GetDefaultSupportedMaskForWidget(byte widgetId)
+    {
+        return widgetId switch
+        {
+            0x14 => 0x0015, // Line In, Headphone, Front Out
+            0x15 => 0x0021, // Line In, Rear Out
+            0x16 => 0x0041, // Line In, Center/Sub
+            0x17 => 0x0081, // Line In, Side Out
+            0x1A => 0x00F5, // Line In, Headphone, Front/Rear/Center/Side
+            _ => 0x00F7     // All 7 analog roles
+        };
+    }
+
+    public static List<JackRetaskRoleOption> GetSupportedRolesForPin(JackPinInfo pin)
+    {
+        ushort mask = pin.SupportedRolesMask != 0 ? pin.SupportedRolesMask : GetDefaultSupportedMaskForWidget(pin.PinWidgetId);
+        var list = RetaskRoles
+            .Where(r => (mask & (1 << r.RetaskCode)) != 0 || r.RetaskCode == pin.RetaskRoleCode)
+            .ToList();
+
+        if (list.Count == 0)
+            return RetaskRoles.ToList();
+
+        return list;
+    }
 
     public static bool IsRunningAsAdministrator()
     {
@@ -142,10 +237,34 @@ public sealed class DriverHardwareService
 
     public List<JackPinInfo> ReadJackPins(Dictionary<byte, bool>? comPlugStates = null)
     {
+        Dictionary<byte, LiveJackHardwareInfo>? liveMap = null;
+        if (comPlugStates != null && comPlugStates.Count > 0)
+        {
+            liveMap = new Dictionary<byte, LiveJackHardwareInfo>();
+            foreach (var kv in comPlugStates)
+            {
+                liveMap[kv.Key] = new LiveJackHardwareInfo
+                {
+                    WidgetId = kv.Key,
+                    IsPluggedIn = kv.Value,
+                    SupportedRolesMask = GetDefaultSupportedMaskForWidget(kv.Key),
+                    Source = "RtCOM64"
+                };
+            }
+        }
+        return ReadJackPins(liveMap, endpoints: null);
+    }
+
+    public List<JackPinInfo> ReadJackPins(
+        Dictionary<byte, LiveJackHardwareInfo>? liveHwMap,
+        List<RealtekEndpointInfo>? endpoints)
+    {
         var pins = new List<JackPinInfo>();
         string? keyPath = FindRealtekDriverKeyPath();
         if (string.IsNullOrEmpty(keyPath))
             return pins;
+
+        var activeRegRoles = ReadActivePinRolesFromSettings(keyPath);
 
         try
         {
@@ -173,16 +292,37 @@ public sealed class DriverHardwareService
                 uint rawConfig = (uint)(v0[0] | (v1[0] << 8) | (v2[0] << 16) | (v3[0] << 24));
 
                 var pin = DecodeHdaPinConfig(i, widgetId, rawConfig);
-                if (comPlugStates != null && comPlugStates.TryGetValue(widgetId, out bool plugged))
+                pin.SupportedRolesMask = GetDefaultSupportedMaskForWidget(widgetId);
+
+                // Apply live kernel hardware sensor info (Direct KSProperty or RtCOM64)
+                if (liveHwMap != null && liveHwMap.TryGetValue(widgetId, out var hw))
                 {
-                    pin.IsPluggedIn = plugged;
+                    pin.IsPluggedIn = hw.IsPluggedIn;
+                    pin.LiveSensorSource = hw.Source;
+                    if (hw.SupportedRolesMask != 0)
+                        pin.SupportedRolesMask = hw.SupportedRolesMask;
+                    if (hw.HardwarePinConfig != 0)
+                    {
+                        // Use live kernel HardwarePinConfig as baseline role before checking Settings\PinXX
+                        byte hwDef = (byte)((hw.HardwarePinConfig >> 20) & 0xF);
+                        byte hwSeq = (byte)(hw.HardwarePinConfig & 0xF);
+                        byte hwRole = InferRetaskRoleFromHdaConfig(widgetId, hwDef, hwSeq);
+                        ApplyRetaskRoleMetadata(pin, hwRole);
+                    }
                 }
-                else
+                else if (endpoints != null && endpoints.Count > 0 && pin.IsPhysicalJack)
                 {
-                    // Check active endpoints for default plugged indicator on Rear Green (0x14) and Rear Blue (0x1A)
-                    if (widgetId == 0x14 || widgetId == 0x1A)
-                        pin.IsPluggedIn = true;
+                    // Endpoint-state fallback (strictly based on live Windows MMDevices DeviceState, never hardcoded)
+                    pin.IsPluggedIn = InferPluggedFromEndpoints(pin, endpoints);
+                    pin.LiveSensorSource = "Windows CoreAudio";
                 }
+
+                // Active Realtek driver retask override (Settings\Drv...\PinXX) takes precedence for assigned role
+                if (activeRegRoles.TryGetValue(widgetId, out byte regRole))
+                {
+                    ApplyRetaskRoleMetadata(pin, regRole);
+                }
+
                 pins.Add(pin);
             }
         }
@@ -191,6 +331,90 @@ public sealed class DriverHardwareService
         }
 
         return pins;
+    }
+
+    public Dictionary<byte, byte> ReadActivePinRolesFromSettings(string? driverKeyPath = null)
+    {
+        var map = new Dictionary<byte, byte>();
+        string? keyPath = driverKeyPath ?? FindRealtekDriverKeyPath();
+        if (string.IsNullOrEmpty(keyPath))
+            return map;
+
+        try
+        {
+            using var settingsKey = Registry.LocalMachine.OpenSubKey($@"{keyPath}\Settings", false);
+            string? subName = settingsKey?.GetSubKeyNames().FirstOrDefault();
+            if (string.IsNullOrEmpty(subName))
+                return map;
+
+            using var drvSub = settingsKey!.OpenSubKey(subName, false);
+            if (drvSub == null)
+                return map;
+
+            foreach (string valName in drvSub.GetValueNames())
+            {
+                if (valName.Length == 5 && valName.StartsWith("Pin", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (byte.TryParse(valName.Substring(3), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte wid))
+                    {
+                        uint role = ReadRegDwordOrBinary(drvSub, valName, 0xFF);
+                        if (role <= 7 && role != 3)
+                        {
+                            map[wid] = (byte)role;
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return map;
+    }
+
+    private static void ApplyRetaskRoleMetadata(JackPinInfo pin, byte retaskRoleCode)
+    {
+        var opt = GetRetaskRoleOption(retaskRoleCode);
+        pin.RetaskRoleCode = opt.RetaskCode;
+        pin.AssignedRoleName = opt.Label;
+        pin.DefaultDeviceCode = opt.HdaDefaultDevice;
+    }
+
+    public static bool InferPluggedFromEndpoints(JackPinInfo pin, List<RealtekEndpointInfo> endpoints)
+    {
+        var rtk = endpoints.Where(e => e.IsRealtek).ToList();
+        bool speakersActive = rtk.Any(e => e.DataFlow == AudioEndpointFlow.Render && e.IsActive &&
+            (e.FriendlyName.Contains("Speaker", StringComparison.OrdinalIgnoreCase) ||
+             e.TopologyPath.Contains("singlelineouttopo", StringComparison.OrdinalIgnoreCase) ||
+             e.TopologyPath.Contains("rearlineout", StringComparison.OrdinalIgnoreCase)));
+
+        bool hpActive = rtk.Any(e => e.DataFlow == AudioEndpointFlow.Render && e.IsActive &&
+            (e.FriendlyName.Contains("Headphone", StringComparison.OrdinalIgnoreCase) ||
+             e.FriendlyName.Contains("2nd output", StringComparison.OrdinalIgnoreCase) ||
+             e.TopologyPath.Contains("frontlineout", StringComparison.OrdinalIgnoreCase)));
+
+        bool lineInActive = rtk.Any(e => e.DataFlow == AudioEndpointFlow.Capture && e.IsActive &&
+            (e.FriendlyName.Contains("Line In", StringComparison.OrdinalIgnoreCase) ||
+             e.TopologyPath.Contains("rtlineintopo", StringComparison.OrdinalIgnoreCase)));
+
+        bool micActive = rtk.Any(e => e.DataFlow == AudioEndpointFlow.Capture && e.IsActive &&
+            (e.FriendlyName.Contains("Microphone", StringComparison.OrdinalIgnoreCase) ||
+             e.TopologyPath.Contains("rtmicintopo", StringComparison.OrdinalIgnoreCase)));
+
+        bool frontMicActive = rtk.Any(e => e.DataFlow == AudioEndpointFlow.Capture && e.IsActive &&
+            (e.FriendlyName.Contains("Front Mic", StringComparison.OrdinalIgnoreCase) ||
+             e.FriendlyName.Contains("Front Pink", StringComparison.OrdinalIgnoreCase)));
+
+        return pin.PinWidgetId switch
+        {
+            0x14 => speakersActive,
+            0x1B => hpActive,
+            0x1A => lineInActive,
+            0x18 => micActive,
+            0x19 => frontMicActive,
+            _ => false
+        };
     }
 
     public static JackPinInfo DecodeHdaPinConfig(int verbStartIndex, byte widgetId, uint rawConfig)
@@ -270,6 +494,8 @@ public sealed class DriverHardwareService
             JackColorHex = colorHex,
             ConnectorType = connector,
             DefaultDeviceCode = defDevice,
+            RetaskRoleCode = InferRetaskRoleFromHdaConfig(widgetId, defDevice, seq),
+            SupportedRolesMask = GetDefaultSupportedMaskForWidget(widgetId),
             AssignedRoleName = roleName,
             ConnectivityCode = connectivity,
             DefaultAssociation = assoc,
@@ -378,8 +604,24 @@ Set-ItemProperty -Path ""$base\PowerSettings"" -Name 'IdlePowerState' -Value ([b
         return ExecuteRegistryPowerShell(script, out statusMessage);
     }
 
-    public bool TryRetaskJackPin(JackPinInfo pin, byte newDefaultDeviceCode, out string statusMessage)
+    public bool TryRetaskJackPin(JackPinInfo pin, byte newRetaskRoleCode, out string statusMessage)
     {
+        return TryRetaskJackPin(pin, newRetaskRoleCode, realtekCom: null, out statusMessage);
+    }
+
+    public bool TryRetaskJackPin(JackPinInfo pin, byte newRetaskRoleCode, RealtekComInterop? realtekCom, out string statusMessage)
+    {
+        var role = GetRetaskRoleOption(newRetaskRoleCode);
+
+        // 1. Primary path: Live non-admin kernel jack retasking via RtCOM64.dll IPropSet20146::SetDeviceTypeWidget
+        //    Takes effect immediately inside RTKVHD64.sys with zero UAC prompt, no flashing console, and no reboot!
+        if (realtekCom != null && realtekCom.TryRetaskJackViaCom(pin.PinWidgetId, role.RetaskCode, out _))
+        {
+            statusMessage = $"Retasked Pin 0x{pin.PinWidgetId:X2} ({pin.JackColorName}) -> {role.Label} live in Realtek kernel driver (instant, no reboot required).";
+            return true;
+        }
+
+        // 2. Fallback path (for drivers without RtCOM64.dll): hidden elevated registry write + live PnP device reload
         string? keyPath = FindRealtekDriverKeyPath();
         if (string.IsNullOrEmpty(keyPath))
         {
@@ -387,59 +629,259 @@ Set-ItemProperty -Path ""$base\PowerSettings"" -Name 'IdlePowerState' -Value ([b
             return false;
         }
 
-        // Verb 2 (offset +2) carries DefaultDevice in bits [7:4] and ConnectionType in bits [3:0]
+        string settingsSub = GetSettingsSubkeyName(keyPath);
+        byte assoc = role.RetaskCode == 1 && pin.PinWidgetId == 0x19 ? (byte)0x4 : role.HdaAssociation;
+        byte newByte0 = (byte)(((assoc & 0x0F) << 4) | (role.HdaSequence & 0x0F));
         byte oldByte2 = (byte)((pin.RawPinConfig >> 16) & 0xFF);
-        byte newByte2 = (byte)((oldByte2 & 0x0F) | ((newDefaultDeviceCode & 0x0F) << 4));
+        byte newByte2 = (byte)((oldByte2 & 0x0F) | ((role.HdaDefaultDevice & 0x0F) << 4));
         byte widgetByte = (byte)((pin.PinWidgetId << 4) | 0x07);
-        string regValName = (pin.VerbStartIndex + 2).ToString("D4");
+        string regVal0 = pin.VerbStartIndex.ToString("D4");
+        string regVal2 = (pin.VerbStartIndex + 2).ToString("D4");
+        string pinValueName = $"Pin{pin.PinWidgetId:x2}";
 
-        string script = $@"
-$verbsPath = 'HKLM:\{keyPath}\PinConfigOverrideVerbs'
-Set-ItemProperty -Path $verbsPath -Name '{regValName}' -Value ([byte[]]@(0x{newByte2:X2}, 0x1E, 0x{widgetByte:X2}, 0x01)) -Type Binary
-";
-        if (ExecuteRegistryPowerShell(script, out statusMessage))
+        var sb = new StringBuilder();
+        sb.AppendLine("$ErrorActionPreference = 'Stop'");
+        sb.AppendLine($"$verbsPath = 'HKLM:\\{keyPath}\\PinConfigOverrideVerbs'");
+        sb.AppendLine($"Set-ItemProperty -Path $verbsPath -Name '{regVal0}' -Value ([byte[]]@(0x{newByte0:X2}, 0x1C, 0x{widgetByte:X2}, 0x01)) -Type Binary");
+        sb.AppendLine($"Set-ItemProperty -Path $verbsPath -Name '{regVal2}' -Value ([byte[]]@(0x{newByte2:X2}, 0x1E, 0x{widgetByte:X2}, 0x01)) -Type Binary");
+        if (!string.IsNullOrEmpty(settingsSub))
         {
-            statusMessage = $"Retasked Pin 0x{pin.PinWidgetId:X2} ({pin.JackColorName}) to device code 0x{newDefaultDeviceCode:X}. Restart audio device or reboot to apply new pin topology.";
+            sb.AppendLine($"$settingsPath = 'HKLM:\\{keyPath}\\Settings\\{settingsSub}'");
+            sb.AppendLine($"Set-ItemProperty -Path $settingsPath -Name '{pinValueName}' -Value ([byte[]]@(0x{role.RetaskCode:X2}, 0x00, 0x00, 0x00)) -Type Binary");
+        }
+        AppendLiveRealtekDeviceReloadScript(sb);
+
+        if (ExecuteRegistryPowerShell(sb.ToString(), out string psOutput, out statusMessage))
+        {
+            bool liveReloaded = psOutput.Contains("RELOAD_OK", StringComparison.OrdinalIgnoreCase);
+            statusMessage = liveReloaded
+                ? $"Retasked Pin 0x{pin.PinWidgetId:X2} ({pin.JackColorName}) -> {role.Label} and reloaded Realtek HDA driver live."
+                : $"Retasked Pin 0x{pin.PinWidgetId:X2} ({pin.JackColorName}) -> {role.Label}. Reboot PC if Windows locked the audio device.";
             return true;
         }
         return false;
     }
 
-    private static bool ExecuteRegistryPowerShell(string script, out string statusMessage)
+    public bool TryResetAllJacksToDefaults(List<JackPinInfo> pins, RealtekComInterop? realtekCom, out string statusMessage)
+    {
+        var physicalPins = pins.Where(p => p.IsPhysicalJack).ToList();
+        if (physicalPins.Count == 0)
+        {
+            statusMessage = "No physical analog jacks found to reset.";
+            return false;
+        }
+
+        int comApplied = 0;
+        if (realtekCom != null)
+        {
+            foreach (var pin in physicalPins)
+            {
+                byte factoryRole = GetFactoryRetaskRoleForWidget(pin.PinWidgetId);
+                if (realtekCom.TryRetaskJackViaCom(pin.PinWidgetId, factoryRole, out _))
+                {
+                    comApplied++;
+                }
+            }
+        }
+
+        // Check if PinConfigOverrideVerbs has any non-factory overrides (e.g., from legacy registry retasking)
+        string? keyPath = FindRealtekDriverKeyPath();
+        bool verbsNeedRestore = false;
+        var sb = new StringBuilder();
+        sb.AppendLine("$ErrorActionPreference = 'Stop'");
+
+        if (!string.IsNullOrEmpty(keyPath))
+        {
+            string settingsSub = GetSettingsSubkeyName(keyPath);
+            sb.AppendLine($"$verbsPath = 'HKLM:\\{keyPath}\\PinConfigOverrideVerbs'");
+            if (!string.IsNullOrEmpty(settingsSub))
+                sb.AppendLine($"$settingsPath = 'HKLM:\\{keyPath}\\Settings\\{settingsSub}'");
+
+            foreach (var pin in physicalPins)
+            {
+                byte factoryRoleCode = GetFactoryRetaskRoleForWidget(pin.PinWidgetId);
+                var role = GetRetaskRoleOption(factoryRoleCode);
+                byte expectedAssoc = role.RetaskCode == 1 && pin.PinWidgetId == 0x19 ? (byte)0x4 : role.HdaAssociation;
+                byte expectedByte0 = (byte)(((expectedAssoc & 0x0F) << 4) | (role.HdaSequence & 0x0F));
+                byte oldByte0 = (byte)(pin.RawPinConfig & 0xFF);
+                byte oldByte2 = (byte)((pin.RawPinConfig >> 16) & 0xFF);
+                byte expectedByte2 = (byte)((oldByte2 & 0x0F) | ((role.HdaDefaultDevice & 0x0F) << 4));
+
+                if (oldByte0 != expectedByte0 || oldByte2 != expectedByte2)
+                {
+                    verbsNeedRestore = true;
+                }
+
+                byte widgetByte = (byte)((pin.PinWidgetId << 4) | 0x07);
+                string regVal0 = pin.VerbStartIndex.ToString("D4");
+                string regVal2 = (pin.VerbStartIndex + 2).ToString("D4");
+                string pinValueName = $"Pin{pin.PinWidgetId:x2}";
+
+                sb.AppendLine($"Set-ItemProperty -Path $verbsPath -Name '{regVal0}' -Value ([byte[]]@(0x{expectedByte0:X2}, 0x1C, 0x{widgetByte:X2}, 0x01)) -Type Binary");
+                sb.AppendLine($"Set-ItemProperty -Path $verbsPath -Name '{regVal2}' -Value ([byte[]]@(0x{expectedByte2:X2}, 0x1E, 0x{widgetByte:X2}, 0x01)) -Type Binary");
+                if (!string.IsNullOrEmpty(settingsSub))
+                {
+                    sb.AppendLine($"Set-ItemProperty -Path $settingsPath -Name '{pinValueName}' -Value ([byte[]]@(0x{role.RetaskCode:X2}, 0x00, 0x00, 0x00)) -Type Binary");
+                }
+            }
+        }
+
+        if (comApplied == physicalPins.Count && !verbsNeedRestore)
+        {
+            statusMessage = $"Reset all {comApplied} physical jacks to factory defaults live (instant, no reboot required).";
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(keyPath))
+        {
+            if (comApplied < physicalPins.Count)
+            {
+                AppendLiveRealtekDeviceReloadScript(sb);
+            }
+
+            if (ExecuteRegistryPowerShell(sb.ToString(), out _, out string regMsg))
+            {
+                statusMessage = comApplied > 0
+                    ? $"Reset all {physicalPins.Count} physical jacks to factory defaults live and cleaned boot PinConfigOverrideVerbs."
+                    : $"Reset all {physicalPins.Count} physical jacks to factory defaults and reloaded Realtek HDA driver.";
+                return true;
+            }
+
+            if (comApplied > 0)
+            {
+                statusMessage = $"Reset {comApplied} jacks live via Realtek COM (optional boot verb cleanup skipped: {regMsg}).";
+                return true;
+            }
+
+            statusMessage = regMsg;
+            return false;
+        }
+
+        statusMessage = comApplied > 0
+            ? $"Reset {comApplied} physical jacks to factory defaults live."
+            : "Could not reset jack configuration.";
+        return comApplied > 0;
+    }
+
+    private string GetSettingsSubkeyName(string driverKeyPath)
     {
         try
         {
-            string tempFile = Path.Combine(Path.GetTempPath(), $"spectra_rtk_{Guid.NewGuid():N}.ps1");
-            File.WriteAllText(tempFile, script);
+            using var settingsKey = Registry.LocalMachine.OpenSubKey($@"{driverKeyPath}\Settings", false);
+            return settingsKey?.GetSubKeyNames().FirstOrDefault() ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static void AppendLiveRealtekDeviceReloadScript(StringBuilder sb)
+    {
+        sb.AppendLine(@"
+try {
+    $dev = Get-PnpDevice -Class MEDIA -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'HDAUDIO*VEN_10EC*' -and $_.Status -eq 'OK' } | Select-Object -First 1
+    if ($dev) {
+        $id = $dev.InstanceId
+        $out1 = & pnputil.exe /restart-device $id 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Output 'RELOAD_OK'
+        } else {
+            $audioWasRunning = (Get-Service -Name Audiosrv -ErrorAction SilentlyContinue).Status -eq 'Running'
+            if ($audioWasRunning) { Stop-Service -Name Audiosrv -Force -ErrorAction SilentlyContinue }
+            Start-Sleep -Milliseconds 300
+            $out2 = & pnputil.exe /restart-device $id 2>&1
+            $code2 = $LASTEXITCODE
+            if ($audioWasRunning) { Start-Service -Name Audiosrv -ErrorAction SilentlyContinue }
+            if ($code2 -eq 0) { Write-Output 'RELOAD_OK' } else { Write-Output 'REBOOT_REQUIRED' }
+        }
+    } else {
+        Write-Output 'NO_PNP_DEVICE'
+    }
+} catch {
+    Write-Output ('RELOAD_ERR: ' + $_.Exception.Message)
+}
+");
+    }
+
+    private static bool ExecuteRegistryPowerShell(string script, out string statusMessage)
+    {
+        return ExecuteRegistryPowerShell(script, out _, out statusMessage);
+    }
+
+    private static bool ExecuteRegistryPowerShell(string script, out string scriptOutput, out string statusMessage)
+    {
+        scriptOutput = string.Empty;
+        string tempFile = Path.Combine(Path.GetTempPath(), $"spectra_rtk_{Guid.NewGuid():N}.ps1");
+        string logFile = Path.Combine(Path.GetTempPath(), $"spectra_rtk_{Guid.NewGuid():N}.log");
+        try
+        {
+            string wrappedScript = $@"
+$__log = '{logFile.Replace("'", "''")}'
+try {{
+    $__out = & {{
+{script}
+    }} 2>&1 | Out-String
+    Set-Content -Path $__log -Value $__out -Encoding UTF8
+    exit 0
+}} catch {{
+    Set-Content -Path $__log -Value ('ERROR: ' + $_.Exception.Message) -Encoding UTF8
+    exit 1
+}}
+";
+            File.WriteAllText(tempFile, wrappedScript, Encoding.UTF8);
+
+            bool isAdmin = IsRunningAsAdministrator();
             var psi = new ProcessStartInfo
             {
                 FileName = "powershell.exe",
-                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{tempFile}\"",
-                UseShellExecute = !IsRunningAsAdministrator(),
-                CreateNoWindow = IsRunningAsAdministrator()
+                Arguments = $"-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File \"{tempFile}\"",
+                UseShellExecute = !isAdmin,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden
             };
-            if (!IsRunningAsAdministrator())
+            if (!isAdmin)
             {
                 psi.Verb = "runas";
             }
 
             using var proc = Process.Start(psi);
-            proc?.WaitForExit(15000);
-            try { File.Delete(tempFile); } catch { }
+            if (proc == null)
+            {
+                statusMessage = "Could not launch elevated PowerShell helper.";
+                return false;
+            }
 
-            if (proc != null && proc.ExitCode == 0)
+            bool exited = proc.WaitForExit(25000);
+            if (File.Exists(logFile))
+            {
+                scriptOutput = File.ReadAllText(logFile, Encoding.UTF8).Trim();
+            }
+
+            if (exited && proc.ExitCode == 0)
             {
                 statusMessage = "Hardware driver registry settings updated successfully.";
                 return true;
             }
 
-            statusMessage = $"Registry update exited with code {proc?.ExitCode ?? -1}.";
+            string errDetail = string.IsNullOrWhiteSpace(scriptOutput) ? $"exit code {(exited ? proc.ExitCode : -1)}" : scriptOutput;
+            statusMessage = $"Registry update failed ({errDetail}).";
+            return false;
+        }
+        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            statusMessage = "Administrator permission was cancelled by user.";
             return false;
         }
         catch (Exception ex)
         {
             statusMessage = $"Could not apply driver registry settings: {ex.Message}";
             return false;
+        }
+        finally
+        {
+            try { if (File.Exists(tempFile)) File.Delete(tempFile); } catch { }
+            try { if (File.Exists(logFile)) File.Delete(logFile); } catch { }
         }
     }
 

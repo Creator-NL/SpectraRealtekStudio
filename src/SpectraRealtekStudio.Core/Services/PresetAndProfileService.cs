@@ -11,6 +11,7 @@ public sealed class PresetAndProfileService
 {
     private readonly string _appDataFolder;
     private readonly string _customPresetsFilePath;
+    private readonly string _settingsFilePath;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -24,6 +25,40 @@ public sealed class PresetAndProfileService
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "SpectraRealtekStudio");
         _customPresetsFilePath = Path.Combine(_appDataFolder, "custom_eq_presets.json");
+        _settingsFilePath = Path.Combine(_appDataFolder, "settings.json");
+    }
+
+    public AppUserSettings LoadAppSettings()
+    {
+        try
+        {
+            if (!File.Exists(_settingsFilePath))
+                return new AppUserSettings();
+
+            string json = File.ReadAllText(_settingsFilePath);
+            var loaded = JsonSerializer.Deserialize<AppUserSettings>(json, JsonOptions) ?? new AppUserSettings();
+            loaded.MasterPreampGainDb = Math.Round(Math.Clamp(loaded.MasterPreampGainDb, -24.0, 12.0), 1);
+            loaded.AutoGainCeilingPercent = Math.Clamp(loaded.AutoGainCeilingPercent, 60, 98);
+            if (!string.Equals(loaded.AutoGainMode, "MasterVolume", StringComparison.OrdinalIgnoreCase))
+                loaded.AutoGainMode = "Preamp";
+            return loaded;
+        }
+        catch
+        {
+            return new AppUserSettings();
+        }
+    }
+
+    public void SaveAppSettings(AppUserSettings settings)
+    {
+        try
+        {
+            Directory.CreateDirectory(_appDataFolder);
+            File.WriteAllText(_settingsFilePath, JsonSerializer.Serialize(settings, JsonOptions));
+        }
+        catch
+        {
+        }
     }
 
     public List<EqPresetDefinition> GetAllEqPresets()

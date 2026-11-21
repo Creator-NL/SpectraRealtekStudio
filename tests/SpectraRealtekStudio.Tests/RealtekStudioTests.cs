@@ -76,6 +76,101 @@ public class RealtekStudioTests
     }
 
     [Fact]
+    public void JackRetaskRolesAndEndpointFallback_ShouldRespectHardwareBitmasksAndNeverHardcodePlugged()
+    {
+        // Hardware bitmask 0x0015 on Rear Green (0x14) allows Line In (0), Headphone (2), Front Speaker (4)
+        var pin14 = DriverHardwareService.DecodeHdaPinConfig(8, 0x14, 0x01015410u);
+        pin14.SupportedRolesMask = 0x0015;
+        var roles14 = DriverHardwareService.GetSupportedRolesForPin(pin14);
+        Assert.Equal(new byte[] { 4, 2, 0 }, roles14.Select(r => r.RetaskCode).ToArray());
+
+        // Hardware bitmask 0x00F5 on Rear Blue (0x1A) excludes Microphone In (1)
+        var pin1A = DriverHardwareService.DecodeHdaPinConfig(32, 0x1A, 0x01811430u);
+        pin1A.SupportedRolesMask = 0x00F5;
+        var roles1A = DriverHardwareService.GetSupportedRolesForPin(pin1A);
+        Assert.DoesNotContain(roles1A, r => r.RetaskCode == 1);
+        Assert.Contains(roles1A, r => r.RetaskCode == 0);
+        Assert.Contains(roles1A, r => r.RetaskCode == 4);
+
+        // Endpoint-state fallback must report FALSE when Speakers and Line In are unplugged (DeviceState = 8)
+        var unpluggedEndpoints = new System.Collections.Generic.List<RealtekEndpointInfo>
+        {
+            new() { FriendlyName = "Speakers", DataFlow = AudioEndpointFlow.Render, IsRealtek = true, DeviceState = 8 },
+            new() { FriendlyName = "Line In", DataFlow = AudioEndpointFlow.Capture, IsRealtek = true, DeviceState = 8 }
+        };
+        Assert.False(DriverHardwareService.InferPluggedFromEndpoints(pin14, unpluggedEndpoints));
+        Assert.False(DriverHardwareService.InferPluggedFromEndpoints(pin1A, unpluggedEndpoints));
+
+        // And TRUE when Speakers / Line In become Active (DeviceState = 1)
+        unpluggedEndpoints[0].DeviceState = 1;
+        unpluggedEndpoints[1].DeviceState = 1;
+        Assert.True(DriverHardwareService.InferPluggedFromEndpoints(pin14, unpluggedEndpoints));
+        Assert.True(DriverHardwareService.InferPluggedFromEndpoints(pin1A, unpluggedEndpoints));
+    }
+
+    [Fact]
+    public void UpdateCheckVersionParser_AndEndpointDiscovery_ShouldBeCleanAndAccurate()
+    {
+        Assert.True(UpdateCheckService.TryParseSemanticVersion("v1.0.1", out var v101));
+        Assert.True(UpdateCheckService.TryParseSemanticVersion("v1.0.0", out var v100));
+        Assert.True(UpdateCheckService.TryParseSemanticVersion("1.2.0-beta", out var v120));
+        Assert.True(v101! > v100!);
+        Assert.True(v120! > v101!);
+        Assert.Equal("v1.0.1", UpdateCheckService.FormatVersion(new Version(1, 0, 1, 0)));
+
+        // Capture discovery must never expose historical NOTPRESENT (0x00000004 / 0x10000004) ghost duplicates
+        var studio = new RealtekStudioService();
+        var captureEndpoints = studio.DiscoverEndpoints(true)
+            .Where(e => e.DataFlow == AudioEndpointFlow.Capture)
+            .ToList();
+        Assert.DoesNotContain(captureEndpoints, e => (e.DeviceState & 0x00000004u) != 0);
+    }
+
+    [Fact]
+    public void WasapiLoopbackAnalyzer_FftAnd256BandSpectrum_ShouldDetect1kHzSineAccurately()
+    {
+        using var analyzer = new WasapiLoopbackAnalyzer();
+        const int sampleRate = 48000;
+        const double freqHz = 1000.0;
+        float[] left = new float[4096];
+        float[] right = new float[4096];
+
+        for (int i = 0; i < left.Length; i++)
+        {
+            float s = (float)(0.5 * Math.Sin(2.0 * Math.PI * freqHz * i / sampleRate));
+            left[i] = s;
+            right[i] = s;
+        }
+
+        analyzer.InjectStereoSamplesForTest(left, right, sampleRate);
+        var frame = analyzer.ComputeFrame(256, sensitivityGain: 1.0, smoothing: 0.25, minFreqHz: 5.0, maxFreqHz: 48000.0);
+
+        Assert.Equal(256, frame.Spectrum.Length);
+        Assert.Equal(256, frame.PeakHold.Length);
+        Assert.True(frame.HasSignal);
+        Assert.InRange(frame.DominantFrequencyHz, 985.0, 1015.0);
+        Assert.InRange(frame.PhaseCorrelation, 0.98, 1.0);
+        Assert.InRange(frame.RmsDb, -10.5, -8.0); // 0.5 amplitude sine = -9.03 dBFS
+
+        // Peak band in 5 Hz..48 kHz log scale for 1000 Hz is around band ~148 of 256
+        int peakIdx = Array.IndexOf(frame.Spectrum, frame.Spectrum.Max());
+        Assert.InRange(peakIdx, 142, 154);
+        Assert.True(frame.Spectrum[peakIdx] > 0.55);
+
+        // Verify 96 kHz ultrasonic response (36 kHz tone) up to 48 kHz ceiling
+        using var hiRes = new WasapiLoopbackAnalyzer();
+        float[] ultra = new float[8192];
+        for (int i = 0; i < ultra.Length; i++)
+            ultra[i] = (float)(0.5 * Math.Sin(2.0 * Math.PI * 36000.0 * i / 96000.0));
+        hiRes.InjectStereoSamplesForTest(ultra, ultra, 96000);
+        var ultraFrame = hiRes.ComputeFrame(256, 1.0, 0.25, 5.0, 48000.0);
+        Assert.InRange(ultraFrame.DominantFrequencyHz, 35900.0, 36100.0);
+        int ultraPeakIdx = Array.IndexOf(ultraFrame.Spectrum, ultraFrame.Spectrum.Max());
+        Assert.InRange(ultraPeakIdx, 245, 250);
+        Assert.True(ultraFrame.Spectrum[ultraPeakIdx] > 0.55);
+    }
+
+    [Fact]
     public void PresetAndProfileService_ShouldMatchPresetsAndRoundtripJsonProfile()
     {
         var svc = new PresetAndProfileService();

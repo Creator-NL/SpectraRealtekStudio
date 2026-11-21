@@ -30,8 +30,8 @@ Grab the latest self-contained Windows 10/11 (x64) binaries from the **[GitHub R
 
 | Package | File | Description |
 | :--- | :--- | :--- |
-| **Windows Installer** | `SpectraRealtekStudio-v1.0.0-Setup.exe` | Modern Inno Setup 6 installer with Start Menu shortcuts, optional Desktop icon, and optional *Start minimized to tray on Windows sign-in*. |
-| **Portable Edition** | `SpectraRealtekStudio-v1.0.0-Portable.zip` | Extract anywhere and run `SpectraRealtekStudio.App.exe` directly — zero installation required! Includes `SpectraRealtekStudio.Cli.exe`. |
+| **Windows Installer** | `SpectraRealtekStudio-v1.0.1-Setup.exe` | Modern Inno Setup 6 installer with Start Menu shortcuts, optional Desktop icon, and optional *Start minimized to tray on Windows sign-in*. |
+| **Portable Edition** | `SpectraRealtekStudio-v1.0.1-Portable.zip` | Extract anywhere and run `SpectraRealtekStudio.App.exe` directly — zero installation required! Includes `SpectraRealtekStudio.Cli.exe`. |
 | **Checksums** | `SHA256SUMS.txt` | Verified SHA-256 checksums for both packages. |
 
 ---
@@ -86,11 +86,11 @@ flowchart LR
 
 ## Complete Feature Set
 
-### 1. 10-Band Graphic Equalizer (`31 Hz` — `16 kHz`)
-- **Full `0.1 dB` Hardware Precision**: Controls all 10 Realtek APO bands (`31 Hz`, `62 Hz`, `125 Hz`, `250 Hz`, `500 Hz`, `1 kHz`, `2 kHz`, `4 kHz`, `8 kHz`, `16 kHz`) across `-12.0 dB` to `+12.0 dB` (stored natively in `FxProperties` as hundredths of a dB: `-1200` to `+1200`).
-- **Live Catmull-Rom Spline Frequency-Response Curve**: Interactive dark-mode response visualizer with `+12 / +6 / 0 / -6 / -12 dB` gridlines and double-click band reset to `0.0 dB`.
-- **All 12 Official Realtek Presets + Custom Presets + JSON Profiles**: Includes *Flat*, *Pop*, *Live*, *Club*, *Rock*, *Bass*, *Treble*, *Vocal*, *Powerful*, *Party*, *Classical*, *Soft*, and *Dance*, plus unlimited custom user presets and full studio profile Import/Export.
-- **Built-In Harmonic Test Chord**: Synthesizes a multi-octave studio chord in memory to audition EQ and EAX reverb immediately.
+### 1. 10-Band Graphic Equalizer (`31 Hz` — `16 kHz`) & Master Anti-Clip Gain
+- **Full `0.1 dB` Hardware Precision**: Controls all 10 Realtek APO bands (`31 Hz` to `16 kHz`) across `-12.0 dB` to `+12.0 dB` with neon Cyan/Silver vertical sliders, double-click band reset to `0.0 dB`, and a live **40-byte `VT_BLOB` hex payload console** (`{4b361010-def7-43a1-a5dc-071d955b62f7},6`).
+- **Live Cyan → Violet → Magenta Catmull-Rom Frequency Curve**: Smooth interactive response visualizer with quick one-click preset pill chips (*Flat, Rock, Pop, Bass, Powerful, Club, Live, Vocal, Treble, Classical, Party, Soft, Dance* + unlimited saved custom presets).
+- **Master Output Rotary Gain Knob (`-24.0 dB` to `+12.0 dB`) & Auto-Gain Anti-Clip Limiter**: Pre-mix 32-bit float digital headroom (`-24..0 dB`, works even when `RltkAPO64` is bypassed) + configurable `70%–95%` Auto-Gain peak ceiling guard and `OK` / `LIM` / `CLIP` status badge.
+- **Settings Menu (`⚙`), Tooltips & Update Checker**: Hover tooltips across every control (toggleable in Settings), live bidirectional Master/Balance volume sync, and manual **Check for Updates...** against GitHub Releases.
 
 ### 2. Sound Effects, EAX Acoustic Environment, Karaoke & Spatial Studio
 - **23 EAX Acoustic Environment Reverbs**: *Generic*, *Padded Cell*, *Room*, *Bathroom*, *Living Room*, *Stone Room*, *Auditorium*, *Concert Hall*, *Cave*, *Arena*, *Hangar*, *Carpeted Hallway*, *Hallway*, *Stone Corridor*, *Alley*, *Forest*, *City*, *Mountains*, *Quarry*, *Plain*, *Parking Lot*, *Sewer Pipe*, and *Under Water*.
@@ -118,7 +118,7 @@ flowchart LR
 - **Realtek Voice DSP**: **Noise Suppression**, **Acoustic Echo Cancellation (AEC)**, **Directional Beam Forming**, **DC Offset Cancellation**, **Mono Microphone Mode**, **Conference Call Mode**, and **Keystroke Noise Suppression**.
 
 ### 6. Physical Jack Retasking, Driver Tweaks, Global Hotkeys & Inspector
-- **Intel HDA `PinConfigOverrideVerbs` Decoder & Jack Retasking**: Inspects physical 3.5mm jacks (`0x14`..`0x1B`), displays panel location, color badge, and plug state, and lets you retask any jack role (e.g., retasking a Line-Out jack to **Headphone Out**).
+- **Live Jack-Sense & Instant Non-Admin Jack Retasking (`IRtkPropSet20146`)**: Polls physical 3.5mm jacks (`0x14`..`0x1B`) live via kernel KS property, filters per-pin hardware capability bitmasks, supports instant non-admin role retasking with zero reboot plus one-click **Reset Defaults**.
 - **Kernel Driver Tweaks (`GlobalSettings` & `PowerSettings`)**:
   - *Mute rear output when front headphone plugged in* (`HpShutsOffRearSpeaker`)
   - *Independent front and rear output streams* (`EnableDynamicDevices`)
@@ -132,6 +132,12 @@ flowchart LR
   - `Ctrl+Alt+K` — Toggle Karaoke Voice Cancellation On/Off
   - Launch with `--minimized` to start directly in the System Tray.
 - **Live `FxProperties` Inspector & Raw HDA Verb Console**: Searchable table of all `FxProperties` and `Properties` values with real-time `PROPVARIANT` decoding and one-click **Community Diagnostic JSON** export.
+
+### 7. Live 60 FPS Audio Visualizer (`5 Hz — 48 kHz`, Up to 256-Band FFT)
+- **Zero-Dependency Native WASAPI Loopback + 8192-Point Radix-2 FFT**: Works seamlessly with Stereo, Quad (4.0), 5.1, and 7.1 streams (`44.1–192 kHz`) whether `RltkAPO64` is enabled or bypassed.
+- **Selectable Frequency Ranges & Uniform Grid**: `5 Hz – 48 kHz (Full)`, `5 Hz – 24 kHz (Studio)`, `0 Hz – 48 kHz (Linear)`, and `20 Hz – 20 kHz (EQ)` with `64`, `128`, or `256` bands.
+- **6 Real-Time Studio Visualization Modes**: *Spectrum Bars (FFT + Peak Hold)*, *Mirror Spectrum Wave*, *Stereo Oscilloscope (L/R)*, *Spectrogram Waterfall (Heat)*, *Stereo Vectorscope (Phase XY)*, and *Radial Cyber Halo (360°)* across 4 neon themes (*Spectra Neon*, *Studio RTA*, *Electric Ice*, *Plasma Fire*).
+- **Live Mastering Telemetry & True `0%` Idle Overhead**: Displays Dominant Peak Hz, RMS Loudness dBFS, Stereo Phase Correlation, and WASAPI format — and completely shuts down capture (`0%` CPU) when switching tabs, pausing, minimizing, or sending to tray.
 
 ---
 

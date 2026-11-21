@@ -23,6 +23,7 @@ public sealed class RealtekEndpointInfo
         2 => "Disabled",
         4 => "Not Present",
         8 => "Unplugged",
+        0x10000001 => "Disabled (Hidden)",
         _ => $"Hidden (0x{DeviceState:X})"
     };
     public bool IsActive => DeviceState == 1;
@@ -46,6 +47,8 @@ public sealed class RealtekEndpointInfo
     };
     public string HardwareId { get; set; } = string.Empty;
     public string DriverVersion { get; set; } = string.Empty;
+    public string WaveDevicePath { get; set; } = string.Empty;
+    public string TopologyPath { get; set; } = string.Empty;
     public string EffectProviderName { get; set; } = string.Empty;
     public string SfxClsid { get; set; } = string.Empty;
     public string MfxClsid { get; set; } = string.Empty;
@@ -181,13 +184,39 @@ public sealed class JackPinInfo
     public string JackColorHex { get; set; } = "#808080";
     public string ConnectorType { get; set; } = "3.5mm Analog Jack";
     public byte DefaultDeviceCode { get; set; }
+    /// <summary>
+    /// Realtek driver RtskDevType role code (Settings\Drv...\PinXX &amp; IRtkPropSet20146::SetDeviceTypeWidget):
+    /// 0=Line In, 1=Mic In, 2=Headphone Out, 4=Front Speaker, 5=Rear Speaker, 6=Center/Sub, 7=Side Speaker.
+    /// </summary>
+    public byte RetaskRoleCode { get; set; }
+    /// <summary>
+    /// Hardware-supported retask role bitmask from Realtek kernel KSProperty (bit N = role code N supported).
+    /// </summary>
+    public ushort SupportedRolesMask { get; set; } = 0x00F7;
     public string AssignedRoleName { get; set; } = string.Empty;
     public byte ConnectivityCode { get; set; }
     public bool IsPhysicalJack => ConnectivityCode == 0; // 0 = Jack, 1 = Unconnected, 2 = Fixed
     public bool IsPluggedIn { get; set; }
+    public string LiveSensorSource { get; set; } = string.Empty;
     public byte Sequence { get; set; }
     public byte DefaultAssociation { get; set; }
 }
+
+public sealed class LiveJackHardwareInfo
+{
+    public byte WidgetId { get; set; }
+    public bool IsPluggedIn { get; set; }
+    public ushort SupportedRolesMask { get; set; }
+    public uint HardwarePinConfig { get; set; }
+    public string Source { get; set; } = string.Empty;
+}
+
+public sealed record JackRetaskRoleOption(
+    byte RetaskCode,
+    string Label,
+    byte HdaDefaultDevice,
+    byte HdaAssociation,
+    byte HdaSequence);
 
 public sealed class DriverHardwareTweaks
 {
@@ -233,4 +262,28 @@ public sealed class StudioProfileExport
     public RealtekPlaybackState? PlaybackState { get; set; }
     public RealtekCaptureState? CaptureState { get; set; }
     public AudioFormatState? PlaybackFormat { get; set; }
+}
+
+public sealed class AppUserSettings
+{
+    public bool TooltipsEnabled { get; set; } = true;
+    public double MasterPreampGainDb { get; set; } = 0.0;
+    public bool AutoGainEnabled { get; set; } = false;
+    public int AutoGainCeilingPercent { get; set; } = 80;
+    /// <summary>
+    /// "Preamp" (RltkAPO64 digital headroom anti-clip limiter) or "MasterVolume" (Windows Master Volume limiter).
+    /// </summary>
+    public string AutoGainMode { get; set; } = "Preamp";
+}
+
+public sealed class UpdateCheckResult
+{
+    public bool Success { get; set; }
+    public bool UpdateAvailable { get; set; }
+    public string CurrentVersion { get; set; } = string.Empty;
+    public string LatestVersion { get; set; } = string.Empty;
+    public string ReleaseTitle { get; set; } = string.Empty;
+    public string ReleaseNotesSummary { get; set; } = string.Empty;
+    public string ReleaseUrl { get; set; } = "https://github.com/Creator-NL/SpectraRealtekStudio/releases";
+    public string ErrorMessage { get; set; } = string.Empty;
 }

@@ -122,6 +122,55 @@ internal interface IAudioMute
     int GetMute(out int pbMuted);
 }
 
+[ComImport, Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IAudioSessionManager2
+{
+    [PreserveSig] int GetAudioSessionControl(IntPtr audioSessionGuid, uint streamFlags, out IntPtr sessionControl);
+    [PreserveSig] int GetSimpleAudioVolume(IntPtr audioSessionGuid, uint streamFlags, out IntPtr audioVolume);
+    [PreserveSig] int GetSessionEnumerator(out IAudioSessionEnumerator sessionEnum);
+}
+
+[ComImport, Guid("E2F5BB11-0570-40CA-ACDD-3AA01277DEE8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IAudioSessionEnumerator
+{
+    [PreserveSig] int GetCount(out int sessionCount);
+    [PreserveSig] int GetSession(int sessionIndex, out IAudioSessionControl session);
+}
+
+[ComImport, Guid("F4B1A599-7266-4319-A8CA-E70ACB11E8CD"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IAudioSessionControl
+{
+    [PreserveSig] int GetState(out int pRetVal);
+    [PreserveSig] int GetDisplayName([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+}
+
+[ComImport, Guid("bfb7ff88-7239-4fc9-8fa2-07c950be9c6d"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IAudioSessionControl2
+{
+    [PreserveSig] int GetState(out int pRetVal);
+    [PreserveSig] int GetDisplayName([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+    [PreserveSig] int SetDisplayName([MarshalAs(UnmanagedType.LPWStr)] string value, ref Guid eventContext);
+    [PreserveSig] int GetIconPath([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+    [PreserveSig] int SetIconPath([MarshalAs(UnmanagedType.LPWStr)] string value, ref Guid eventContext);
+    [PreserveSig] int GetGroupingParam(out Guid pRetVal);
+    [PreserveSig] int SetGroupingParam(ref Guid @override, ref Guid eventContext);
+    [PreserveSig] int RegisterAudioSessionNotification(IntPtr newNotifications);
+    [PreserveSig] int UnregisterAudioSessionNotification(IntPtr newNotifications);
+    [PreserveSig] int GetSessionIdentifier([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+    [PreserveSig] int GetSessionInstanceIdentifier([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+    [PreserveSig] int GetProcessId(out uint pRetVal);
+    [PreserveSig] int IsSystemSoundsSession();
+}
+
+[ComImport, Guid("87CE5498-68D6-44E5-9215-6DA47EF883D8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface ISimpleAudioVolume
+{
+    [PreserveSig] int SetMasterVolume(float fLevel, ref Guid eventContext);
+    [PreserveSig] int GetMasterVolume(out float pfLevel);
+    [PreserveSig] int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, ref Guid eventContext);
+    [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool pbMute);
+}
+
 public sealed class CoreAudioInterop
 {
     private static readonly Guid IidEndpointVolume = new("5CDF2C82-841E-4546-9722-0CF74078229A");
@@ -129,6 +178,12 @@ public sealed class CoreAudioInterop
     private static readonly Guid IidDeviceTopology = new("2A07407E-6497-4A18-9787-32F79BD0D98F");
     private static readonly Guid IidVolumeLevel = new("7FB7B48F-531D-44A2-BCB3-5AD5A134B3DC");
     private static readonly Guid IidAudioMute = new("DF45AEEA-B74A-4B6B-AFAD-2366B6AA012E");
+    private static readonly Guid IidAudioSessionManager2 = new("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F");
+
+    private readonly object _sessionSync = new();
+    private readonly Dictionary<string, (float BaseScalar, float LastAppliedScalar)> _sessionGainTrackers = new(StringComparer.OrdinalIgnoreCase);
+    private float _currentPreMixFactor = 1.0f;
+    private string _trackedEndpointId = string.Empty;
 
     public string? TryGetDefaultEndpointId(AudioEndpointFlow flow, int role)
     {
@@ -418,6 +473,200 @@ public sealed class CoreAudioInterop
         catch
         {
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Applies real-time 32-bit floating-point pre-mix digital headroom gain (-24.0 dB to 0.0 dB)
+    /// across all active/present WASAPI audio sessions on the endpoint via IAudioSessionManager2.
+    /// Runs BEFORE the Windows Mixer, BEFORE peak meters (IAudioMeterInformation), and works
+    /// even when Realtek System Effects (RltkAPO64) are bypassed.
+    /// Preserves each app's relative Windows Volume Mixer balance.
+    /// </summary>
+    public int TryApplyPreMixDigitalGainDb(string endpointId, double gainDb)
+    {
+        if (string.IsNullOrWhiteSpace(endpointId))
+            return 0;
+
+        float targetFactor = gainDb >= -0.02
+            ? 1.0f
+            : Math.Clamp(MathF.Pow(10f, (float)Math.Clamp(gainDb, -36.0, 0.0) / 20f), 0.01f, 1.0f);
+
+        lock (_sessionSync)
+        {
+            // If switching endpoints while trimmed, restore previous endpoint's sessions first
+            if (!string.IsNullOrEmpty(_trackedEndpointId) &&
+                !string.Equals(_trackedEndpointId, endpointId, StringComparison.OrdinalIgnoreCase) &&
+                _sessionGainTrackers.Count > 0)
+            {
+                RestoreSessionsInternal(_trackedEndpointId);
+            }
+
+            _trackedEndpointId = endpointId;
+
+            if (targetFactor >= 0.999f && _sessionGainTrackers.Count == 0 && _currentPreMixFactor >= 0.999f)
+            {
+                return 0;
+            }
+
+            int affected = 0;
+            try
+            {
+                var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
+                if (enumerator.GetDevice(endpointId, out var dev) != 0 || dev == null)
+                    return 0;
+
+                Guid iidMgr = IidAudioSessionManager2;
+                if (dev.Activate(ref iidMgr, 23, IntPtr.Zero, out object oMgr) != 0 || oMgr is not IAudioSessionManager2 mgr)
+                    return 0;
+
+                if (mgr.GetSessionEnumerator(out var sEnum) != 0 || sEnum == null)
+                    return 0;
+
+                sEnum.GetCount(out int count);
+                var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                Guid ctx = Guid.Empty;
+                uint myPid = (uint)Environment.ProcessId;
+
+                for (int i = 0; i < count; i++)
+                {
+                    if (sEnum.GetSession(i, out var ctrl) != 0 || ctrl == null)
+                        continue;
+
+                    ctrl.GetState(out int state);
+                    if (state == 2) // AudioSessionStateExpired
+                        continue;
+
+                    if (ctrl is not ISimpleAudioVolume vol)
+                        continue;
+
+                    string sid = $"idx_{i}";
+                    uint pid = 0;
+                    if (ctrl is IAudioSessionControl2 ctrl2)
+                    {
+                        ctrl2.GetProcessId(out pid);
+                        if (ctrl2.GetSessionInstanceIdentifier(out string instId) == 0 && !string.IsNullOrWhiteSpace(instId))
+                            sid = instId;
+                    }
+
+                    // Skip our own test-tone session so speaker test chimes stay predictable
+                    if (pid == myPid)
+                        continue;
+
+                    seenIds.Add(sid);
+
+                    if (vol.GetMasterVolume(out float curScalar) != 0)
+                        continue;
+
+                    float baseScalar;
+                    if (_sessionGainTrackers.TryGetValue(sid, out var tracked))
+                    {
+                        // Detect if the user manually adjusted this app inside Windows Volume Mixer
+                        if (MathF.Abs(curScalar - tracked.LastAppliedScalar) > 0.025f)
+                        {
+                            baseScalar = _currentPreMixFactor > 0.015f
+                                ? Math.Clamp(curScalar / _currentPreMixFactor, 0f, 1f)
+                                : Math.Clamp(curScalar, 0f, 1f);
+                        }
+                        else
+                        {
+                            baseScalar = tracked.BaseScalar;
+                        }
+                    }
+                    else
+                    {
+                        baseScalar = Math.Clamp(curScalar, 0f, 1f);
+                    }
+
+                    float newScalar = Math.Clamp(baseScalar * targetFactor, 0f, 1f);
+                    if (MathF.Abs(curScalar - newScalar) > 0.0025f)
+                    {
+                        vol.SetMasterVolume(newScalar, ref ctx);
+                    }
+
+                    _sessionGainTrackers[sid] = (baseScalar, newScalar);
+                    affected++;
+                }
+
+                // Prune closed/expired sessions
+                var stale = new List<string>();
+                foreach (string key in _sessionGainTrackers.Keys)
+                {
+                    if (!seenIds.Contains(key))
+                        stale.Add(key);
+                }
+                foreach (string key in stale)
+                    _sessionGainTrackers.Remove(key);
+
+                _currentPreMixFactor = targetFactor;
+                if (targetFactor >= 0.999f)
+                {
+                    _sessionGainTrackers.Clear();
+                }
+            }
+            catch
+            {
+            }
+
+            return affected;
+        }
+    }
+
+    public void RestoreAllPreMixSessionGains(string? endpointId = null)
+    {
+        lock (_sessionSync)
+        {
+            string targetEp = !string.IsNullOrWhiteSpace(endpointId) ? endpointId : _trackedEndpointId;
+            if (!string.IsNullOrWhiteSpace(targetEp))
+            {
+                RestoreSessionsInternal(targetEp);
+            }
+            _sessionGainTrackers.Clear();
+            _currentPreMixFactor = 1.0f;
+        }
+    }
+
+    private void RestoreSessionsInternal(string endpointId)
+    {
+        if (_sessionGainTrackers.Count == 0 && _currentPreMixFactor >= 0.999f)
+            return;
+
+        try
+        {
+            var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
+            if (enumerator.GetDevice(endpointId, out var dev) != 0 || dev == null)
+                return;
+
+            Guid iidMgr = IidAudioSessionManager2;
+            if (dev.Activate(ref iidMgr, 23, IntPtr.Zero, out object oMgr) != 0 || oMgr is not IAudioSessionManager2 mgr)
+                return;
+
+            if (mgr.GetSessionEnumerator(out var sEnum) != 0 || sEnum == null)
+                return;
+
+            sEnum.GetCount(out int count);
+            Guid ctx = Guid.Empty;
+            for (int i = 0; i < count; i++)
+            {
+                if (sEnum.GetSession(i, out var ctrl) != 0 || ctrl is not ISimpleAudioVolume vol)
+                    continue;
+
+                string sid = $"idx_{i}";
+                if (ctrl is IAudioSessionControl2 ctrl2 &&
+                    ctrl2.GetSessionInstanceIdentifier(out string instId) == 0 &&
+                    !string.IsNullOrWhiteSpace(instId))
+                {
+                    sid = instId;
+                }
+
+                if (_sessionGainTrackers.TryGetValue(sid, out var tracked))
+                {
+                    vol.SetMasterVolume(Math.Clamp(tracked.BaseScalar, 0f, 1f), ref ctx);
+                }
+            }
+        }
+        catch
+        {
         }
     }
 }

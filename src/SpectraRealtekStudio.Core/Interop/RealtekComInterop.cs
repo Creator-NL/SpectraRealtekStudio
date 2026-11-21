@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Microsoft.Win32;
+using SpectraRealtekStudio.Core.Models;
 
 namespace SpectraRealtekStudio.Core.Interop;
 
@@ -131,6 +133,17 @@ internal interface IRtkPropSet20086
     void VistaSetEaxEnabled(uint ulDeviceIndex, int Enabled);
 }
 
+[ComImport, Guid("b19fa640-2789-4162-972e-17919767f08a"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IRtkPropSet20146
+{
+    void GetTypeInfoCount(out uint pctinfo);
+    void GetTypeInfo(uint itinfo, uint lcid, out IntPtr pptinfo);
+    void GetIDsOfNames([In] ref Guid riid, [MarshalAs(UnmanagedType.LPArray)] string[] rgszNames, uint cNames, uint lcid, [Out] int[] rgdispid);
+    void Invoke(int dispidMember, [In] ref Guid riid, uint lcid, ushort wFlags, IntPtr pdispparams, IntPtr pvarResult, IntPtr pexcepinfo, IntPtr puArgErr);
+    void SetMicDisableEffect(uint ulData);
+    void SetDeviceTypeWidget(uint ulWidgetId, uint ulDeviceType);
+}
+
 [ComImport, Guid("b19fa640-2789-4162-972e-17919767f08e"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IRtkPropSet20155
 {
@@ -174,6 +187,46 @@ internal interface IRtkPropSet20179
 public sealed class RealtekComInterop
 {
     private static readonly Guid PropSetClsid = new("C6606CA5-2108-4CAF-8E52-1953F2DBF716");
+    private static readonly Guid RtkKernelJackKsPropertySet = new("6128a8c4-6c26-4373-b630-063759aa5141");
+    private const uint IOCTL_KS_PROPERTY = 0x002F0003u;
+    private const uint KSPROPERTY_TYPE_GET = 1u;
+    private const uint GENERIC_READ_WRITE = 0xC0000000u;
+    private const uint FILE_SHARE_READ_WRITE = 0x00000003u;
+    private const uint OPEN_EXISTING = 3u;
+
+    private string? _cachedWaveDevicePath;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KSPROPERTY
+    {
+        public Guid Set;
+        public uint Id;
+        public uint Flags;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr CreateFileW(
+        string lpFileName,
+        uint dwDesiredAccess,
+        uint dwShareMode,
+        IntPtr lpSecurityAttributes,
+        uint dwCreationDisposition,
+        uint dwFlagsAndAttributes,
+        IntPtr hTemplateFile);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool DeviceIoControl(
+        IntPtr hDevice,
+        uint dwIoControlCode,
+        ref KSPROPERTY lpInBuffer,
+        int nInBufferSize,
+        byte[] lpOutBuffer,
+        int nOutBufferSize,
+        out int lpBytesReturned,
+        IntPtr lpOverlapped);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr hObject);
 
     private object? CreateInitializedPropSet(out Dictionary<string, uint> deviceIndexByEndpointId, out int hwInitResult)
     {
@@ -354,11 +407,187 @@ public sealed class RealtekComInterop
         }
     }
 
+    /// <summary>
+    /// Fast (&lt;1 ms) non-admin hardware jack sense query directly against RTKVHD64.sys
+    /// via IOCTL_KS_PROPERTY {6128a8c4-6c26-4373-b630-063759aa5141}.
+    /// Returns live plug state and hardware-supported retask role bitmask per pin widget.
+    /// </summary>
+    public Dictionary<byte, LiveJackHardwareInfo> TryQueryLiveJackHardwareViaKsProperty(string? waveDevicePath = null)
+    {
+        var result = new Dictionary<byte, LiveJackHardwareInfo>();
+        string? devPath = NormalizeWaveDevicePath(waveDevicePath) ?? _cachedWaveDevicePath ?? DiscoverRealtekWaveDevicePath();
+        if (string.IsNullOrWhiteSpace(devPath))
+            return result;
+
+        IntPtr handle = CreateFileW(devPath, GENERIC_READ_WRITE, FILE_SHARE_READ_WRITE, IntPtr.Zero, OPEN_EXISTING, 0u, IntPtr.Zero);
+        if (handle == new IntPtr(-1))
+        {
+            handle = CreateFileW(devPath, 0u, FILE_SHARE_READ_WRITE, IntPtr.Zero, OPEN_EXISTING, 0u, IntPtr.Zero);
+        }
+        if (handle == new IntPtr(-1))
+        {
+            // Wave device path may have changed after driver restart; invalidate cache and try re-discovering once
+            if (_cachedWaveDevicePath != null && string.Equals(_cachedWaveDevicePath, devPath, StringComparison.OrdinalIgnoreCase))
+            {
+                _cachedWaveDevicePath = null;
+                string? refreshedPath = DiscoverRealtekWaveDevicePath();
+                if (!string.IsNullOrWhiteSpace(refreshedPath) && !string.Equals(refreshedPath, devPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    handle = CreateFileW(refreshedPath, GENERIC_READ_WRITE, FILE_SHARE_READ_WRITE, IntPtr.Zero, OPEN_EXISTING, 0u, IntPtr.Zero);
+                    if (handle == new IntPtr(-1))
+                        handle = CreateFileW(refreshedPath, 0u, FILE_SHARE_READ_WRITE, IntPtr.Zero, OPEN_EXISTING, 0u, IntPtr.Zero);
+                    if (handle != new IntPtr(-1))
+                        devPath = refreshedPath;
+                }
+            }
+            if (handle == new IntPtr(-1))
+                return result;
+        }
+
+        _cachedWaveDevicePath = devPath;
+
+        try
+        {
+            var prop = new KSPROPERTY
+            {
+                Set = RtkKernelJackKsPropertySet,
+                Id = 0,
+                Flags = KSPROPERTY_TYPE_GET
+            };
+            int propSize = Marshal.SizeOf<KSPROPERTY>();
+            byte[] countBuf = new byte[4];
+            if (!DeviceIoControl(handle, IOCTL_KS_PROPERTY, ref prop, propSize, countBuf, countBuf.Length, out int ret, IntPtr.Zero) || ret < 4)
+                return result;
+
+            uint pinCount = BitConverter.ToUInt32(countBuf, 0);
+            if (pinCount == 0 || pinCount > 32)
+                return result;
+
+            byte[] tblBuf = new byte[pinCount * 12];
+            prop.Id = 1;
+            if (!DeviceIoControl(handle, IOCTL_KS_PROPERTY, ref prop, propSize, tblBuf, tblBuf.Length, out ret, IntPtr.Zero) || ret < tblBuf.Length)
+                return result;
+
+            byte[] stBuf = new byte[0x7C];
+            for (uint i = 0; i < pinCount; i++)
+            {
+                uint hwPinCfg = BitConverter.ToUInt32(tblBuf, (int)(i * 8));
+                uint wid = BitConverter.ToUInt32(tblBuf, (int)(pinCount * 8 + i * 4));
+                if (wid == 0 || wid > 0xFF)
+                    continue;
+
+                prop.Id = 2 + i;
+                bool okSt = DeviceIoControl(handle, IOCTL_KS_PROPERTY, ref prop, propSize, stBuf, stBuf.Length, out ret, IntPtr.Zero) && ret >= 4;
+                if (!okSt)
+                    continue;
+
+                ushort statusWord = BitConverter.ToUInt16(stBuf, 0);
+                ushort supportedRolesMask = BitConverter.ToUInt16(stBuf, 2);
+                bool plugged = ((statusWord >> 1) & 1) != 0;
+
+                result[(byte)wid] = new LiveJackHardwareInfo
+                {
+                    WidgetId = (byte)wid,
+                    IsPluggedIn = plugged,
+                    SupportedRolesMask = supportedRolesMask,
+                    HardwarePinConfig = hwPinCfg,
+                    Source = "Realtek Kernel KS"
+                };
+            }
+        }
+        catch
+        {
+        }
+        finally
+        {
+            CloseHandle(handle);
+        }
+
+        return result;
+    }
+
+    private static string? NormalizeWaveDevicePath(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+
+        string s = raw.Trim();
+        if (s.StartsWith("{2}.", StringComparison.OrdinalIgnoreCase))
+            s = s.Substring(4);
+        return s.StartsWith(@"\\?\", StringComparison.Ordinal) ? s : null;
+    }
+
+    private static string? DiscoverRealtekWaveDevicePath()
+    {
+        try
+        {
+            using var renderKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render", false);
+            if (renderKey == null)
+                return null;
+
+            string? fallbackPath = null;
+            foreach (string guid in renderKey.GetSubKeyNames())
+            {
+                using var epKey = renderKey.OpenSubKey(guid, false);
+                using var propsKey = epKey?.OpenSubKey("Properties", false);
+                if (propsKey == null)
+                    continue;
+
+                string desc = propsKey.GetValue("{b3f8fa53-0004-438e-9003-51a46e139bfc},6")?.ToString() ?? string.Empty;
+                string rawWave = propsKey.GetValue("{233164c8-1b2c-4c7d-bc68-b671687a2567},1")?.ToString() ?? string.Empty;
+                string? norm = NormalizeWaveDevicePath(rawWave);
+                if (string.IsNullOrWhiteSpace(norm))
+                    continue;
+
+                if (desc.Contains("Realtek", StringComparison.OrdinalIgnoreCase) ||
+                    norm.Contains("ven_10ec", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (norm.Contains("lineout", StringComparison.OrdinalIgnoreCase))
+                        return norm;
+                    fallbackPath ??= norm;
+                }
+            }
+            return fallbackPath;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Live non-admin jack retasking via RtCOM64.dll IPropSet20146::SetDeviceTypeWidget.
+    /// Switches the physical jack role instantly inside RTKVHD64.sys without UAC or reboot.
+    /// </summary>
+    public bool TryRetaskJackViaCom(byte widgetId, byte rtskDeviceType, out string statusMessage)
+    {
+        var obj = CreateInitializedPropSet(out _, out int hwInit);
+        if (hwInit == 0 || obj is not IRtkPropSet20146 ps146)
+        {
+            statusMessage = hwInit == 0
+                ? "RtCOM64 hardware channel not initialized."
+                : "RtCOM64 IPropSet20146 interface not available.";
+            return false;
+        }
+
+        try
+        {
+            ps146.SetDeviceTypeWidget(widgetId, rtskDeviceType);
+            statusMessage = $"Live kernel jack retask applied via RtCOM64 (Pin 0x{widgetId:X2} -> role {rtskDeviceType}).";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"RtCOM64 SetDeviceTypeWidget failed: {ex.Message}";
+            return false;
+        }
+    }
+
     public Dictionary<byte, bool> TryQueryJackPlugStatesFromCom()
     {
         var result = new Dictionary<byte, bool>();
-        var obj = CreateInitializedPropSet(out _, out _);
-        if (obj is not IRtkPropSet20155 ps155)
+        var obj = CreateInitializedPropSet(out _, out int hwInit);
+        if (hwInit == 0 || obj is not IRtkPropSet20155 ps155)
             return result;
 
         try

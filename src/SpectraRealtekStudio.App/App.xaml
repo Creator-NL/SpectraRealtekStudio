@@ -15,5 +15,6 @@
         <SolidColorBrush x:Key="Muted" Color="#7F8BB0"/>
         <SolidColorBrush x:Key="Selected" Color="#2A1F4D"/>
         <SolidColorBrush x:Key="Amber" Color="#FFB020"/>
+        <SolidColorBrush x:Key="Red" Color="#FF4D6D"/>
     </Application.Resources>
 </Application>

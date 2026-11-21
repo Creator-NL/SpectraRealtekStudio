@@ -23,6 +23,8 @@ public sealed class RealtekStudioService
     public DriverHardwareService DriverHardware { get; } = new();
     public PresetAndProfileService Presets { get; } = new();
     public SpeakerTestToneService TestTones { get; } = new();
+    public UpdateCheckService Updates { get; } = new();
+    public WasapiLoopbackAnalyzer Visualizer { get; } = new();
 
     public List<RealtekEndpointInfo> DiscoverEndpoints(bool includeInactiveRealtekPins = true)
     {
@@ -80,6 +82,12 @@ public sealed class RealtekStudioService
                            ?? propsKey.GetValue("{a8b865dd-2e3d-4094-ad97-e593a70c75d6},8")?.ToString()
                            ?? string.Empty;
                 string drvInfo = propsKey.GetValue("{83da6326-97a6-4088-9453-a1923f573b29},3")?.ToString() ?? string.Empty;
+                string wavePath = propsKey.GetValue("{233164c8-1b2c-4c7d-bc68-b671687a2567},1")?.ToString() ?? string.Empty;
+                string topoPath = string.Empty;
+                if (propsKey.GetValue("{840b8171-b0ad-410f-8581-cccc0382cfef},0") is byte[] topoBytes && topoBytes.Length > 22)
+                {
+                    topoPath = Encoding.Unicode.GetString(topoBytes, 20, topoBytes.Length - 22).TrimEnd('\0');
+                }
 
                 uint formFactor = 0;
                 if (propsKey.GetValue("{1da5d803-d492-4edd-8c23-e0c0ffee7f0e},0") is int ffInt)
@@ -102,7 +110,17 @@ public sealed class RealtekStudioService
                 if (!isRealtek && state != 1)
                     continue;
 
-                if (isRealtek && !includeInactiveRealtekPins && state != 1 && state != 8 && !friendlyName.Contains("Stereo Mix", StringComparison.OrdinalIgnoreCase))
+                // Always skip historical / not-present driver tombstones (DEVICE_STATE_NOTPRESENT = 0x4, e.g. 0x10000004 duplicates)
+                bool isNotPresent = (state & 0x00000004u) != 0;
+                if (isNotPresent)
+                    continue;
+
+                bool isStereoMix = friendlyName.Contains("Stereo Mix", StringComparison.OrdinalIgnoreCase);
+                bool isValidPhysicalState = state == 1 || state == 2 || state == 8 || (isStereoMix && state == 0x10000001u);
+                if (!isValidPhysicalState)
+                    continue;
+
+                if (isRealtek && !includeInactiveRealtekPins && state != 1 && state != 8 && !isStereoMix)
                     continue;
 
                 string fullEndpointId = $"{{{prefix}}}.{guidName}";
@@ -120,6 +138,8 @@ public sealed class RealtekStudioService
                     FormFactor = formFactor,
                     HardwareId = hwId,
                     DriverVersion = drvInfo,
+                    WaveDevicePath = wavePath,
+                    TopologyPath = topoPath,
                     EffectProviderName = fxProvider,
                     SfxClsid = sfxClsid,
                     MfxClsid = mfxClsid,
@@ -473,6 +493,35 @@ public sealed class RealtekStudioService
         };
 
         return PolicyConfig.TrySetDeviceFormat(id, chCount, fmt.SampleRate, fmt.ValidBitsPerSample, fmt.PhysicalSpeakersMask);
+    }
+
+    public List<JackPinInfo> QueryLiveJackPins(List<RealtekEndpointInfo>? endpoints = null)
+    {
+        string? wavePath = endpoints?
+            .FirstOrDefault(e => e.IsRealtek && e.DataFlow == AudioEndpointFlow.Render && !string.IsNullOrWhiteSpace(e.WaveDevicePath))
+            ?.WaveDevicePath;
+
+        var liveHw = RealtekCom.TryQueryLiveJackHardwareViaKsProperty(wavePath);
+        if (liveHw.Count == 0)
+        {
+            var comPlugMap = RealtekCom.TryQueryJackPlugStatesFromCom();
+            foreach (var kv in comPlugMap)
+            {
+                liveHw[kv.Key] = new LiveJackHardwareInfo
+                {
+                    WidgetId = kv.Key,
+                    IsPluggedIn = kv.Value,
+                    SupportedRolesMask = DriverHardwareService.GetDefaultSupportedMaskForWidget(kv.Key),
+                    Source = "RtCOM64"
+                };
+            }
+        }
+
+        List<RealtekEndpointInfo>? epsForFallback = liveHw.Count == 0
+            ? (endpoints ?? DiscoverEndpoints(includeInactiveRealtekPins: true))
+            : endpoints;
+
+        return DriverHardware.ReadJackPins(liveHw.Count > 0 ? liveHw : null, epsForFallback);
     }
 
     public List<AnalogMixerSubunit> GetAnalogMixerSubunits(string endpointId)
