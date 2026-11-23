@@ -157,6 +157,12 @@ public class RealtekStudioTests
         Assert.InRange(peakIdx, 142, 154);
         Assert.True(frame.Spectrum[peakIdx] > 0.55);
 
+        // Verify default 0 Hz..20 kHz ShiftedLogZero range places 1 kHz accurately around band ~142/256
+        var zeroTo20k = analyzer.ComputeFrame(256, 1.0, 0.25, 0.0, 20000.0, linearScale: false, explicitScaleMode: SpectrumScaleMode.ShiftedLogZero);
+        int zPeakIdx = Array.IndexOf(zeroTo20k.Spectrum, zeroTo20k.Spectrum.Max());
+        Assert.Equal(SpectrumScaleMode.ShiftedLogZero, zeroTo20k.ScaleMode);
+        Assert.InRange(zPeakIdx, 136, 148);
+
         // Verify 96 kHz ultrasonic response (36 kHz tone) up to 48 kHz ceiling
         using var hiRes = new WasapiLoopbackAnalyzer();
         float[] ultra = new float[8192];
@@ -168,6 +174,233 @@ public class RealtekStudioTests
         int ultraPeakIdx = Array.IndexOf(ultraFrame.Spectrum, ultraFrame.Spectrum.Max());
         Assert.InRange(ultraPeakIdx, 245, 250);
         Assert.True(ultraFrame.Spectrum[ultraPeakIdx] > 0.55);
+
+        // Verify broadband music with a 15.8 kHz MP3 encoder cutoff has zero gap across 15.0–18.5 kHz on 0–48 kHz Linear
+        float[] mp3Sim = new float[8192];
+        var rng = new Random(77);
+        for (int fHz = 80; fHz <= 15600; fHz += 95)
+        {
+            double phase = rng.NextDouble() * 2.0 * Math.PI;
+            double amp = 0.035 * Math.Pow(1000.0 / (500.0 + fHz), 0.35);
+            for (int i = 0; i < 8192; i++)
+                mp3Sim[i] += (float)(amp * Math.Sin(2.0 * Math.PI * fHz * i / 192000.0 + phase));
+        }
+        using var mp3Vis = new WasapiLoopbackAnalyzer();
+        mp3Vis.InjectStereoSamplesForTest(mp3Sim, mp3Sim, 192000);
+        var linFrame = mp3Vis.ComputeFrame(256, 1.0, 0.15, 0.0, 48000.0, true, SpectrumScaleMode.Linear);
+        double minGapBand = linFrame.Spectrum.Skip(80).Take(19).Min();
+        Assert.True(minGapBand > 0.18);
+    }
+
+    [Fact]
+    public void SoundTestGenerators_AndAudioRecorderWavSerializer_ShouldProduceValidHiResWavStreams()
+    {
+        // Verify 5 Hz -> 48 kHz Hi-Res 96 kHz Log Frequency Sweep WAV
+        byte[] sweepWav = SpeakerTestToneService.GenerateLogFrequencySweepWav(5.0, 48000.0, 1.0, 96000);
+        Assert.True(sweepWav.Length > 44 + 96000 * 4 - 64);
+        Assert.Equal((byte)'R', sweepWav[0]);
+        Assert.Equal((byte)'I', sweepWav[1]);
+        Assert.Equal((byte)'F', sweepWav[2]);
+        Assert.Equal((byte)'F', sweepWav[3]);
+        Assert.Equal(96000, BitConverter.ToInt32(sweepWav, 24));
+
+        // Verify Pink Noise WAV synthesis
+        byte[] pinkWav = SpeakerTestToneService.GenerateNoiseWav(true, 0.5, 48000);
+        Assert.Equal(44 + 24000 * 4, pinkWav.Length);
+
+        // Verify AudioRecorderService 16-bit PCM, 24-bit PCM, and 32-bit IEEE Float WAV serialization
+        foreach (var fmt in new[] { RecordingBitFormat.Pcm16, RecordingBitFormat.Pcm24, RecordingBitFormat.Float32 })
+        {
+            using var ms = new MemoryStream();
+            AudioRecorderService.WriteWavHeader(ms, 48000, 2, fmt, 0);
+            byte[] sampleBuf = new byte[16];
+            int pos = 0;
+            AudioRecorderService.WriteStereoSample(sampleBuf, ref pos, 0.5f, -0.5f, fmt);
+            ms.Write(sampleBuf, 0, pos);
+            AudioRecorderService.WriteWavHeader(ms, 48000, 2, fmt, pos);
+
+            byte[] bytes = ms.ToArray();
+            Assert.Equal(44 + pos, bytes.Length);
+            short expectedTag = fmt == RecordingBitFormat.Float32 ? (short)3 : (short)1;
+            Assert.Equal(expectedTag, BitConverter.ToInt16(bytes, 20));
+            Assert.Equal((short)fmt, BitConverter.ToInt16(bytes, 34));
+            Assert.Equal(pos, BitConverter.ToInt32(bytes, 40));
+        }
+
+        // Verify Wait-for-Sound threshold trigger ignores silence and fires on exact first frame above -40 dB
+        float[] armedBuf = new float[20]; // 10 stereo frames
+        armedBuf[12] = 0.05f; // Frame #6 crosses -40 dB (0.01)
+        Assert.True(AudioRecorderService.EvaluateWaitForSoundTrigger(armedBuf, -40.0, out int trigIdx));
+        Assert.Equal(6, trigIdx);
+        Assert.False(AudioRecorderService.EvaluateWaitForSoundTrigger(new float[20], -40.0, out _));
+    }
+
+    [Fact]
+    public void DjMixerEngine_AndAutoBpmKeyAnalyzer_ShouldDetect128BpmAndSyncDecksAndApplyIsolatorEq()
+    {
+        // 0. Verify full end-to-end WAV file decoding in both Load As-Is (192 kHz bit-exact) and 48 kHz RAM-Saver modes
+        string tempDjWav = Path.Combine(Path.GetTempPath(), $"Spectra_DJ_UnitTest_{Guid.NewGuid():N}.wav");
+        try
+        {
+            byte[] wavBytes = SpeakerTestToneService.GeneratePureToneWav(440.0, 2.0, 192000);
+            File.WriteAllBytes(tempDjWav, wavBytes);
+            var decoder = new DjTrackDecoderService();
+
+            var nativeTrack = decoder.LoadAndAnalyzeTrack(tempDjWav, forceReanalyze: true, preserveNativeSampleRate: true);
+            Assert.Equal(192000, nativeTrack.SampleRate);
+            Assert.True(nativeTrack.TotalFrames >= 380000);
+
+            using var pureDj = new DjMixerEngineService { PureNativeQualityMode = true };
+            pureDj.LoadTrackToDeck(DjDeckId.DeckA, nativeTrack);
+            pureDj.DeckA.PlayheadFrame = 0;
+            pureDj.DeckA.IsPlaying = true;
+            float[] pureL = new float[256];
+            float[] pureR = new float[256];
+            pureDj.MixStereoBuffer(pureL, pureR, 256, 192000);
+            for (int i = 0; i < 256; i++)
+            {
+                Assert.Equal(nativeTrack.Left[i], pureL[i], 6);
+            }
+
+            var decoded48 = decoder.LoadAndAnalyzeTrack(tempDjWav, forceReanalyze: false, preserveNativeSampleRate: false);
+            Assert.Equal(48000, decoded48.SampleRate);
+            Assert.True(decoded48.TotalFrames >= 90000);
+            Assert.Equal(DjLoadedTrack.OverviewBinCount, decoded48.OverviewPeaks.Length);
+        }
+        finally
+        {
+            if (File.Exists(tempDjWav)) File.Delete(tempDjWav);
+        }
+
+        // 1. Verify 138.0 BPM kick-drum onset detector (fractional 43.478-bin period at 100 Hz, immune to integer-lag quantization)
+        int envRate = DjLoadedTrack.BeatEnvelopeRateHz; // 100 Hz
+        int totalBins = envRate * 20; // 20 seconds
+        float[] beatPeaks = new float[totalBins];
+        float[] beatBass = new float[totalBins];
+        double periodBins = 60.0 * envRate / 138.0;
+
+        for (int beat = 0; beat < 44; beat++)
+        {
+            int idx = (int)Math.Round(beat * periodBins);
+            if (idx + 2 < totalBins)
+            {
+                beatPeaks[idx] = 1.0f;
+                beatPeaks[idx + 1] = 0.65f;
+                beatBass[idx] = 0.95f;
+                beatBass[idx + 1] = 0.85f;
+            }
+        }
+
+        DjTrackDecoderService.AnalyzeBpmAndBeatGrid(beatPeaks, beatBass, envRate, out double detectedBpm, out _);
+        Assert.InRange(detectedBpm, 137.5, 138.5);
+
+        // 2. Verify Dual-Deck Beat Sync, 3-Band EQ Kill & Crossfader DSP mixing
+        using var dj = new DjMixerEngineService();
+        int sr = 48000;
+        float[] subBass = new float[sr];
+        for (int i = 0; i < sr; i++)
+            subBass[i] = (float)(0.6 * Math.Sin(2.0 * Math.PI * 80.0 * i / sr)); // 80 Hz sub-bass tone
+
+        var trackA = new DjLoadedTrack
+        {
+            Title = "Club Anthem A",
+            Artist = "Spectra DJ",
+            SampleRate = sr,
+            TotalFrames = sr,
+            Left = subBass,
+            Right = subBass,
+            DetectedBpm = 140.0,
+            MusicalKey = "Am"
+        };
+        var trackB = new DjLoadedTrack
+        {
+            Title = "Techno Groove B",
+            Artist = "Spectra DJ",
+            SampleRate = sr,
+            TotalFrames = sr,
+            Left = subBass,
+            Right = subBass,
+            DetectedBpm = 125.0,
+            MusicalKey = "Gm"
+        };
+
+        dj.LoadTrackToDeck(DjDeckId.DeckA, trackA);
+        dj.LoadTrackToDeck(DjDeckId.DeckB, trackB);
+        dj.SyncDeck(DjDeckId.DeckB);
+        Assert.Equal(140.0, dj.DeckB.EffectiveBpm, 1);
+
+        // Play Deck A with normal EQ vs Total LOW Kill (-36 dB)
+        dj.DeckA.IsPlaying = true;
+        dj.Crossfader = -1.0; // Full Deck A
+        float[] outL = new float[1024];
+        float[] outR = new float[1024];
+        dj.MixStereoBuffer(outL, outR, 1024, sr);
+        float normalPeak = outL.Max(Math.Abs);
+        Assert.True(normalPeak > 0.25f);
+
+        dj.DeckA.LowDb = -36.0; // Total LOW EQ Kill
+        dj.MixStereoBuffer(outL, outR, 1024, sr);
+        float killedPeak = outL.Skip(512).Max(Math.Abs);
+        Assert.True(killedPeak < normalPeak * 0.15f);
+    }
+
+    [Fact]
+    public void AudioSampleEditorService_ShouldSnapZeroCrossingsCropStartEndAndSaveSelectedLoopAtNativeRate()
+    {
+        using var editor = new AudioSampleEditorService();
+        int sr = 192000;
+        int totalFrames = sr; // 1.0 second at 192 kHz
+        float[] left = new float[totalFrames];
+        float[] right = new float[totalFrames];
+        for (int i = 0; i < totalFrames; i++)
+        {
+            float s = MathF.Sin((float)(2.0 * Math.PI * 400.0 * i / sr));
+            left[i] = s * 0.75f;
+            right[i] = s * 0.75f;
+        }
+
+        editor.LoadRawBuffer(left, right, sr, "192kHz_Loop_Test.wav", RecordingBitFormat.Pcm24);
+        Assert.Equal(sr, editor.SampleRate);
+        Assert.Equal(totalFrames, editor.TotalFrames);
+
+        // Select a ~0.500s loop region and verify Zero-Crossing Snap locks IN & OUT near 0.0 amplitude
+        editor.SetSelectionRange(24113, 120113, applyZeroCrossingSnap: true);
+        editor.GetBuffers(out float[] bufL, out _, out _);
+        Assert.True(Math.Abs(bufL[editor.SelectionStartFrame]) < 0.05f);
+        Assert.True(Math.Abs(bufL[editor.SelectionEndFrame]) < 0.05f);
+
+        int selectedLen = editor.SelectionLengthFrames;
+        Assert.InRange(selectedLen, 95000, 97000);
+
+        // Save just the selected loop region to a 192 kHz 24-bit WAV file
+        string tempLoopWav = Path.Combine(Path.GetTempPath(), $"spectra_loop_test_{Guid.NewGuid():N}.wav");
+        try
+        {
+            var clip = editor.SaveSelectionToWav(tempLoopWav, RecordingBitFormat.Pcm24);
+            Assert.True(File.Exists(tempLoopWav));
+            Assert.Contains("192 kHz • 24-bit WAV", clip.FormatLabel);
+
+            // Re-load the saved loop and verify 100% native 192 kHz sample rate and exact length
+            using var verifyEditor = new AudioSampleEditorService();
+            verifyEditor.LoadFile(tempLoopWav);
+            Assert.Equal(192000, verifyEditor.SampleRate);
+            Assert.Equal(selectedLen, verifyEditor.TotalFrames);
+            Assert.Equal(RecordingBitFormat.Pcm24, verifyEditor.DetectedBitFormat);
+        }
+        finally
+        {
+            if (File.Exists(tempLoopWav))
+                File.Delete(tempLoopWav);
+        }
+
+        // Verify Cut Start & End (CropToSelection) + Undo / Redo
+        Assert.True(editor.CropToSelection());
+        Assert.Equal(selectedLen, editor.TotalFrames);
+        Assert.True(editor.CanUndo);
+        Assert.True(editor.Undo());
+        Assert.Equal(totalFrames, editor.TotalFrames);
+        Assert.True(editor.Redo());
+        Assert.Equal(selectedLen, editor.TotalFrames);
     }
 
     [Fact]

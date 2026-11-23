@@ -25,6 +25,9 @@ public sealed class RealtekStudioService
     public SpeakerTestToneService TestTones { get; } = new();
     public UpdateCheckService Updates { get; } = new();
     public WasapiLoopbackAnalyzer Visualizer { get; } = new();
+    public AudioRecorderService Recorder { get; } = new();
+    public DjTrackDecoderService DjDecoder { get; } = new();
+    public DjMixerEngineService DjMixer { get; } = new();
 
     public List<RealtekEndpointInfo> DiscoverEndpoints(bool includeInactiveRealtekPins = true)
     {

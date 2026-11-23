@@ -2,7 +2,7 @@
   <img src="assets/social-preview.png" alt="Spectra Realtek Studio — Full HDA &amp; RltkAPO64 Control Console" width="100%" />
   <br /><br />
   <p>
-    <a href="https://github.com/Creator-NL/SpectraRealtekStudio/releases"><img src="https://img.shields.io/badge/Download-Setup%20%26%20Portable%20ZIP-22E8FF?style=for-the-badge" alt="Download Release" /></a>
+    <a href="https://github.com/Creator-NL/SpectraRealtekStudio/releases"><img src="https://img.shields.io/badge/Download-v1.1.0%20Setup%20%26%20Portable-22E8FF?style=for-the-badge" alt="Download Release v1.1.0" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22E87A?style=for-the-badge" alt="MIT License" /></a>
     <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-151C36?style=for-the-badge" alt="Windows x64" />
     <img src="https://img.shields.io/badge/Telemetry-Zero%20%2F%20100%25%20Offline-FF2BD6?style=for-the-badge" alt="Zero Telemetry" />
@@ -20,7 +20,7 @@ Millions of motherboards (**MSI, ASUS, Gigabyte, ASRock, Dell, HP, Lenovo**) shi
 1. The Microsoft Store **Realtek Audio Console** UWP app frequently breaks after Windows or driver updates (`"Cannot connect to RPC service"` or missing settings where the **Equalizer, Environment Reverb, Karaoke, and Room Correction** disappear completely).
 2. Classic Realtek HDA driver packages (such as **R282 / R283 / 6.0.1.8186**) dropped the legacy GUI manager while leaving all DSP engines (`RltkAPO64.dll`, `RtCOM64.dll`, `RtkApi64.dll`, `RtkCfg64.dll`) registered and active inside Windows Audio.
 
-**Spectra Realtek Studio** communicates directly with the native Realtek APO and Windows Audio RPC service (`RtkCfg64.dll` / `IPolicyConfig` + `RtCOM64.dll` + CoreAudio `IDeviceTopology`), restoring **every single feature** of your Realtek audio card — faster, cleaner, open-source, **100% offline with zero telemetry**, and **without requiring Administrator privileges for daily use**.
+**Spectra Realtek Studio** communicates directly with the native Realtek APO and Windows Audio RPC service (`RtkCfg64.dll` / `IPolicyConfig` + `RtCOM64.dll` + CoreAudio `IDeviceTopology`), restoring **every single feature** of your Realtek audio card — and expanding it into a complete **9-Module Audio Control, 60 FPS Hi-Res Visualizer, Lossless Recorder / Sample & Loop Editor, and Dual-Deck DJ Mixing Studio** — faster, cleaner, open-source, **100% offline with zero telemetry**, and **without requiring Administrator privileges for daily use**.
 
 ---
 
@@ -30,19 +30,19 @@ Grab the latest self-contained Windows 10/11 (x64) binaries from the **[GitHub R
 
 | Package | File | Description |
 | :--- | :--- | :--- |
-| **Windows Installer** | `SpectraRealtekStudio-v1.0.1-Setup.exe` | Modern Inno Setup 6 installer with Start Menu shortcuts, optional Desktop icon, and optional *Start minimized to tray on Windows sign-in*. |
-| **Portable Edition** | `SpectraRealtekStudio-v1.0.1-Portable.zip` | Extract anywhere and run `SpectraRealtekStudio.App.exe` directly — zero installation required! Includes `SpectraRealtekStudio.Cli.exe`. |
+| **Windows Installer** | `SpectraRealtekStudio-v1.1.0-Setup.exe` | Modern Inno Setup 6 installer with Start Menu shortcuts, optional Desktop icon, and optional *Start minimized to tray on Windows sign-in*. |
+| **Portable Edition** | `SpectraRealtekStudio-v1.1.0-Portable.zip` | Extract anywhere and run `SpectraRealtekStudio.App.exe` directly — zero installation required! Includes `SpectraRealtekStudio.Cli.exe`. |
 | **Checksums** | `SHA256SUMS.txt` | Verified SHA-256 checksums for both packages. |
 
 ---
 
-## Screenshots (All 6 Studio Modules)
+## Screenshots (All 9 Studio Modules)
 
 | 1. 10-Band Graphic Equalizer | 2. Sound Effects, EAX & Spatial Studio |
 | :---: | :---: |
 | ![Graphic Equalizer](assets/screenshots/01-graphic-equalizer.png) | ![Sound Effects & Spatial](assets/screenshots/02-sound-effects-spatial.png) |
 
-| 3. Speaker Config & Room Correction | 4. Analog Mixer & Direct Input Monitoring |
+| 3. Speaker Config, Sweeps & Room Correction | 4. Analog Mixer & Direct Input Monitoring |
 | :---: | :---: |
 | ![Speakers & Room Correction](assets/screenshots/03-speakers-room-correction.png) | ![Analog Mixer & Levels](assets/screenshots/04-analog-mixer-levels.png) |
 
@@ -50,19 +50,27 @@ Grab the latest self-contained Windows 10/11 (x64) binaries from the **[GitHub R
 | :---: | :---: |
 | ![Microphone & Recording DSP](assets/screenshots/05-microphone-recording-dsp.png) | ![Jacks, Tweaks & Inspector](assets/screenshots/06-jacks-tweaks-inspector.png) |
 
+| 7. Live 60 FPS 256-Band Audio Visualizer (5 Hz – 48 kHz) | 8. Studio Audio Recorder & Sample/Loop Editor |
+| :---: | :---: |
+| ![Live 60 FPS Visualizer](assets/screenshots/07-live-visualizer.jpg) | ![Studio Audio Recorder](assets/screenshots/08-studio-recorder.jpg) |
+
+| 9. Dual-Deck DJ Mixing Studio (Bit-Pure Native Mode) |
+| :---: |
+| ![Dual-Deck DJ Mixing Studio](assets/screenshots/09-dj-mixing-studio.jpg) |
+
 ---
 
 ## Architecture Overview
 
 ```mermaid
 flowchart LR
-    UI["Spectra Realtek Studio (WPF Desktop + Tray + Hotkeys)"]
-    CLI["SpectraRealtekStudio.Cli (Automation & Diagnostics)"]
+    UI["Spectra Realtek Studio (9-Tab WPF Console + Sample Editor + Tray + Hotkeys)"]
+    CLI["SpectraRealtekStudio.Cli (Automation & 11-Check Verification)"]
     CORE["SpectraRealtekStudio.Core"]
 
     RPC["RtkCfg64.dll / IPolicyConfig\n(Non-Admin AudioSrv RPC)"]
     COM["RtCOM64.dll (PropSet COM)\nRoom Correction, EAX, Jack Sense, HDA Verbs"]
-    CA["Windows CoreAudio\nPeak Meters, Master Vol, Balance, IDeviceTopology"]
+    CA["Windows CoreAudio & WASAPI\nPeak Meters, 60 FPS FFT, Recorder, Sample Loop & DJ Engine"]
     REG["HKLM Driver Registry (Optional UAC)\nGlobalSettings, PowerSettings, PinConfigOverrideVerbs"]
 
     APO["audiodg.exe -> RltkAPO64.dll\n10-Band EQ, EAX Reverb, Spatial, Karaoke, Mic DSP"]
@@ -84,13 +92,13 @@ flowchart LR
 
 ---
 
-## Complete Feature Set
+## Complete Feature Set (9 Studio Modules)
 
 ### 1. 10-Band Graphic Equalizer (`31 Hz` — `16 kHz`) & Master Anti-Clip Gain
 - **Full `0.1 dB` Hardware Precision**: Controls all 10 Realtek APO bands (`31 Hz` to `16 kHz`) across `-12.0 dB` to `+12.0 dB` with neon Cyan/Silver vertical sliders, double-click band reset to `0.0 dB`, and a live **40-byte `VT_BLOB` hex payload console** (`{4b361010-def7-43a1-a5dc-071d955b62f7},6`).
 - **Live Cyan → Violet → Magenta Catmull-Rom Frequency Curve**: Smooth interactive response visualizer with quick one-click preset pill chips (*Flat, Rock, Pop, Bass, Powerful, Club, Live, Vocal, Treble, Classical, Party, Soft, Dance* + unlimited saved custom presets).
 - **Master Output Rotary Gain Knob (`-24.0 dB` to `+12.0 dB`) & Auto-Gain Anti-Clip Limiter**: Pre-mix 32-bit float digital headroom (`-24..0 dB`, works even when `RltkAPO64` is bypassed) + configurable `70%–95%` Auto-Gain peak ceiling guard and `OK` / `LIM` / `CLIP` status badge.
-- **Settings Menu (`⚙`), Tooltips & Update Checker**: Hover tooltips across every control (toggleable in Settings), live bidirectional Master/Balance volume sync, and manual **Check for Updates...** against GitHub Releases.
+- **Settings Menu (`⚙`), Tooltips & Update Checker**: Toggleable hover tooltips & startup idle notices, live bidirectional Master/Balance volume sync, and manual **Check for Updates...** against GitHub Releases.
 
 ### 2. Sound Effects, EAX Acoustic Environment, Karaoke & Spatial Studio
 - **23 EAX Acoustic Environment Reverbs**: *Generic*, *Padded Cell*, *Room*, *Bathroom*, *Living Room*, *Stone Room*, *Auditorium*, *Concert Hall*, *Cave*, *Arena*, *Hangar*, *Carpeted Hallway*, *Hallway*, *Stone Corridor*, *Alley*, *Forest*, *City*, *Mountains*, *Quarry*, *Plain*, *Parking Lot*, *Sewer Pipe*, and *Under Water*.
@@ -103,9 +111,9 @@ flowchart LR
 - **Realtek SounzReal & OmniSound Extended DSP**:
   - **OmniSound 3D**, **SounzReal OmniHeadphone**, **VoiceBack**, **BassBack**, and **MP3+ Harmonic Restorer**.
 
-### 3. Speaker Configuration, Default Format & Room Correction
+### 3. Speaker Configuration, Full-Spectrum Frequency Sweeps & Room Correction
 - **Speaker Layout & Studio Format**: Switch between **Stereo (2.0)**, **Quadraphonic (4.0)**, **5.1 Surround (Rear or Side)**, and **7.1 Surround**; configure Sample Rate (`44.1 kHz` to `192 kHz`), Bit Depth (`16-bit` / `24-bit`), Full-Range speaker flags, and Exclusive Mode controls.
-- **Interactive 8-Channel Speaker Test Studio**: Individual harmonic chimes for `Front Left`, `Center`, `Front Right`, `Side Left`, `Subwoofer (68 Hz LFE pulse)`, `Side Right`, `Rear Left`, `Rear Right`, and `All Channels`.
+- **Interactive 8-Channel Speaker Test Studio & Full-Spectrum Generator**: Individual harmonic chimes for `FL`, `C`, `FR`, `SL`, `Subwoofer (68 Hz LFE pulse)`, `SR`, `RL`, `RR`, and `All Channels` — plus **Logarithmic Frequency Sweeps (`5 Hz–20 kHz` & `5 Hz–48 kHz` up to 192 kHz)**, **Pink & White Noise**, and a **Logarithmic Pure Tone Generator (`5 Hz–48 kHz`)**.
 - **Room Correction**: Per-speaker distance delay (`0..30 m`) and individual dB gain trim (`-12..+12 dB`) across all 8 surround channels.
 
 ### 4. Analog Mixer, L/R Balance & Direct Hardware Input Monitoring
@@ -133,11 +141,27 @@ flowchart LR
   - Launch with `--minimized` to start directly in the System Tray.
 - **Live `FxProperties` Inspector & Raw HDA Verb Console**: Searchable table of all `FxProperties` and `Properties` values with real-time `PROPVARIANT` decoding and one-click **Community Diagnostic JSON** export.
 
-### 7. Live 60 FPS Audio Visualizer (`5 Hz — 48 kHz`, Up to 256-Band FFT)
+### 7. Live 60 FPS Audio Visualizer (`0 Hz — 48 kHz`, Up to 256-Band FFT)
 - **Zero-Dependency Native WASAPI Loopback + 8192-Point Radix-2 FFT**: Works seamlessly with Stereo, Quad (4.0), 5.1, and 7.1 streams (`44.1–192 kHz`) whether `RltkAPO64` is enabled or bypassed.
-- **Selectable Frequency Ranges & Uniform Grid**: `5 Hz – 48 kHz (Full)`, `5 Hz – 24 kHz (Studio)`, `0 Hz – 48 kHz (Linear)`, and `20 Hz – 20 kHz (EQ)` with `64`, `128`, or `256` bands.
-- **6 Real-Time Studio Visualization Modes**: *Spectrum Bars (FFT + Peak Hold)*, *Mirror Spectrum Wave*, *Stereo Oscilloscope (L/R)*, *Spectrogram Waterfall (Heat)*, *Stereo Vectorscope (Phase XY)*, and *Radial Cyber Halo (360°)* across 4 neon themes (*Spectra Neon*, *Studio RTA*, *Electric Ice*, *Plasma Fire*).
+- **6 Frequency Ranges & Dynamic Encoder Rolloff Recovery**: `0 Hz – 20 kHz (Default)`, `0 Hz – 20 kHz (Linear)`, `5 Hz – 24 kHz (Studio)`, `5 Hz – 48 kHz (Hi-Res)`, `0 Hz – 48 kHz (Linear)`, and `20 Hz – 20 kHz (EQ)` with `64`, `128`, or `256` bands — plus automatic brickwall rolloff detection (`11–22.5 kHz`) and raised-cosine harmonic continuity so MP3/AAC tracks display smoothly with zero dead gap!
+- **10 Real-Time Studio Visualization Modes**: *Spectrum Bars*, *Color Waveform Bars*, *Neon Liquid Aurora*, *Peak Contour (Peaks Only)*, *Starfield Bass Tunnel*, *Mirror Spectrum Wave*, *Stereo Oscilloscope (L/R)*, *Spectrogram Waterfall (Heat)*, *Stereo Vectorscope (Phase XY)*, and *Radial Cyber Halo (360°)*.
+- **8 Built-In Color Palettes + `Custom Colors...` + `Color Flow` + `⛶ Focus` Cinema Mode**: Choose from 8 neon themes or pick 3 custom swatches (saved automatically), enable sideways `Color Flow`, and expand into distraction-free `⛶ Focus` cinema mode.
 - **Live Mastering Telemetry & True `0%` Idle Overhead**: Displays Dominant Peak Hz, RMS Loudness dBFS, Stereo Phase Correlation, and WASAPI format — and completely shuts down capture (`0%` CPU) when switching tabs, pausing, minimizing, or sending to tray.
+
+### 8. Studio Audio Recorder & Dedicated Sample & Loop Studio Editor *(NEW in v1.1.0)*
+- **Native WASAPI Lossless WAV Recorder**: Record **"🔊 What You Hear" (WASAPI Loopback)** from any playback endpoint OR any hardware capture input (*Line In*, *Microphone*, *Stereo Mix*) in **`16-bit PCM`**, **`24-bit PCM (Studio)`**, or **`32-bit IEEE Float`** WAV at native hardware sample rate (up to **`192 kHz`**), with Input Gain, Soft Limiter, and live waveform monitor.
+- **`Wait for Sound` Armed Trigger (`-48 / -40 / -30 / -20 dB`)**: Arms with a **30 ms pre-roll ring buffer** so recording starts automatically on the exact first sound without clipping the initial drum transient, plus `✕ Cancel` and `↻ New` quick restart buttons.
+- **Dedicated `Spectra Sample & Loop Studio` Popup Editor (`✂ Edit & Loop Selected` / `📂 Load & Edit Track...`)**:
+  - Loads any recorded clip or external audio/media file (`.wav`, `.flac`, `.mp3`, `.m4a`, `.aac`, `.ogg`, `.wma`, `.mp4`, etc.) at **100% original native sample rate** (up to `192 kHz`).
+  - **Interactive 60 FPS Stereo Waveform** with draggable green **`IN`** (Start) and amber **`OUT`** (End) handles, mouse-wheel zoom, millisecond fine-tune nudge buttons (`±1 / ±10 / ±50 ms`), and **`Zero-Crossing Snap`** for click-free loops.
+  - **Real-Time Seamless Loop Audition (`🔁 Loop Selection`)**: Loop `[IN .. OUT]` gaplessly while dragging or nudging `IN`/`OUT` live until the loop is locked in, then save **just the selected loop/part** directly with **`💾 Save Selected Loop / Part As...`**!
+  - **Non-Destructive Cut & Mastering Tools**: **`✂ Cut Start & End (Keep Selection)`**, **`✂ Cut Start`**, **`✂ Cut End`**, **`🗑 Cut Selected Middle`** (with smooth zero-crossing splice), **`◢ Fade In`**, **`◣ Fade Out`**, **`⚡ Normalize`**, and 18-level **`↶ Undo` / `↷ Redo` / `↺ Reset Original`**.
+
+### 9. Dual-Deck Pro DJ Mixing Studio *(NEW in v1.1.0)*
+- **Bit-Pure `Load As-Is (Pure Native)` Engine**: Plays WAV/FLAC/MP3/M4A/AAC/OGG/WMA/MP4 tracks at their **100% original sample rate (up to `192,000 Hz`)** with 1:1 integer sample pass-through at 0% pitch and unity gain — zero unnecessary downsampling or grain artifacts!
+- **60 FPS Dual Stacked Beat-Matching Waveforms & Rotating Vinyl Platters**: Deck A (Cyan) & Deck B (Crimson) beat-colored scrolling waveforms with center playhead, beat-grid ticks, mouse drag scrubbing, `VINYL` scratch & `SLIP` modes, Pitch Fader, Keylock (`MT`), and `CUE` / `▶ PLAY` / `SYNC`.
+- **v2 High-Precision Auto-BPM & Musical Key Analyzer**: Continuous fractional-period multi-beat comb filter (`1T, 2T, 4T, 8T`) on a 200 Hz isolated kick-drum envelope + Hann-windowed Musical Key chroma detector with persistent local cache.
+- **2-Channel Pro DJ Mixer & Performance Tools**: Rotary `GAIN`, 3-Band **12 dB/oct Isolator EQ** (`HIGH` / `MID` / `LOW` with total kill), Bipolar `FILTER`, Channel Volume Faders, 16-segment LED VU Meters, `🎧` PFL, Crossfader, **3-Slot FX Rack** (`Flanger`, `Reverb`, `WahWah`), **4 Hot Cues**, **Beat Loop** rack, **6 Stem/Isolator Pads** (`Vocal`, `Instru`, `Bass`, `Kick Kill`, `HiHat Kill`, `Stems FX`), **`⇄ Auto-Mix`**, **`● REC MIX`**, Local Music Crate Browser, and **`⛶ Focus`** cinema mode.
 
 ---
 
@@ -192,7 +216,7 @@ SpectraRealtekStudio.Cli.exe loudness on
 # Export a full community diagnostic JSON report
 SpectraRealtekStudio.Cli.exe diag my_codec_report.json
 
-# Run automated hardware & APO self-verification
+# Run all 11 automated hardware, APO, Visualizer, Recorder, Sample Editor & DJ self-verification checks
 SpectraRealtekStudio.Cli.exe test
 ```
 
@@ -215,7 +239,8 @@ dotnet test SpectraRealtekStudio.sln -c Release
 
 ## Privacy, Security & Community
 
-- **Privacy:** [docs/PRIVACY.md](docs/PRIVACY.md) — Strictly offline, zero telemetry, zero audio recording.
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md) — Full version history (`v1.0.0` → `v1.1.0`).
+- **Privacy:** [docs/PRIVACY.md](docs/PRIVACY.md) — Strictly offline, zero telemetry; user-initiated recordings & sample loops stay 100% local on your PC.
 - **Security:** [SECURITY.md](SECURITY.md) — Responsible disclosure and least-privilege architecture.
 - **Accessibility:** [ACCESSIBILITY.md](ACCESSIBILITY.md)
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) & [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)

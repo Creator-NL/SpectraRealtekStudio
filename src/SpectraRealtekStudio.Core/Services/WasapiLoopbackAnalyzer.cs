@@ -30,6 +30,13 @@ internal interface IAudioCaptureClient
     [PreserveSig] int GetNextPacketSize(out uint pNumFramesInNextPacket);
 }
 
+public enum SpectrumScaleMode
+{
+    Logarithmic = 0,
+    ShiftedLogZero = 1,
+    Linear = 2
+}
+
 public sealed class AudioVisualizerFrame
 {
     public double[] Spectrum { get; init; } = Array.Empty<double>();
@@ -39,9 +46,10 @@ public sealed class AudioVisualizerFrame
     public double DominantFrequencyHz { get; set; }
     public double RmsDb { get; set; } = -90.0;
     public double PhaseCorrelation { get; set; } = 1.0;
-    public double MinFreqHz { get; set; } = 5.0;
-    public double MaxFreqHz { get; set; } = 48000.0;
+    public double MinFreqHz { get; set; } = 0.0;
+    public double MaxFreqHz { get; set; } = 20000.0;
     public bool LinearScale { get; set; }
+    public SpectrumScaleMode ScaleMode { get; set; } = SpectrumScaleMode.ShiftedLogZero;
     public int SampleRate { get; set; } = 48000;
     public int Channels { get; set; } = 2;
     public bool IsCapturing { get; set; }
@@ -448,14 +456,19 @@ public sealed class WasapiLoopbackAnalyzer : IDisposable
         return 0f;
     }
 
+    public const double ShiftedLogKneeHz = 25.0;
+
     public AudioVisualizerFrame ComputeFrame(
         int bandCount,
         double sensitivityGain = 1.0,
         double smoothing = 0.72,
-        double minFreqHz = 5.0,
-        double maxFreqHz = 48000.0,
-        bool linearScale = false)
+        double minFreqHz = 0.0,
+        double maxFreqHz = 20000.0,
+        bool linearScale = false,
+        SpectrumScaleMode? explicitScaleMode = null)
     {
+        SpectrumScaleMode scaleMode = explicitScaleMode
+            ?? (linearScale ? SpectrumScaleMode.Linear : (minFreqHz <= 0.5 ? SpectrumScaleMode.ShiftedLogZero : SpectrumScaleMode.Logarithmic));
         bandCount = Math.Clamp(bandCount, 16, 256);
         if (_smoothedBands.Length != bandCount)
         {
@@ -545,9 +558,114 @@ public sealed class WasapiLoopbackAnalyzer : IDisposable
         double dominantHz = maxMag > 1e-4 ? dominantBin * binHz : 0.0;
         double nyquist = _sampleRate * 0.5;
 
-        double minFreq = linearScale ? Math.Max(0.0, minFreqHz) : Math.Max(1.0, minFreqHz);
+        // When playing broadband music (which may have an MP3/AAC/mastering brickwall low-pass anywhere between 13.5 kHz and 21 kHz),
+        // dynamically detect the exact rolloff frequency f_cut, anchor to the track's real treble level just below f_cut,
+        // and crossfade continuously into octave-folded harmonic treble detail with a natural acoustic decay up to 48 kHz.
+        // This eliminates any 15.8–17.5 kHz MP3 gap, 17.5 kHz step wall, or 20–28 kHz notch across all 6 visualizer ranges,
+        // while leaving pure sine test tones and frequency sweeps 100% unmodified!
+        if (_sampleRate >= 44100 && maxMag > 1e-4)
+        {
+            double thresh = maxMag * 0.012;
+            int bassActive = 0, midActive = 0, trebleActive = 0;
+            int b1 = Math.Max(1, (int)(60.0 / binHz)), b2 = Math.Min(half - 1, (int)(300.0 / binHz));
+            int m1 = Math.Max(1, (int)(400.0 / binHz)), m2 = Math.Min(half - 1, (int)(3500.0 / binHz));
+            int t1 = Math.Max(1, (int)(4000.0 / binHz)), t2 = Math.Min(half - 1, (int)(13500.0 / binHz));
+
+            for (int k = b1; k <= b2; k++) if (_magSpectrum[k] > thresh) bassActive++;
+            for (int k = m1; k <= m2; k++) if (_magSpectrum[k] > thresh) midActive++;
+            for (int k = t1; k <= t2; k++) if (_magSpectrum[k] > thresh * 0.25) trebleActive++;
+
+            bool isBroadbandMusic = bassActive >= 2 && midActive >= 8 && trebleActive >= 5;
+            if (isBroadbandMusic)
+            {
+                // 1. Measure active upper-mid / lower-treble reference magnitude (5.5 kHz – 11.0 kHz)
+                int kRef0 = Math.Max(2, (int)(5500.0 / binHz));
+                int kRef1 = Math.Min(half - 6, (int)(11000.0 / binHz));
+                double refSum = 0.0;
+                for (int k = kRef0; k <= kRef1; k++) refSum += _magSpectrum[k];
+                double trebleRef = refSum / Math.Max(1, kRef1 - kRef0 + 1);
+
+                // 2. Scan upward from 11.0 kHz to 22.5 kHz to locate the track's actual encoder brickwall cutoff bin kCut
+                int kScanStart = Math.Max(kRef1, (int)(11000.0 / binHz));
+                int kScanEnd = Math.Min(half - 4, (int)(Math.Min(22500.0, nyquist * 0.96) / binHz));
+                int kCut = kScanEnd;
+                double cutThresh = trebleRef * 0.22;
+
+                for (int k = kScanStart; k <= kScanEnd; k++)
+                {
+                    double avg5 = (_magSpectrum[k - 2] + _magSpectrum[k - 1] + _magSpectrum[k] + _magSpectrum[k + 1] + _magSpectrum[k + 2]) * 0.2;
+                    if (avg5 < cutThresh)
+                    {
+                        kCut = k;
+                        break;
+                    }
+                }
+
+                // 3. Begin raised-cosine blend ~1.6 kHz BELOW kCut while real treble energy is still fully intact
+                int blendWidthBins = Math.Max(6, (int)(1600.0 / binHz));
+                int kBlendStart = Math.Max(kRef0 + 6, kCut - blendWidthBins);
+                int kBlendEnd = Math.Min(half - 2, kCut + blendWidthBins / 3);
+
+                // 4. Define verified active treble source band [srcBinMin, srcBinMax] strictly below kBlendStart
+                // so the harmonic source lookup NEVER crosses into kCut (preventing any secondary gap at 2 * f_cut!)
+                int srcBinMin = Math.Max(4, (int)(kBlendStart * 0.44));
+                int srcBinMax = Math.Max(srcBinMin + 6, (int)(kBlendStart * 0.92));
+
+                double srcSum = 0.0;
+                for (int k = srcBinMin; k <= srcBinMax; k++) srcSum += _magSpectrum[k];
+                double srcAvg = srcSum / Math.Max(1, srcBinMax - srcBinMin + 1);
+
+                int kAnchor0 = Math.Max(srcBinMin, kBlendStart - blendWidthBins);
+                double anchorSum = 0.0;
+                for (int k = kAnchor0; k <= kBlendStart; k++) anchorSum += _magSpectrum[k];
+                double anchorAvg = anchorSum / Math.Max(1, kBlendStart - kAnchor0 + 1);
+
+                // Exact level-matching factor so at k == kBlendStart, synthesized overtones match the real spectrum 1:1
+                double gainMatch = (srcAvg > 1e-8)
+                    ? Math.Clamp(anchorAvg / srcAvg, 0.06, 0.95)
+                    : 0.35;
+
+                int kMaxExt = Math.Min(half - 1, (int)(Math.Min(48000.0, nyquist * 0.99) / binHz));
+                double blendStartHz = kBlendStart * binHz;
+                double srcSpan = Math.Max(4.0, srcBinMax - srcBinMin);
+
+                for (int k = kBlendStart; k <= kMaxExt; k++)
+                {
+                    double freq = k * binHz;
+
+                    // Continuous ping-pong mapping inside [srcBinMin, srcBinMax] (starts at srcBinMax when k == kBlendStart)
+                    double normDist = (k - kBlendStart) / (srcSpan * 1.25);
+                    double cycle = normDist % 2.0;
+                    double pingPong = cycle <= 1.0 ? (1.0 - cycle) : (cycle - 1.0);
+                    double srcBin = srcBinMin + pingPong * srcSpan;
+
+                    double rawDetail = SampleSpectrumLinear(_magSpectrum, half, srcBin);
+
+                    // Natural acoustic high-frequency decay (compensating for the +2.5 dB/oct visual tilt above 15 kHz)
+                    double excessHz = Math.Max(0.0, freq - blendStartHz);
+                    double envDecay = Math.Exp(-excessHz / 15500.0);
+
+                    double synthMag = rawDetail * gainMatch * envDecay;
+                    double origMag = _magSpectrum[k];
+
+                    double t = Math.Clamp((double)(k - kBlendStart) / Math.Max(1, kBlendEnd - kBlendStart), 0.0, 1.0);
+                    double w = 0.5 - 0.5 * Math.Cos(Math.PI * t);
+
+                    // Smoothly crossfade from 100% original before kBlendStart to continuous envelope above kCut
+                    // (also suppressing any narrow Nyquist resampler spikes above kCut that exceed the natural slope)
+                    double targetAbove = Math.Max(synthMag, Math.Min(origMag, anchorAvg * envDecay * 1.25));
+                    _magSpectrum[k] = origMag * (1.0 - w) + targetAbove * w;
+                }
+            }
+        }
+
+        double minFreq = scaleMode == SpectrumScaleMode.Logarithmic ? Math.Max(1.0, minFreqHz) : Math.Max(0.0, minFreqHz);
         double maxFreq = Math.Max(minFreq + 100.0, maxFreqHz);
-        double logRatio = linearScale ? 1.0 : Math.Log(maxFreq / minFreq);
+        double logRatio = scaleMode == SpectrumScaleMode.Logarithmic
+            ? Math.Log(maxFreq / minFreq)
+            : (scaleMode == SpectrumScaleMode.ShiftedLogZero
+                ? Math.Log(1.0 + (maxFreq - minFreq) / ShiftedLogKneeHz)
+                : 1.0);
 
         double smoothFactor = Math.Clamp(smoothing, 0.15, 0.94);
         double dbFloor = -76.0;
@@ -557,10 +675,19 @@ public sealed class WasapiLoopbackAnalyzer : IDisposable
         for (int b = 0; b < bandCount; b++)
         {
             double f0, f1, fMid;
-            if (linearScale)
+            if (scaleMode == SpectrumScaleMode.Linear)
             {
                 f0 = minFreq + (maxFreq - minFreq) * b / bandCount;
                 f1 = minFreq + (maxFreq - minFreq) * (b + 1) / bandCount;
+                fMid = 0.5 * (f0 + f1);
+            }
+            else if (scaleMode == SpectrumScaleMode.ShiftedLogZero)
+            {
+                // Smooth shifted-log curve starting at EXACT 0 Hz while giving rich musical resolution across bass/mids/treble
+                double t0 = (double)b / bandCount;
+                double t1 = (double)(b + 1) / bandCount;
+                f0 = minFreq + ShiftedLogKneeHz * (Math.Exp(logRatio * t0) - 1.0);
+                f1 = minFreq + ShiftedLogKneeHz * (Math.Exp(logRatio * t1) - 1.0);
                 fMid = 0.5 * (f0 + f1);
             }
             else
@@ -581,19 +708,25 @@ public sealed class WasapiLoopbackAnalyzer : IDisposable
                 double exactStart = f0 / binHz;
                 double exactEnd = Math.Min(f1, nyquist * 0.995) / binHz;
 
-                if (exactEnd - exactStart < 1.0)
+                if (exactEnd - exactStart < 2.2)
                 {
-                    // Narrow sub-bass/mid band (< 1 FFT bin): smooth linear interpolation with zero bin-boundary spikes!
-                    double exactCenter = Math.Clamp(fMid / binHz, 0.0, half - 1.001);
-                    int i0 = (int)exactCenter;
-                    double frac = exactCenter - i0;
-                    mag = _magSpectrum[i0] * (1.0 - frac) + _magSpectrum[Math.Min(i0 + 1, half - 1)] * frac;
+                    // Narrow or medium band (< 2.2 FFT bins): 3-point fractional linear interpolation with zero bin-boundary notches!
+                    double c0 = Math.Clamp(exactStart, 0.0, half - 1.001);
+                    double c1 = Math.Clamp(0.5 * (exactStart + exactEnd), 0.0, half - 1.001);
+                    double c2 = Math.Clamp(exactEnd, 0.0, half - 1.001);
+
+                    double m0 = SampleSpectrumLinear(_magSpectrum, half, c0);
+                    double m1 = SampleSpectrumLinear(_magSpectrum, half, c1);
+                    double m2 = SampleSpectrumLinear(_magSpectrum, half, c2);
+                    double maxM = Math.Max(m0, Math.Max(m1, m2));
+                    double avgM = (m0 + m1 * 2.0 + m2) * 0.25;
+                    mag = maxM * 0.55 + avgM * 0.45;
                 }
                 else
                 {
-                    // Peak-weighted RMS pooling strictly within [f0, f1]
-                    int idxStart = Math.Clamp((int)Math.Ceiling(exactStart), 1, half - 1);
-                    int idxEnd = Math.Clamp((int)Math.Floor(exactEnd), idxStart, half - 1);
+                    // Wide band: include fractional boundary bins + interior bins so no FFT bin ever falls through a Ceiling/Floor gap!
+                    int idxStart = Math.Clamp((int)Math.Floor(exactStart), 1, half - 1);
+                    int idxEnd = Math.Clamp((int)Math.Ceiling(exactEnd), idxStart, half - 1);
                     double peak = 0.0;
                     double sumSq = 0.0;
                     int count = 0;
@@ -668,13 +801,22 @@ public sealed class WasapiLoopbackAnalyzer : IDisposable
             PhaseCorrelation = correlation,
             MinFreqHz = minFreq,
             MaxFreqHz = maxFreq,
-            LinearScale = linearScale,
+            LinearScale = scaleMode == SpectrumScaleMode.Linear,
+            ScaleMode = scaleMode,
             SampleRate = _sampleRate,
             Channels = _channels,
             IsCapturing = _isCapturing,
             HasSignal = rmsDb > -74.0,
             StatusMessage = _statusMessage
         };
+    }
+
+    private static double SampleSpectrumLinear(double[] arr, int len, double pos)
+    {
+        int i0 = Math.Clamp((int)pos, 0, len - 1);
+        int i1 = Math.Min(len - 1, i0 + 1);
+        double frac = Math.Clamp(pos - i0, 0.0, 1.0);
+        return arr[i0] * (1.0 - frac) + arr[i1] * frac;
     }
 
     public static void RunFftInPlace(double[] real, double[] imag)

@@ -267,6 +267,7 @@ public sealed class StudioProfileExport
 public sealed class AppUserSettings
 {
     public bool TooltipsEnabled { get; set; } = true;
+    public bool ShowIdleHints { get; set; } = true;
     public double MasterPreampGainDb { get; set; } = 0.0;
     public bool AutoGainEnabled { get; set; } = false;
     public int AutoGainCeilingPercent { get; set; } = 80;
@@ -274,6 +275,48 @@ public sealed class AppUserSettings
     /// "Preamp" (RltkAPO64 digital headroom anti-clip limiter) or "MasterVolume" (Windows Master Volume limiter).
     /// </summary>
     public string AutoGainMode { get; set; } = "Preamp";
+    public string RecordingOutputFolder { get; set; } = string.Empty;
+    public string VisCustomColor1Hex { get; set; } = "#22E8FF";
+    public string VisCustomColor2Hex { get; set; } = "#8C52FF";
+    public string VisCustomColor3Hex { get; set; } = "#FF2BD6";
+    public string DjLastFolderPath { get; set; } = string.Empty;
+    public List<string> DjCustomFolders { get; set; } = new();
+    public bool DjLoadAsIsNativeQuality { get; set; } = true;
+}
+
+public enum RecordingBitFormat
+{
+    Pcm16 = 16,
+    Pcm24 = 24,
+    Float32 = 32
+}
+
+public sealed class AudioRecordingSource
+{
+    public string EndpointId { get; set; } = string.Empty;
+    public string FriendlyName { get; set; } = string.Empty;
+    public bool IsLoopback { get; set; }
+    public bool IsDefault { get; set; }
+    public string DisplayLabel => IsLoopback
+        ? $"🔊 What You Hear — {FriendlyName}{(IsDefault ? " [Default]" : "")}"
+        : $"🎤 Input — {FriendlyName}{(IsDefault ? " [Default]" : "")}";
+    public override string ToString() => DisplayLabel;
+}
+
+public sealed class RecordedClipInfo
+{
+    public string FilePath { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string SourceName { get; set; } = string.Empty;
+    public string FormatLabel { get; set; } = string.Empty;
+    public TimeSpan Duration { get; set; }
+    public long FileSizeBytes { get; set; }
+    public DateTime RecordedAtLocal { get; set; } = DateTime.Now;
+
+    public string DurationLabel => $"{(int)Duration.TotalMinutes:00}:{Duration.Seconds:00}.{Duration.Milliseconds / 100}";
+    public string SizeLabel => FileSizeBytes >= 1024 * 1024
+        ? $"{FileSizeBytes / (1024.0 * 1024.0):0.00} MB"
+        : $"{FileSizeBytes / 1024.0:0.0} KB";
 }
 
 public sealed class UpdateCheckResult

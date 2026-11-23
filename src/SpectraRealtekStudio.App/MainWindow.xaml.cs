@@ -126,6 +126,7 @@ public partial class MainWindow : Window
 
     public MainWindow(bool startMinimized = false)
     {
+        _suppressUiEvents = true;
         InitializeComponent();
 
         _appSettings = _studio.Presets.LoadAppSettings();
@@ -140,7 +141,10 @@ public partial class MainWindow : Window
         PopulateEnvironmentPresets();
         InitializeSystemTray();
         InitializeVisualizer();
+        InitializeRecorder();
+        InitializeDjStudio();
         ApplyAppSettingsToHeaderUi();
+        _suppressUiEvents = false;
 
         _meterTimer = new DispatcherTimer
         {
@@ -187,6 +191,8 @@ public partial class MainWindow : Window
         try
         {
             MnuShowTooltips.IsChecked = _appSettings.TooltipsEnabled;
+            MnuShowIdleHints.IsChecked = _appSettings.ShowIdleHints;
+            ApplyIdleHintPreference();
             BtnAutoGain.IsChecked = _appSettings.AutoGainEnabled;
             BtnAutoGain.Content = $"Auto {_appSettings.AutoGainCeilingPercent}%";
 
@@ -238,10 +244,17 @@ public partial class MainWindow : Window
         if (WindowState == WindowState.Minimized)
         {
             StopVisualizer();
+            OnRecorderWindowMinimized();
+            OnDjWindowMinimized();
         }
-        else if (_visIsActiveTab && IsVisible && !_visPaused)
+        else
         {
-            StartVisualizer();
+            if (_visIsActiveTab && IsVisible && !_visPaused)
+            {
+                StartVisualizer();
+            }
+            OnRecorderWindowRestored();
+            OnDjWindowRestored();
         }
     }
 
@@ -250,6 +263,9 @@ public partial class MainWindow : Window
         _meterTimer.Stop();
         _jackSenseTimer.Stop();
         StopVisualizer();
+        ShutdownRecorderOnAppClose();
+        ShutdownDjOnAppClose();
+        _studio.TestTones.Stop();
         _studio.CoreAudio.RestoreAllPreMixSessionGains(_activePlaybackEndpoint?.EndpointId);
         UnregisterGlobalHotkeys();
         if (_trayIcon != null)
@@ -544,6 +560,7 @@ public partial class MainWindow : Window
         {
             StartVisualizer();
         }
+        OnRecorderWindowRestored();
     }
 
     // =========================================================================
@@ -629,6 +646,8 @@ public partial class MainWindow : Window
         }
     }
 
+    private List<RealtekEndpointInfo> _allEndpoints = new();
+
     private void RefreshAllData()
     {
         _suppressUiEvents = true;
@@ -647,6 +666,7 @@ public partial class MainWindow : Window
             ChkDrvSwapCenLfe.IsChecked = _currentDriverTweaks.SwapCenterLfeInDriver;
 
             var allEndpoints = _studio.DiscoverEndpoints(includeInactiveRealtekPins: true);
+            _allEndpoints = allEndpoints;
             _lastEndpointFingerprint = ComputeEndpointFingerprint(allEndpoints);
             _playbackEndpoints = allEndpoints.Where(e => e.DataFlow == AudioEndpointFlow.Render).ToList();
             _captureEndpoints = allEndpoints.Where(e => e.DataFlow == AudioEndpointFlow.Capture).ToList();
@@ -677,6 +697,8 @@ public partial class MainWindow : Window
 
         LoadSelectedPlaybackEndpoint();
         LoadSelectedCaptureEndpoint();
+        RefreshRecorderSources();
+        OnActivePlaybackEndpointChangedForDj();
     }
 
     private void LoadSelectedPlaybackEndpoint()
@@ -780,6 +802,9 @@ public partial class MainWindow : Window
             // Tab 6: Live FxProperties Inspector
             _allPropertyEntries = _studio.InspectEndpointProperties(_activePlaybackEndpoint);
             ApplyPropertyFilter();
+
+            OnActivePlaybackEndpointChangedForVisualizer();
+            OnActivePlaybackEndpointChangedForDj();
 
             SetStatus($"Loaded {_activePlaybackEndpoint.FriendlyName} — EQ: {(_currentPlaybackState.EqualizerEnabled ? "ON" : "OFF")} ({_currentPlaybackState.MatchedPresetName}), Format: {fmt.FormatSummary} ({fmt.SpeakerConfigurationName}).");
         }
@@ -1324,6 +1349,26 @@ public partial class MainWindow : Window
         SetStatus($"Helpful Tooltips {(_appSettings.TooltipsEnabled ? "ENABLED" : "DISABLED")}.");
     }
 
+    private void MnuShowIdleHints_Click(object sender, RoutedEventArgs e)
+    {
+        _appSettings.ShowIdleHints = MnuShowIdleHints.IsChecked;
+        _studio.Presets.SaveAppSettings(_appSettings);
+        ApplyIdleHintPreference();
+        SetStatus($"Startup Hints & Idle Notices {(_appSettings.ShowIdleHints ? "ENABLED" : "DISABLED")}.");
+    }
+
+    private void ApplyIdleHintPreference()
+    {
+        if (!_appSettings.ShowIdleHints && TxtVisIdleHint != null)
+        {
+            TxtVisIdleHint.Visibility = Visibility.Collapsed;
+        }
+        if (TxtRecWaveHint != null && !_studio.Recorder.IsRecording)
+        {
+            TxtRecWaveHint.Visibility = _appSettings.ShowIdleHints ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
     private void MnuAutoGainCeiling_Click(object sender, RoutedEventArgs e)
     {
         if (sender is MenuItem mi && mi.Tag is string tagStr && int.TryParse(tagStr, out int pct))
@@ -1581,6 +1626,7 @@ public partial class MainWindow : Window
     private void BtnToTray_Click(object sender, RoutedEventArgs e)
     {
         StopVisualizer();
+        OnRecorderWindowMinimized();
         Hide();
         _trayIcon?.ShowBalloonTip(
             2000,
@@ -2151,6 +2197,83 @@ public partial class MainWindow : Window
             SetStatus($"Playing test tone on {btn.Content}...");
             await _studio.TestTones.PlayChannelTestToneAsync(channel);
         }
+    }
+
+    // =========================================================================
+    // FULL-SPECTRUM FREQUENCY SOUND TEST (SWEEPS, PURE TONE & CALIBRATION NOISE)
+    // =========================================================================
+
+    private double GetSelectedPureToneHz()
+    {
+        double t = Math.Clamp(SldPureToneLog?.Value ?? 0.5778, 0.0, 1.0);
+        // Logarithmic sweep from 5 Hz to 48,000 Hz so every musical octave has equal slider resolution
+        return 5.0 * Math.Pow(48000.0 / 5.0, t);
+    }
+
+    private void SldPureToneLog_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (TxtPureToneHz == null)
+            return;
+
+        double hz = GetSelectedPureToneHz();
+        TxtPureToneHz.Text = hz >= 1000.0
+            ? $"{hz / 1000.0:0.00} kHz ({hz:N0} Hz)"
+            : $"{hz:0} Hz";
+    }
+
+    private async void BtnPlayPureTone_Click(object sender, RoutedEventArgs e)
+    {
+        double hz = GetSelectedPureToneHz();
+        int sr = hz > 22000.0 ? 96000 : 48000;
+        SetStatus($"Playing pure {hz:N0} Hz sine reference tone (2.5s)...");
+        await _studio.TestTones.PlayPureToneAsync(hz, 2.5, sr);
+    }
+
+    private async void BtnQuickTone_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string s &&
+            double.TryParse(s, CultureInfo.InvariantCulture, out double hz))
+        {
+            double logNorm = Math.Clamp(Math.Log(hz / 5.0) / Math.Log(48000.0 / 5.0), 0.0, 1.0);
+            if (SldPureToneLog != null)
+                SldPureToneLog.Value = logNorm;
+            int sr = hz > 22000.0 ? 96000 : 48000;
+            SetStatus($"Playing pure {hz:N0} Hz sine tone (2.5s)...");
+            await _studio.TestTones.PlayPureToneAsync(hz, 2.5, sr);
+        }
+    }
+
+    private async void BtnSweepAudible_Click(object sender, RoutedEventArgs e)
+    {
+        SetStatus("Playing 5 Hz → 20,000 Hz full-range logarithmic frequency sweep (10s)...");
+        await _studio.TestTones.PlayFrequencySweepAsync(5.0, 20000.0, 10.0, 48000);
+    }
+
+    private async void BtnSweepHiRes_Click(object sender, RoutedEventArgs e)
+    {
+        SetStatus("Playing 5 Hz → 48,000 Hz hi-res logarithmic sweep (12s @ 96 kHz — set Sample Rate to 96/192 kHz above to unlock >24 kHz!)...");
+        await _studio.TestTones.PlayFrequencySweepAsync(5.0, 48000.0, 12.0, 96000);
+    }
+
+    private async void BtnPlayPinkNoise_Click(object sender, RoutedEventArgs e)
+    {
+        SetStatus("Playing studio-calibrated Pink Noise (-3 dB/octave, 6s)...");
+        await _studio.TestTones.PlayNoiseAsync(pinkNoise: true, durationSeconds: 6.0, sampleRate: 96000);
+    }
+
+    private async void BtnPlayWhiteNoise_Click(object sender, RoutedEventArgs e)
+    {
+        SetStatus("Playing full-bandwidth White Noise (6s @ 96 kHz — fills spectrum up to your active Nyquist frequency)...");
+        await _studio.TestTones.PlayNoiseAsync(pinkNoise: false, durationSeconds: 6.0, sampleRate: 96000);
+    }
+
+    private void BtnStopSoundTest_Click(object sender, RoutedEventArgs e)
+    {
+        _visSweepActive = false;
+        if (BtnVisSweep != null)
+            BtnVisSweep.Content = "▶ Sweep";
+        _studio.TestTones.Stop();
+        SetStatus("Stopped sound test playback.");
     }
 
     private void ChkRoomCorrectionEnable_Changed(object sender, RoutedEventArgs e)
@@ -3051,6 +3174,8 @@ public partial class MainWindow : Window
 
     private void SetStatus(string text)
     {
+        if (TxtStatusBar == null)
+            return;
         TxtStatusBar.Text = $"[{DateTime.Now:HH:mm:ss}] {text}";
     }
 

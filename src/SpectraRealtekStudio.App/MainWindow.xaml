@@ -5,7 +5,8 @@
         Height="860" Width="1340" MinHeight="700" MinWidth="1120"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
-        FontFamily="Segoe UI">
+        FontFamily="Segoe UI"
+        PreviewKeyDown="MainWindow_PreviewKeyDown">
     <Window.Resources>
         <!-- Dark Button Style -->
         <Style TargetType="Button">
@@ -293,10 +294,10 @@
             <Setter Property="Background" Value="{StaticResource Panel}"/>
             <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
             <Setter Property="BorderThickness" Value="1,1,1,0"/>
-            <Setter Property="Padding" Value="12,7"/>
-            <Setter Property="Margin" Value="0,0,3,0"/>
+            <Setter Property="Padding" Value="8.5,6.5"/>
+            <Setter Property="Margin" Value="0,0,2.5,0"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="11.2"/>
             <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -458,7 +459,7 @@
         <!-- ========================================================================= -->
         <!-- TOP BRAND & HARDWARE HEADER BAR -->
         <!-- ========================================================================= -->
-        <Border Grid.Row="0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,10">
+        <Border x:Name="BorderAppHeader" Grid.Row="0" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -593,6 +594,7 @@
                         <Button.ContextMenu>
                             <ContextMenu x:Name="CtxSettingsMenu">
                                 <MenuItem x:Name="MnuShowTooltips" Header="Show Helpful Tooltips" IsCheckable="True" IsChecked="True" Click="MnuShowTooltips_Click"/>
+                                <MenuItem x:Name="MnuShowIdleHints" Header="Show Startup Hints &amp; Idle Notices" IsCheckable="True" IsChecked="True" Click="MnuShowIdleHints_Click"/>
                                 <Separator Background="{StaticResource Line}" Margin="4,4"/>
                                 <MenuItem Header="Auto-Gain Peak Ceiling">
                                     <MenuItem x:Name="MnuCeiling70" Header="70% Peak Ceiling (Extra Headroom)" Tag="70" IsCheckable="True" Click="MnuAutoGainCeiling_Click"/>
@@ -621,7 +623,7 @@
         <!-- ========================================================================= -->
         <!-- ENDPOINT SELECTOR & MASTER DSP BAR -->
         <!-- ========================================================================= -->
-        <Border Grid.Row="1" Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,8" Margin="0,0,0,10">
+        <Border x:Name="BorderEndpointBar" Grid.Row="1" Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,8" Margin="0,0,0,10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -656,7 +658,7 @@
             <!-- ================================================================= -->
             <!-- TAB 1: 10-BAND GRAPHIC EQUALIZER & PRESETS -->
             <!-- ================================================================= -->
-            <TabItem Header="1. Equalizer (10-Band)" ToolTip="Shape audio tone across 10 frequency bands (31 Hz to 16 kHz) with 0.1 dB precision and built-in/custom presets">
+            <TabItem Header="1. Equalizer" ToolTip="Shape audio tone across 10 frequency bands (31 Hz to 16 kHz) with 0.1 dB precision and built-in/custom presets">
                 <Grid Margin="14,12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -759,7 +761,7 @@
             <!-- ================================================================= -->
             <!-- TAB 2: SOUND EFFECTS, KARAOKE & SPATIAL STUDIO -->
             <!-- ================================================================= -->
-            <TabItem Header="2. Sound Effects &amp; Spatial" ToolTip="Configure EAX acoustic room reverb, Loudness EQ, Karaoke vocal cancel &amp; pitch shift, surround upmixing, and SounzReal DSP">
+            <TabItem Header="2. Effects &amp; Spatial" ToolTip="Configure EAX acoustic room reverb, Loudness EQ, Karaoke vocal cancel &amp; pitch shift, surround upmixing, and SounzReal DSP">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -904,7 +906,7 @@
             <!-- ================================================================= -->
             <!-- TAB 3: SPEAKER CONFIGURATION, FORMAT & ROOM CORRECTION -->
             <!-- ================================================================= -->
-            <TabItem Header="3. Speakers &amp; Room Correction" ToolTip="Configure Stereo/Quad/5.1/7.1 layouts, sample rate &amp; bit depth, test individual channels, and calibrate per-speaker distances &amp; trims">
+            <TabItem Header="3. Speakers &amp; Test" ToolTip="Configure Stereo/Quad/5.1/7.1 layouts, sample rate &amp; bit depth, run full-spectrum frequency sweep &amp; channel tests, and calibrate Room Correction">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -968,7 +970,7 @@
                             </Border>
 
                             <!-- Per-Channel Interactive Speaker Test Studio -->
-                            <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16">
+                            <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16" Margin="0,0,0,12">
                                 <StackPanel>
                                     <TextBlock Text="INTERACTIVE SPEAKER CHANNEL TEST STUDIO" Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="13" Margin="0,0,0,6"/>
                                     <TextBlock Text="Click any speaker channel below to play a harmonic test chime and verify channel routing &amp; EQ response." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,12"/>
@@ -984,6 +986,61 @@
                                         <Button Content="All Channels" Tag="8" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play a full balanced test chord simultaneously across all active channels"/>
                                         <Button Content="Rear Right (RR)" Tag="5" Click="BtnTestSpeakerChannel_Click" Margin="3" ToolTip="Play harmonic test chime on Rear Right speaker (Quad/5.1/7.1)"/>
                                     </UniformGrid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Full-Spectrum Frequency Sound Test Generator -->
+                            <Border Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="16">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="FULL-SPECTRUM FREQUENCY SOUND TEST" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="13"/>
+                                        <Button x:Name="BtnStopSoundTest" Content="■ Stop Test" HorizontalAlignment="Right" Padding="10,3" Margin="0" FontSize="11" Click="BtnStopSoundTest_Click"
+                                                ToolTip="Immediately stop any active frequency sweep, pure tone, or calibration noise"/>
+                                    </Grid>
+                                    <TextBlock Text="Sweep smoothly across every frequency or audition pure tones and Pink/White calibration noise. Switch Sample Rate above to 96/192 kHz to unlock ultrasonic sweeps up to 48 kHz." Foreground="{StaticResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                                    <UniformGrid Columns="2" Margin="0,0,0,10">
+                                        <Button Content="▶ Sweep 5 Hz – 20 kHz (10s)" Style="{StaticResource CyanActionButton}" Margin="3" Padding="8,6" Click="BtnSweepAudible_Click"
+                                                ToolTip="Play a smooth logarithmic sine sweep from 5 Hz sub-bass up to 20,000 Hz treble (10 seconds)"/>
+                                        <Button Content="▶ Sweep 5 Hz – 48 kHz (12s)" Style="{StaticResource AccentButton}" Margin="3" Padding="8,6" Click="BtnSweepHiRes_Click"
+                                                ToolTip="Play a full hi-res 96 kHz logarithmic sine sweep from 5 Hz to 48,000 Hz (switch Sample Rate to 96/192 kHz above to hear/see above 24 kHz!)"/>
+                                        <Button Content="▶ Pink Noise (6s • Flat/Oct)" Margin="3" Padding="8,6" Click="BtnPlayPinkNoise_Click"
+                                                ToolTip="Play studio-calibrated Pink Noise (-3 dB/octave — equal energy per octave) for speaker/room/EQ calibration"/>
+                                        <Button Content="▶ White Noise (6s • Full BW)" Margin="3" Padding="8,6" Click="BtnPlayWhiteNoise_Click"
+                                                ToolTip="Play full-bandwidth White Noise up to your active Nyquist frequency (22.1 kHz @ 44.1k, 24 kHz @ 48k, 48 kHz @ 96k)"/>
+                                    </UniformGrid>
+
+                                    <Border Background="{StaticResource PanelAlt}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,4">
+                                                <TextBlock Text="Pure Sine Tone Generator (5 Hz — 48 kHz):" Foreground="{StaticResource Muted}" FontSize="11"/>
+                                                <TextBlock x:Name="TxtPureToneHz" Text="1,000 Hz" HorizontalAlignment="Right" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontFamily="Consolas" FontSize="11.5"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Slider x:Name="SldPureToneLog" Grid.Column="0" Minimum="0" Maximum="1" Value="0.5778" VerticalAlignment="Center" Margin="0,0,8,0" ValueChanged="SldPureToneLog_ValueChanged"
+                                                        ToolTip="Logarithmic frequency selector from 5 Hz infrasonic sub-bass up to 48,000 Hz ultrasonic"/>
+                                                <Button x:Name="BtnPlayPureTone" Grid.Column="1" Content="▶ Play Tone" Padding="10,4" Margin="0" Click="BtnPlayPureTone_Click"
+                                                        ToolTip="Play a pure clean 2.5-second sine wave at the selected frequency"/>
+                                            </Grid>
+                                            <WrapPanel>
+                                                <Button Content="10 Hz" Tag="10" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                                <Button Content="20 Hz" Tag="20" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                                <Button Content="60 Hz" Tag="60" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                                <Button Content="250 Hz" Tag="250" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                                <Button Content="1 kHz" Tag="1000" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                                <Button Content="4 kHz" Tag="4000" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                                <Button Content="10 kHz" Tag="10000" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                                <Button Content="16 kHz" Tag="16000" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                                <Button Content="20 kHz" Tag="20000" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                                <Button Content="24 kHz" Tag="24000" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                                <Button Content="36 kHz" Tag="36000" Padding="7,3" Margin="0,0,4,4" FontSize="10.5" Click="BtnQuickTone_Click"/>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -1017,7 +1074,7 @@
             <!-- ================================================================= -->
             <!-- TAB 4: ANALOG MIXER, BALANCE & HARDWARE DIRECT MONITORING -->
             <!-- ================================================================= -->
-            <TabItem Header="4. Analog Mixer &amp; Levels" ToolTip="Control Left/Right stereo balance (synced live with Master volume) and zero-latency analog input passthrough monitoring">
+            <TabItem Header="4. Analog Mixer" ToolTip="Control Left/Right stereo balance (synced live with Master volume) and zero-latency analog input passthrough monitoring">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
                         <!-- Master Output & L/R Balance Card -->
@@ -1068,7 +1125,7 @@
             <!-- ================================================================= -->
             <!-- TAB 5: MICROPHONE, LINE-IN & RECORDING DSP -->
             <!-- ================================================================= -->
-            <TabItem Header="5. Mic &amp; Recording DSP" ToolTip="Control Microphone, Line-In, and Stereo Mix levels, +30 dB hardware Mic Boost, Noise Suppression, AEC, and voice DSP">
+            <TabItem Header="5. Mic &amp; DSP" ToolTip="Control Microphone, Line-In, and Stereo Mix levels, +30 dB hardware Mic Boost, Noise Suppression, AEC, and voice DSP">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -1161,7 +1218,7 @@
             <!-- ================================================================= -->
             <!-- TAB 6: JACK RETASKING, DRIVER TWEAKS, HOTKEYS & FX INSPECTOR -->
             <!-- ================================================================= -->
-            <TabItem Header="6. Jacks, Tweaks &amp; Inspector" ToolTip="Live physical jack plug-sense, instant jack retasking, kernel driver tweaks, global hotkeys, raw HDA verbs, and live APO FxProperties inspector">
+            <TabItem Header="6. Jacks &amp; Inspector" ToolTip="Live physical jack plug-sense, instant jack retasking, kernel driver tweaks, global hotkeys, raw HDA verbs, and live APO FxProperties inspector">
                 <Grid Margin="16">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -1296,79 +1353,101 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Visualizer Control Toolbar -->
-                    <Border Grid.Row="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="180"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="154"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="82"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                    <!-- Visualizer Control Toolbar (Responsive WrapPanel — zero clipping at any window width) -->
+                    <Border Grid.Row="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="10,7" Margin="0,0,0,10">
+                        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,10,2">
+                                <TextBlock Text="Mode:" VerticalAlignment="Center" Foreground="{StaticResource Cyan}" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                <ComboBox x:Name="CmbVisMode" Width="196" SelectedIndex="0" SelectionChanged="VisSetting_Changed"
+                                          ToolTip="Choose from 10 live 60 FPS audio visualization experiences">
+                                    <ComboBoxItem Content="Spectrum Bars (FFT)" Tag="Bars"/>
+                                    <ComboBoxItem Content="Color Waveform Bars" Tag="WaveBars"/>
+                                    <ComboBoxItem Content="Neon Liquid Aurora" Tag="Aurora"/>
+                                    <ComboBoxItem Content="Peak Contour (Peaks Only)" Tag="PeaksOnly"/>
+                                    <ComboBoxItem Content="Starfield Bass Tunnel" Tag="Tunnel"/>
+                                    <ComboBoxItem Content="Mirror Spectrum Wave" Tag="Mirror"/>
+                                    <ComboBoxItem Content="Stereo Oscilloscope" Tag="Oscilloscope"/>
+                                    <ComboBoxItem Content="Spectrogram Waterfall" Tag="Waterfall"/>
+                                    <ComboBoxItem Content="Stereo Vectorscope" Tag="Vectorscope"/>
+                                    <ComboBoxItem Content="Radial Cyber Halo" Tag="Radial"/>
+                                </ComboBox>
+                            </StackPanel>
 
-                            <TextBlock Grid.Column="0" Text="Mode:" VerticalAlignment="Center" Foreground="{StaticResource Cyan}" FontWeight="SemiBold" Margin="0,0,5,0"/>
-                            <ComboBox x:Name="CmbVisMode" Grid.Column="1" SelectedIndex="0" Margin="0,0,8,0" SelectionChanged="VisSetting_Changed"
-                                      ToolTip="Choose the live 60 FPS audio visualization mode">
-                                <ComboBoxItem Content="Spectrum Bars (FFT)" Tag="Bars"/>
-                                <ComboBoxItem Content="Mirror Spectrum Wave" Tag="Mirror"/>
-                                <ComboBoxItem Content="Stereo Oscilloscope" Tag="Oscilloscope"/>
-                                <ComboBoxItem Content="Spectrogram Waterfall" Tag="Waterfall"/>
-                                <ComboBoxItem Content="Stereo Vectorscope" Tag="Vectorscope"/>
-                                <ComboBoxItem Content="Radial Cyber Halo" Tag="Radial"/>
-                            </ComboBox>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,10,2">
+                                <TextBlock Text="Range:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
+                                <ComboBox x:Name="CmbVisRange" Width="168" SelectedIndex="0" SelectionChanged="VisSetting_Changed"
+                                          ToolTip="Frequency range &amp; scale. Default 0 Hz–20 kHz covers sub-sonic bass through full audible treble cleanly at all sample rates; pick 5 Hz–48 kHz for 96/192 kHz Hi-Res ultrasonic audio!">
+                                    <ComboBoxItem Content="0 Hz – 20 kHz (Default)" Tag="0:20000:Log0"/>
+                                    <ComboBoxItem Content="0 Hz – 20 kHz (Linear)" Tag="0:20000:Lin"/>
+                                    <ComboBoxItem Content="5 Hz – 24 kHz (Studio)" Tag="5:24000:Log"/>
+                                    <ComboBoxItem Content="5 Hz – 48 kHz (Hi-Res)" Tag="5:48000:Log"/>
+                                    <ComboBoxItem Content="0 Hz – 48 kHz (Linear)" Tag="0:48000:Lin"/>
+                                    <ComboBoxItem Content="20 Hz – 20 kHz (EQ)" Tag="20:20000:Log"/>
+                                </ComboBox>
+                            </StackPanel>
 
-                            <TextBlock Grid.Column="2" Text="Range:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
-                            <ComboBox x:Name="CmbVisRange" Grid.Column="3" SelectedIndex="0" Margin="0,0,8,0" SelectionChanged="VisSetting_Changed"
-                                      ToolTip="Frequency range &amp; scale: 5 Hz–48 kHz shows deep infrasonic sub-bass down to 5 Hz and ultrasonic highs up to 48 kHz (requires 96/192 kHz sample rate in Tab 3 for audio above 24 kHz Nyquist)">
-                                <ComboBoxItem Content="5 Hz – 48 kHz (Full)" Tag="5:48000:Log"/>
-                                <ComboBoxItem Content="5 Hz – 24 kHz (Studio)" Tag="5:24000:Log"/>
-                                <ComboBoxItem Content="0 Hz – 48 kHz (Linear)" Tag="0:48000:Lin"/>
-                                <ComboBoxItem Content="20 Hz – 20 kHz (EQ)" Tag="20:20000:Log"/>
-                            </ComboBox>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,10,2">
+                                <TextBlock Text="Bands:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
+                                <ComboBox x:Name="CmbVisBands" Width="74" SelectedIndex="2" SelectionChanged="VisSetting_Changed"
+                                          ToolTip="FFT spectrum resolution (64 chunky LED bars, 128 studio bars, or 256 ultra hi-res frequency bins)">
+                                    <ComboBoxItem Content="64" Tag="64"/>
+                                    <ComboBoxItem Content="128" Tag="128"/>
+                                    <ComboBoxItem Content="256" Tag="256"/>
+                                </ComboBox>
+                            </StackPanel>
 
-                            <TextBlock Grid.Column="4" Text="Bands:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
-                            <ComboBox x:Name="CmbVisBands" Grid.Column="5" SelectedIndex="2" Margin="0,0,8,0" SelectionChanged="VisSetting_Changed"
-                                      ToolTip="FFT spectrum resolution (64 chunky LED bars, 128 studio bars, or 256 ultra hi-res frequency bins)">
-                                <ComboBoxItem Content="64" Tag="64"/>
-                                <ComboBoxItem Content="128" Tag="128"/>
-                                <ComboBoxItem Content="256" Tag="256"/>
-                            </ComboBox>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,8,2">
+                                <TextBlock Text="Color:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
+                                <ComboBox x:Name="CmbVisPalette" Width="140" SelectedIndex="0" SelectionChanged="VisSetting_Changed"
+                                          ToolTip="Choose from 8 studio &amp; prism palettes or select 'Custom Colors...' to pick your own 3-stop neon gradient">
+                                    <ComboBoxItem Content="Spectra Neon" Tag="Spectra"/>
+                                    <ComboBoxItem Content="Full Rainbow" Tag="Rainbow"/>
+                                    <ComboBoxItem Content="Cyberpunk Synth" Tag="Cyberpunk"/>
+                                    <ComboBoxItem Content="Aurora Borealis" Tag="Aurora"/>
+                                    <ComboBoxItem Content="Studio RTA" Tag="Studio"/>
+                                    <ComboBoxItem Content="Electric Ice" Tag="Ice"/>
+                                    <ComboBoxItem Content="Plasma Fire" Tag="Fire"/>
+                                    <ComboBoxItem Content="Matrix Emerald" Tag="Emerald"/>
+                                    <ComboBoxItem Content="Custom Colors..." Tag="Custom"/>
+                                </ComboBox>
+                            </StackPanel>
 
-                            <TextBlock Grid.Column="6" Text="Theme:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
-                            <ComboBox x:Name="CmbVisPalette" Grid.Column="7" SelectedIndex="0" Margin="0,0,10,0" SelectionChanged="VisSetting_Changed"
-                                      ToolTip="Select the neon color palette for the spectrum and waterfall heat map">
-                                <ComboBoxItem Content="Spectra Neon" Tag="Spectra"/>
-                                <ComboBoxItem Content="Studio RTA" Tag="Studio"/>
-                                <ComboBoxItem Content="Electric Ice" Tag="Ice"/>
-                                <ComboBoxItem Content="Plasma Fire" Tag="Fire"/>
-                            </ComboBox>
+                            <!-- Custom 3-Color Swatches (shown when 'Custom Colors...' is selected) -->
+                            <StackPanel x:Name="PanelVisCustomColors" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,10,2" Visibility="Collapsed">
+                                <Button x:Name="BtnVisCol1" Width="24" Height="24" Padding="0" Margin="0,0,4,0" Background="#22E8FF" BorderBrush="#FFFFFF" BorderThickness="1.5" Click="BtnVisCustomColor_Click" Tag="1"
+                                        ToolTip="Pick Custom Color 1 (Low / Bass end of your spectrum)"/>
+                                <Button x:Name="BtnVisCol2" Width="24" Height="24" Padding="0" Margin="0,0,4,0" Background="#8C52FF" BorderBrush="#FFFFFF" BorderThickness="1.5" Click="BtnVisCustomColor_Click" Tag="2"
+                                        ToolTip="Pick Custom Color 2 (Midrange center of your spectrum)"/>
+                                <Button x:Name="BtnVisCol3" Width="24" Height="24" Padding="0" Margin="0" Background="#FF2BD6" BorderBrush="#FFFFFF" BorderThickness="1.5" Click="BtnVisCustomColor_Click" Tag="3"
+                                        ToolTip="Pick Custom Color 3 (High / Treble end of your spectrum)"/>
+                            </StackPanel>
 
-                            <CheckBox x:Name="ChkVisPeakHold" Grid.Column="8" Content="Peaks" IsChecked="True" VerticalAlignment="Center" Margin="0,0,10,0"
+                            <CheckBox x:Name="ChkVisColorFlow" Content="Color Flow" IsChecked="False" VerticalAlignment="Center" Margin="0,2,10,2" Foreground="{StaticResource Magenta}" FontWeight="SemiBold"
+                                      ToolTip="Continuously scroll all palette colors sideways across the bars &amp; waves (subtly accelerates on bass hits!)"/>
+
+                            <CheckBox x:Name="ChkVisPeakHold" Content="Peaks" IsChecked="True" VerticalAlignment="Center" Margin="0,2,10,2"
                                       ToolTip="Show floating peak-hold markers with gravity decay above each spectrum bar"/>
 
-                            <StackPanel Grid.Column="9" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,10,2">
                                 <TextBlock Text="Sens:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,0,4,0"/>
-                                <Slider x:Name="SldVisSensitivity" Width="62" Minimum="0.4" Maximum="2.0" Value="1.0" VerticalAlignment="Center" Margin="0,0,8,0"
+                                <Slider x:Name="SldVisSensitivity" Width="64" Minimum="0.4" Maximum="2.0" Value="1.0" VerticalAlignment="Center" Margin="0,0,8,0"
                                         ToolTip="Adjust vertical sensitivity / input gain boost for quiet or loud music"/>
                                 <TextBlock Text="Smooth:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" FontSize="11" Margin="0,0,4,0"/>
-                                <Slider x:Name="SldVisSmoothing" Width="62" Minimum="0.25" Maximum="0.90" Value="0.72" VerticalAlignment="Center"
+                                <Slider x:Name="SldVisSmoothing" Width="64" Minimum="0.25" Maximum="0.90" Value="0.72" VerticalAlignment="Center"
                                         ToolTip="Adjust spectrum decay smoothness (left = snappy transient response, right = silky fluid motion)"/>
                             </StackPanel>
 
-                            <StackPanel Grid.Column="10" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button x:Name="BtnVisPause" Content="Pause" Padding="9,5" Margin="0,0,6,0" Click="BtnVisPause_Click"
-                                        ToolTip="Freeze or resume the live visualizer frame to inspect a frequency peak or waveform"/>
-                                <Button Content="▶ Test" Style="{StaticResource CyanActionButton}" Padding="9,5" Margin="0" Click="BtnTestEqTone_Click"
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,0,2">
+                                <Button x:Name="BtnVisPause" Content="Pause" Padding="8,5" Margin="0,0,5,0" Click="BtnVisPause_Click"
+                                        ToolTip="Freeze or resume the live visualizer frame (0% CPU while paused)"/>
+                                <Button x:Name="BtnVisSweep" Content="▶ Sweep" Style="{StaticResource AccentButton}" Padding="8,5" Margin="0,0,5,0" Click="BtnVisSweep_Click"
+                                        ToolTip="Play a smooth full-range frequency sweep across your selected Range (click again to stop) so you can watch every frequency light up live!"/>
+                                <Button Content="▶ Test" Style="{StaticResource CyanActionButton}" Padding="8,5" Margin="0,0,5,0" Click="BtnTestEqTone_Click"
                                         ToolTip="Play a harmonic studio chord to test the live spectrum immediately"/>
+                                <Button x:Name="BtnVisFocus" Content="⛶ Focus" Padding="8,5" Margin="0" Click="BtnVisFocus_Click"
+                                        ToolTip="Expand the visualizer by hiding the top header bars for an immersive cinema view (press Esc or click again to restore)"/>
                             </StackPanel>
-                        </Grid>
+                        </WrapPanel>
                     </Border>
 
                     <!-- Main 60 FPS Visualizer Viewport -->
@@ -1423,6 +1502,1038 @@
                     </Border>
                 </Grid>
             </TabItem>
+
+            <!-- ================================================================= -->
+            <!-- TAB 8: STUDIO AUDIO RECORDER ("WHAT YOU HEAR" + HARDWARE INPUTS) -->
+            <!-- ================================================================= -->
+            <TabItem x:Name="TabRecord" Header="8. Record" ToolTip="Record bit-exact WAV audio directly from 'What You Hear' (WASAPI Loopback) or any hardware input (Line-In, Mic, Stereo Mix) — built for DJs &amp; sample grabbing">
+                <Grid Margin="14,12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="215"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: Input Source, WAV Format, Gain & Save Location -->
+                    <Border Grid.Row="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Source + Format + Gain -->
+                            <Grid Grid.Row="0" Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*" MinWidth="260"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="175"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="Audio Source:" VerticalAlignment="Center" Foreground="{StaticResource Cyan}" FontWeight="Bold" Margin="0,0,8,0"/>
+                                <ComboBox x:Name="CmbRecSource" Grid.Column="1" DisplayMemberPath="DisplayLabel" SelectionChanged="CmbRecSource_SelectionChanged" Margin="0,0,8,0"
+                                          ToolTip="Choose '🔊 What You Hear' (WASAPI Loopback — captures everything playing through your speakers/headphones, ideal for DJs &amp; samples!) or any hardware Line-In / Microphone / Stereo Mix input"/>
+                                <Button x:Name="BtnRecRefreshSources" Grid.Column="2" Content="Refresh" Padding="10,5" Margin="0,0,14,0" Click="BtnRecRefreshSources_Click"
+                                        ToolTip="Rescan active playback (What You Hear) and hardware capture sources"/>
+
+                                <TextBlock Grid.Column="3" Text="WAV Format:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,6,0"/>
+                                <ComboBox x:Name="CmbRecFormat" Grid.Column="4" SelectedIndex="1" Margin="0,0,12,0"
+                                          ToolTip="Lossless WAV bit depth saved at your source's native sample rate (zero resampling!)">
+                                    <ComboBoxItem Content="16-bit PCM (CD / DJ)" Tag="16"/>
+                                    <ComboBoxItem Content="24-bit PCM (Studio)" Tag="24"/>
+                                    <ComboBoxItem Content="32-bit Float (DAW)" Tag="32"/>
+                                </ComboBox>
+
+                                <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Gain:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,5,0"/>
+                                    <Slider x:Name="SldRecGain" Width="90" Minimum="-12" Maximum="18" Value="0" TickFrequency="0.5" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SldRecGain_ValueChanged"
+                                            ToolTip="Adjust recording input gain (-12.0 to +18.0 dB) before saving to WAV"/>
+                                    <TextBlock x:Name="TxtRecGainDb" Text="0.0 dB" Width="54" TextAlignment="Right" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontFamily="Consolas" VerticalAlignment="Center" Margin="4,0,10,0"/>
+                                    <CheckBox x:Name="ChkRecSoftLimiter" Content="Soft Limiter" IsChecked="True" VerticalAlignment="Center" Margin="0" Checked="ChkRecSoftLimiter_Changed" Unchecked="ChkRecSoftLimiter_Changed"
+                                              ToolTip="Transparent studio soft-clip limiter above -1.4 dBFS so loud DJ transitions &amp; samples never digitally clip"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Output Folder + File Prefix -->
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="155"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="Save Folder:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,8,0"/>
+                                <TextBox x:Name="TxtRecFolder" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0"
+                                         ToolTip="Destination folder where recorded .wav samples and DJ mixes are saved"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,14,0">
+                                    <Button x:Name="BtnRecBrowseFolder" Content="Browse..." Padding="10,5" Margin="0,0,6,0" Click="BtnRecBrowseFolder_Click"
+                                            ToolTip="Choose a custom folder for your recorded WAV files"/>
+                                    <Button x:Name="BtnRecOpenFolder" Content="Open Folder" Padding="10,5" Margin="0" Click="BtnRecOpenFolder_Click"
+                                            ToolTip="Open the recordings folder in Windows File Explorer"/>
+                                </StackPanel>
+
+                                <TextBlock Grid.Column="3" Text="File Prefix:" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,6,0"/>
+                                <TextBox x:Name="TxtRecPrefix" Grid.Column="4" Text="Spectra_Sample" VerticalAlignment="Center"
+                                         ToolTip="Filename prefix for new recordings (timestamp is appended automatically)"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Row 1: Transport Controls, Live Peak Meters & Scrolling Neon Waveform -->
+                    <Border Grid.Row="1" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Transport & Live Counter Bar -->
+                            <Grid Grid.Row="0" Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*" MinWidth="120"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button x:Name="BtnRecStart" Content="● Record" Style="{StaticResource AccentButton}" Padding="12,7" FontWeight="Bold" FontSize="12" Margin="0,0,5,0" Click="BtnRecStart_Click"
+                                            ToolTip="Start streaming lossless WAV audio from the selected source (or arm &amp; wait for first sound when 'Wait for Sound' is checked)"/>
+                                    <Button x:Name="BtnRecPause" Content="❚❚ Pause" Padding="9,7" FontWeight="SemiBold" Margin="0,0,5,0" IsEnabled="False" Click="BtnRecPause_Click"
+                                            ToolTip="Pause or resume active recording without splitting the WAV file"/>
+                                    <Button x:Name="BtnRecStop" Content="■ Stop &amp; Save" Style="{StaticResource CyanActionButton}" Padding="10,7" FontWeight="Bold" Margin="0,0,5,0" IsEnabled="False" Click="BtnRecStop_Click"
+                                            ToolTip="Stop recording, finalize the WAV file header, and add the clip to Recent Recordings below (or cancel if armed and waiting)"/>
+                                    <Button x:Name="BtnRecCancel" Content="✕ Cancel" Padding="9,7" Margin="0,0,5,0" Foreground="{StaticResource Red}" IsEnabled="False" Click="BtnRecCancel_Click"
+                                            ToolTip="Discard and delete the current recording take immediately without saving"/>
+                                    <Button x:Name="BtnRecRestart" Content="↻ New" Padding="9,7" Margin="0,0,8,0" Foreground="{StaticResource Amber}" IsEnabled="False" Click="BtnRecRestart_Click"
+                                            ToolTip="Discard the current take and immediately start (or re-arm) a fresh new recording"/>
+                                </StackPanel>
+
+                                <!-- Auto-Start on First Sound (DJ / Sampler Armed Trigger) -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                    <CheckBox x:Name="ChkRecWaitForSound" Content="Wait for Sound" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold" Foreground="{StaticResource Amber}"
+                                              Checked="ChkRecWaitForSound_Changed" Unchecked="ChkRecWaitForSound_Changed"
+                                              ToolTip="Arms the recorder when you press Record and automatically starts capturing on the exact first sound above the threshold (includes a 30 ms pre-roll so the first drum hit/attack is never cut off!)"/>
+                                    <ComboBox x:Name="CmbRecTriggerDb" Width="76" SelectedIndex="1" IsEnabled="False" SelectionChanged="CmbRecTriggerDb_SelectionChanged"
+                                              ToolTip="Trigger sensitivity threshold for 'Wait for Sound' (-48 dB = very sensitive for quiet samples, -40 dB = recommended, -30/-20 dB = loud signals only)">
+                                        <ComboBoxItem Content="-48 dB" Tag="-48"/>
+                                        <ComboBoxItem Content="-40 dB" Tag="-40"/>
+                                        <ComboBoxItem Content="-30 dB" Tag="-30"/>
+                                        <ComboBoxItem Content="-20 dB" Tag="-20"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <Border Grid.Column="2" Background="#0A0E1B" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="12,5" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtRecStateDot" Text="● STANDBY" Foreground="{StaticResource Muted}" FontFamily="Consolas" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBlock x:Name="TxtRecTimer" Text="00:00.0" Foreground="{StaticResource Text}" FontFamily="Consolas" FontWeight="Bold" FontSize="15.5" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBlock x:Name="TxtRecSize" Text="0.00 MB" Foreground="{StaticResource Cyan}" FontFamily="Consolas" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Live L/R Input Meters -->
+                                <Grid Grid.Column="3" VerticalAlignment="Center" Margin="0,0,10,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="38"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="L" Foreground="{StaticResource Cyan}" FontFamily="Consolas" FontSize="10.5" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    <ProgressBar x:Name="PbRecPeakL" Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Height="9" Background="#0A0E1B" Foreground="{StaticResource Cyan}" BorderBrush="{StaticResource Line}" Margin="0,0,0,4"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="R" Foreground="{StaticResource Magenta}" FontFamily="Consolas" FontSize="10.5" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    <ProgressBar x:Name="PbRecPeakR" Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Height="9" Background="#0A0E1B" Foreground="{StaticResource Magenta}" BorderBrush="{StaticResource Line}"/>
+                                    <TextBlock x:Name="TxtRecClipBadge" Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" Text="OK" Foreground="{StaticResource Green}" FontFamily="Consolas" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <TextBlock x:Name="TxtRecFormatInfo" Grid.Column="4" Text="Ready" Foreground="{StaticResource Muted}" FontFamily="Consolas" FontSize="10.5" VerticalAlignment="Center" MaxWidth="230" TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+
+                            <!-- Live Scrolling Neon Recording Waveform Viewport -->
+                            <Border Grid.Row="1" Background="#070A14" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" ClipToBounds="True"
+                                    ToolTip="Live stereo input envelope timeline — switches to hot Crimson/Magenta while actively recording">
+                                <Grid x:Name="RecWaveformViewport" SizeChanged="RecWaveformViewport_SizeChanged">
+                                    <Image x:Name="ImgRecWave" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                    <TextBlock x:Name="TxtRecWaveHint" Text="LIVE INPUT MONITOR &amp; RECORDING WAVEFORM — Select '🔊 What You Hear' above and click ● Record to grab DJ mixes or samples!"
+                                               Foreground="#56699C" FontSize="10.5" FontFamily="Consolas" FontWeight="Bold"
+                                               HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,6,0,0" IsHitTestVisible="False"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Row 2: Recent Recordings & Instant Sample Audition -->
+                    <Border Grid.Row="2" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <TextBlock Text="RECENT RECORDINGS &amp; SAMPLE DECK" Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="12.5" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="BtnRecEditClip" Content="✂ Edit &amp; Loop Selected" Style="{StaticResource AccentButton}" Padding="12,4" Margin="0,0,6,0" Click="BtnRecEditClip_Click"
+                                            ToolTip="Open the selected recording in the Spectra Sample &amp; Loop Studio popup window to cut start/end, create a seamless loop, and save selected parts"/>
+                                    <Button x:Name="BtnRecLoadAndEditTrack" Content="📂 Load &amp; Edit Track..." Padding="11,4" Margin="0,0,6,0" Click="BtnRecLoadAndEditTrack_Click"
+                                            ToolTip="Open any audio track from disk (.wav, .flac, .mp3, .m4a, .aac, .ogg, .wma, .mp4) in the Sample &amp; Loop Studio Editor"/>
+                                    <Button x:Name="BtnRecPlayClip" Content="▶ Play Selected" Style="{StaticResource CyanActionButton}" Padding="12,4" Margin="0,0,6,0" Click="BtnRecPlayClip_Click"
+                                            ToolTip="Immediately audition the selected recorded WAV file"/>
+                                    <Button x:Name="BtnRecStopPlay" Content="■ Stop Playback" Padding="10,4" Margin="0,0,6,0" Click="BtnRecStopPlay_Click"
+                                            ToolTip="Stop sample playback"/>
+                                    <Button Content="Open in Explorer" Padding="10,4" Margin="0" Click="BtnRecOpenFolder_Click"
+                                            ToolTip="Open the recordings folder in Windows File Explorer"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <DataGrid x:Name="GridRecentRecordings" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                                      Background="#0D1120" RowBackground="#11162A" AlternatingRowBackground="#151C34"
+                                      Foreground="{StaticResource Text}" BorderBrush="{StaticResource Line}" GridLinesVisibility="Horizontal"
+                                      HorizontalGridLinesBrush="#1D2545" HeadersVisibility="Column" MouseDoubleClick="GridRecentRecordings_MouseDoubleClick">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu Background="#12182E" Foreground="{StaticResource Text}" BorderBrush="{StaticResource Cyan}">
+                                        <MenuItem Header="✂ Edit &amp; Loop in Sample Studio..." Click="BtnRecEditClip_Click"/>
+                                        <MenuItem Header="▶ Play Selected" Click="BtnRecPlayClip_Click"/>
+                                        <Separator/>
+                                        <MenuItem Header="📂 Load Any Track into Sample Studio..." Click="BtnRecLoadAndEditTrack_Click"/>
+                                        <MenuItem Header="Open Folder in Explorer" Click="BtnRecOpenFolder_Click"/>
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
+                                <DataGrid.Resources>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="Background" Value="#1B2342"/>
+                                        <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Padding" Value="8,5"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+                                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                    </Style>
+                                </DataGrid.Resources>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="File Name" Binding="{Binding FileName}" Width="260"/>
+                                    <DataGridTextColumn Header="Recorded Source" Binding="{Binding SourceName}" Width="*"/>
+                                    <DataGridTextColumn Header="Duration" Binding="{Binding DurationLabel}" Width="90"/>
+                                    <DataGridTextColumn Header="Size" Binding="{Binding SizeLabel}" Width="90"/>
+                                    <DataGridTextColumn Header="Format" Binding="{Binding FormatLabel}" Width="175"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ========================================================================= -->
+            <!-- TAB 9: DUAL-DECK DJ MIXING STUDIO (BEAT WAVEFORMS, PLATTERS, MIXER & CRATE) -->
+            <!-- ========================================================================= -->
+            <TabItem x:Name="TabDj" Header="9. DJ"
+                     ToolTip="Dual-Deck Pro DJ Mixing Studio — Stacked 60 FPS Beat-Matching Waveforms, Rotating Vinyl Scratch Platters, 3-Band Isolator EQ + Color Filter Mixer, Auto-Loop, Stem/Isolator Pads, FX Rack &amp; Local Music Crate Browser">
+                <Grid Margin="10,8,10,8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="102"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="5"/>
+                        <RowDefinition x:Name="RowDjBrowser" Height="*" MinHeight="95"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- ========================================================================= -->
+                    <!-- ROW 0: TOP DUAL STACKED 60 FPS BEAT-MATCHING WAVEFORMS & QUICK DJ BAR -->
+                    <!-- ========================================================================= -->
+                    <Border Grid.Row="0" Background="#050811" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" ClipToBounds="True" Margin="0,0,0,7"
+                            ToolTip="Dual Stacked Beat-Matching Waveforms — Top: Deck A (Cyan), Bottom: Deck B (Crimson). Drag horizontally on either lane to scrub or align beats to the center white playhead line!">
+                        <Grid x:Name="DjTopWaveformViewport" SizeChanged="DjTopWaveformViewport_SizeChanged"
+                              MouseLeftButtonDown="DjTopWaveform_MouseLeftButtonDown"
+                              MouseMove="DjTopWaveform_MouseMove"
+                              MouseLeftButtonUp="DjTopWaveform_MouseLeftButtonUp">
+                            <Image x:Name="ImgDjTopWaveforms" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+
+                            <!-- Deck A / B Lane Badges on Left Edge -->
+                            <Border Background="#CC0C1428" BorderBrush="{StaticResource Cyan}" BorderThickness="1" CornerRadius="3" Padding="5,1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6,5,0,0" IsHitTestVisible="False">
+                                <TextBlock x:Name="TxtDjWaveBadgeA" Text="A • DECK 1" Foreground="{StaticResource Cyan}" FontFamily="Consolas" FontSize="9.5" FontWeight="Bold"/>
+                            </Border>
+                            <Border Background="#CC1A0C18" BorderBrush="{StaticResource Red}" BorderThickness="1" CornerRadius="3" Padding="5,1" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="6,0,0,5" IsHitTestVisible="False">
+                                <TextBlock x:Name="TxtDjWaveBadgeB" Text="B • DECK 2" Foreground="{StaticResource Red}" FontFamily="Consolas" FontSize="9.5" FontWeight="Bold"/>
+                            </Border>
+
+                            <!-- Quick Top-Right DJ Studio Action Bar (☑ Load As-Is, ● REC MIX, ⇄ Auto-Mix, Crate Toggle, ⛶ Focus) -->
+                            <Border Background="#D80B1020" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="8,3" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,6,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <CheckBox x:Name="ChkDjLoadAsIs" Content="Load As-Is (Pure Native)" IsChecked="True" VerticalAlignment="Center" Margin="0,0,8,0"
+                                              Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="10.5"
+                                              Checked="ChkDjLoadAsIs_Changed" Unchecked="ChkDjLoadAsIs_Changed"
+                                              ToolTip="When checked (Recommended): loads tracks at their exact original sample rate (up to 192 kHz) with zero downsampling, zero anti-imaging filter coloration, and 1:1 bit-exact 0 dB unity playback. Uncheck for 48 kHz RAM-Saver mode."/>
+                                    <Button x:Name="BtnDjRecMix" Content="● REC MIX" Style="{StaticResource AccentButton}" Padding="8,2.5" FontSize="10.5" FontWeight="Bold" Margin="0,0,5,0" Click="BtnDjRecMix_Click"
+                                            ToolTip="One-click Record Live DJ Mix directly to your SpectraRecordings folder (lossless WAV via Tab 8 Recorder)"/>
+                                    <Button x:Name="BtnDjAutoMix" Content="⇄ Auto-Mix" Style="{StaticResource CyanActionButton}" Padding="8,2.5" FontSize="10.5" FontWeight="Bold" Margin="0,0,5,0" Click="BtnDjAutoMix_Click"
+                                            ToolTip="Smoothly crossfade from the active deck to the incoming deck over 5 seconds (auto-starts incoming deck if paused)"/>
+                                    <Button x:Name="BtnDjToggleCrate" Content="Crate ▾" Padding="7,2.5" FontSize="10.5" Margin="0,0,5,0" Click="BtnDjToggleCrate_Click"
+                                            ToolTip="Expand or collapse the bottom music browser crate"/>
+                                    <Button x:Name="BtnDjFocus" Content="⛶ Focus" Padding="7,2.5" FontSize="10.5" Margin="0" Click="BtnDjFocus_Click"
+                                            ToolTip="Toggle Cinema Focus Mode (hides top app headers for maximum DJ console space; press Esc to exit)"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- ========================================================================= -->
+                    <!-- ROW 1: DUAL TURNTABLE DECKS (DECK A | CENTER 2-CH MIXER | DECK B) -->
+                    <!-- ========================================================================= -->
+                    <Grid Grid.Row="1" Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="236"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- ===================================================================== -->
+                        <!-- LEFT: DECK A CONSOLE (CYAN ACCENT) -->
+                        <!-- ===================================================================== -->
+                        <Border Grid.Column="0" Background="{StaticResource CardBg}" BorderBrush="#1E3658" BorderThickness="1" CornerRadius="6" Padding="8,6" Margin="0,0,6,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="24"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Deck A Header: Badge, Title/Artist, TAP, Key, BPM, Elapsed/Remain, MT -->
+                                <Grid Grid.Row="0" Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="24"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0" Background="#102C44" BorderBrush="{StaticResource Cyan}" BorderThickness="1.5" CornerRadius="4" Margin="0,0,6,0">
+                                        <TextBlock Text="A" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,6,0">
+                                        <TextBlock x:Name="TxtDjTitleA" Text="No Track Loaded" Foreground="{StaticResource Text}" FontWeight="Bold" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="TxtDjArtistA" Text="Double-click or click '→ A' on any song below" Foreground="{StaticResource Muted}" FontSize="10.5" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <Button Content="TAP" Padding="6,2" FontSize="9.5" FontWeight="Bold" Margin="0,0,4,0" Click="BtnDjTapA_Click"
+                                                ToolTip="Tap rhythmically to manually override Deck A BPM"/>
+                                        <Button x:Name="BtnDjMtA" Content="MT" Padding="6,2" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource Cyan}" BorderBrush="{StaticResource Cyan}" Margin="0,0,6,0" Click="BtnDjMtA_Click"
+                                                ToolTip="Master Tempo (Keylock): keeps vocals &amp; instruments in their original musical pitch when changing BPM speed"/>
+                                        <Border Background="#0B1326" BorderBrush="#263868" BorderThickness="1" CornerRadius="3" Padding="6,2">
+                                            <TextBlock x:Name="TxtDjKeyA" Text="—" Foreground="{StaticResource Cyan}" FontFamily="Consolas" FontWeight="Bold" FontSize="11.5"
+                                                       ToolTip="Auto-detected Musical Key"/>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtDjBpmA" Text="128.00" Foreground="{StaticResource Cyan}" FontFamily="Consolas" FontWeight="Bold" FontSize="17" HorizontalAlignment="Right"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <TextBlock x:Name="TxtDjElapsedA" Text="0:00.0" Foreground="{StaticResource Text}" FontFamily="Consolas" FontSize="10" Margin="0,0,8,0" ToolTip="Elapsed time"/>
+                                            <TextBlock x:Name="TxtDjRemainA" Text="-0:00.0" Foreground="{StaticResource Muted}" FontFamily="Consolas" FontSize="10" ToolTip="Remaining time"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Deck A Full-Track Mini Overview Seek Waveform -->
+                                <Border Grid.Row="1" Background="#070B16" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3" Margin="0,0,0,6" ClipToBounds="True" Cursor="Hand"
+                                        ToolTip="Full-track overview waveform — click or drag anywhere to jump immediately">
+                                    <Grid x:Name="DjOverviewViewportA" SizeChanged="DjOverviewViewportA_SizeChanged"
+                                          MouseLeftButtonDown="DjOverviewA_MouseLeftButtonDown"
+                                          MouseMove="DjOverviewA_MouseMove">
+                                        <Image x:Name="ImgDjOverviewA" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Deck A Main Controls: [0: FX + Stems Pads] [1: Hot Cues + Auto-Loop] [2: Vinyl Platter + Pitch + Transport] -->
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.15*"/>
+                                        <ColumnDefinition Width="0.92*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Sub-Col 0: 3-Slot FX Rack & 6 Stem/Isolator Performance Pads -->
+                                    <Grid Grid.Column="0" Margin="0,0,6,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- 3-Slot FX Rack (FLANGER / REVERB / WAHWAH) -->
+                                        <Border Grid.Row="0" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4" Margin="0,0,0,5">
+                                            <StackPanel>
+                                                <TextBlock Text="DECK A FX RACK" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                <Grid Margin="0,0,0,3">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="54"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="22"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="FLANGER" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    <Slider x:Name="SldDjFx1A" Grid.Column="1" Minimum="0" Maximum="1" Value="0.55" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxA_ValueChanged" Tag="0"/>
+                                                    <Button x:Name="BtnDjFx1A" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxA_Click" Tag="0" ToolTip="Toggle Stereo Flanger on Deck A"/>
+                                                </Grid>
+                                                <Grid Margin="0,0,0,3">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="54"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="22"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="REVERB" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    <Slider x:Name="SldDjFx2A" Grid.Column="1" Minimum="0" Maximum="1" Value="0.45" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxA_ValueChanged" Tag="1"/>
+                                                    <Button x:Name="BtnDjFx2A" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxA_Click" Tag="1" ToolTip="Toggle Hall Reverb / Echo on Deck A"/>
+                                                </Grid>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="54"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="22"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="WAHWAH" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    <Slider x:Name="SldDjFx3A" Grid.Column="1" Minimum="0" Maximum="1" Value="0.60" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxA_ValueChanged" Tag="2"/>
+                                                    <Button x:Name="BtnDjFx3A" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxA_Click" Tag="2" ToolTip="Toggle Swept Wah-Wah Filter on Deck A"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- 6 Stem / Frequency Isolator Performance Pads (Vocal, Instru, Bass, Kick, HiHat, Stems FX) -->
+                                        <Border Grid.Row="1" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4">
+                                            <StackPanel>
+                                                <TextBlock Text="STEMS &amp; ISOLATOR PADS" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                <UniformGrid Rows="2" Columns="3">
+                                                    <Button x:Name="BtnDjPadVocalA" Content="Vocal" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="Vocal"
+                                                            ToolTip="Focus center-channel lead vocals"/>
+                                                    <Button x:Name="BtnDjPadInstruA" Content="Instru" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="Instru"
+                                                            ToolTip="Instant Instrumental: cancel center lead vocals while preserving stereo instruments &amp; bass"/>
+                                                    <Button x:Name="BtnDjPadBassA" Content="Bass" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="Bass"
+                                                            ToolTip="Boost deep sub-bass punch"/>
+                                                    <Button x:Name="BtnDjPadKickA" Content="Kick Kill" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="Kick"
+                                                            ToolTip="Kill low kick/bass band (&lt; 240 Hz) for beat-drop transitions"/>
+                                                    <Button x:Name="BtnDjPadHiHatA" Content="HiHat Kill" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="HiHat"
+                                                            ToolTip="Kill high treble/hi-hat band (&gt; 3.8 kHz)"/>
+                                                    <Button x:Name="BtnDjPadGateA" Content="Stems FX" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="Gate"
+                                                            ToolTip="BPM-synced 1/8-note rhythmic trance gate / beat chopper"/>
+                                                </UniformGrid>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Sub-Col 1: 4 Hot Cue Pads & Auto-Loop Rack -->
+                                    <Grid Grid.Column="1" Margin="0,0,6,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- 4 Hot Cues (2x2 Grid) -->
+                                        <Border Grid.Row="0" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4" Margin="0,0,0,5">
+                                            <StackPanel>
+                                                <TextBlock Text="HOT CUES (R-CLICK CLEAR)" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                <UniformGrid Rows="2" Columns="2">
+                                                    <Button x:Name="BtnDjHot1A" Content="CUE 1" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="0"/>
+                                                    <Button x:Name="BtnDjHot2A" Content="CUE 2" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="1"/>
+                                                    <Button x:Name="BtnDjHot3A" Content="CUE 3" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="2"/>
+                                                    <Button x:Name="BtnDjHot4A" Content="CUE 4" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="3"/>
+                                                </UniformGrid>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Auto-Loop Controls (< | Beats | > + IN / OUT) -->
+                                        <Border Grid.Row="1" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4">
+                                            <StackPanel>
+                                                <TextBlock Text="BEAT LOOP" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                <Grid Margin="0,0,0,4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="26"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="26"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Button Grid.Column="0" Content="◄" Padding="0,3" FontSize="10" FontWeight="Bold" Click="BtnDjLoopHalfA_Click" ToolTip="Halve loop length (1/2x)"/>
+                                                    <Button x:Name="BtnDjLoopToggleA" Grid.Column="1" Content="4 Beats" Padding="4,3" FontSize="10" FontWeight="Bold" Margin="3,0" Click="BtnDjLoopToggleA_Click" ToolTip="Toggle active beat loop"/>
+                                                    <Button Grid.Column="2" Content="►" Padding="0,3" FontSize="10" FontWeight="Bold" Click="BtnDjLoopDoubleA_Click" ToolTip="Double loop length (2x)"/>
+                                                </Grid>
+                                                <UniformGrid Rows="1" Columns="4" Margin="0,0,0,3">
+                                                    <Button Content="1/2" Padding="0,2" FontSize="9" Margin="1" Click="BtnDjLoopQuickA_Click" Tag="0.5"/>
+                                                    <Button Content="1" Padding="0,2" FontSize="9" Margin="1" Click="BtnDjLoopQuickA_Click" Tag="1"/>
+                                                    <Button Content="4" Padding="0,2" FontSize="9" Margin="1" Click="BtnDjLoopQuickA_Click" Tag="4"/>
+                                                    <Button Content="8" Padding="0,2" FontSize="9" Margin="1" Click="BtnDjLoopQuickA_Click" Tag="8"/>
+                                                </UniformGrid>
+                                                <UniformGrid Rows="1" Columns="2">
+                                                    <Button Content="IN" Padding="2,2.5" FontSize="9.5" FontWeight="Bold" Margin="1" Click="BtnDjLoopInA_Click" ToolTip="Set manual Loop In point"/>
+                                                    <Button Content="OUT" Padding="2,2.5" FontSize="9.5" FontWeight="Bold" Margin="1" Click="BtnDjLoopOutA_Click" ToolTip="Set manual Loop Out point &amp; engage loop"/>
+                                                </UniformGrid>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Sub-Col 2: Rotating 60 FPS Vinyl Jog Wheel + Pitch Fader + CUE / PLAY / SYNC -->
+                                    <Grid Grid.Column="2">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="122"/>
+                                            <ColumnDefinition Width="46"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Vinyl Jog Platter -->
+                                        <Grid Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Image x:Name="ImgDjPlatterA" Width="116" Height="116" Cursor="Hand"
+                                                   MouseLeftButtonDown="ImgDjPlatterA_MouseLeftButtonDown"
+                                                   MouseMove="ImgDjPlatterA_MouseMove"
+                                                   MouseLeftButtonUp="ImgDjPlatterA_MouseLeftButtonUp"
+                                                   ToolTip="60 FPS Interactive Vinyl Platter — drag with mouse to scratch or backspin!"/>
+                                            <StackPanel Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0">
+                                                <Button x:Name="BtnDjVinylA" Content="VINYL" Padding="4,1" FontSize="8.5" FontWeight="Bold" Foreground="{StaticResource Cyan}" BorderBrush="{StaticResource Cyan}" Margin="0,0,0,2" Click="BtnDjVinylA_Click"
+                                                        ToolTip="VINYL mode ON = mouse drag scratches vinyl; OFF = mouse drag nudges pitch"/>
+                                                <Button x:Name="BtnDjSlipA" Content="SLIP" Padding="4,1" FontSize="8.5" FontWeight="Bold" Click="BtnDjSlipA_Click"
+                                                        ToolTip="SLIP mode: underlying beat playhead keeps moving forward during scratches &amp; loops"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Vertical Pitch / Tempo Fader -->
+                                        <Border Grid.Row="0" Grid.Column="1" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="3,4" Margin="4,0,0,0">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock x:Name="TxtDjPitchA" Grid.Row="0" Text="+0.0%" Foreground="{StaticResource Cyan}" FontFamily="Consolas" FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,2"
+                                                           MouseLeftButtonDown="TxtDjPitchA_ResetClick" Cursor="Hand" ToolTip="Click to reset pitch to 0.0%"/>
+                                                <Slider x:Name="SldDjPitchA" Grid.Row="1" Orientation="Vertical" Minimum="-16" Maximum="16" Value="0" HorizontalAlignment="Center"
+                                                        ValueChanged="SldDjPitchA_ValueChanged" MouseDoubleClick="SldDjPitchA_MouseDoubleClick"
+                                                        ToolTip="Tempo / Pitch Fader (-16% to +16%). Double-click to reset to 0.0%"/>
+                                                <UniformGrid Grid.Row="2" Rows="1" Columns="2" Margin="0,2,0,0">
+                                                    <Button Content="-" Padding="0,1" FontSize="9.5" FontWeight="Bold" Margin="0.5" PreviewMouseLeftButtonDown="BtnDjBendMinusA_Down" PreviewMouseLeftButtonUp="BtnDjBendA_Up" ToolTip="Momentary slow-down pitch bend"/>
+                                                    <Button Content="+" Padding="0,1" FontSize="9.5" FontWeight="Bold" Margin="0.5" PreviewMouseLeftButtonDown="BtnDjBendPlusA_Down" PreviewMouseLeftButtonUp="BtnDjBendA_Up" ToolTip="Momentary speed-up pitch bend"/>
+                                                </UniformGrid>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Bottom Transport Row: CUE | ▶ PLAY | SYNC -->
+                                        <UniformGrid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Rows="1" Columns="3" Margin="0,5,0,0">
+                                            <Button x:Name="BtnDjCueA" Content="CUE" Padding="4,6" FontSize="11" FontWeight="Bold" Margin="0,0,3,0"
+                                                    PreviewMouseLeftButtonDown="BtnDjCueA_Down" PreviewMouseLeftButtonUp="BtnDjCueA_Up"
+                                                    ToolTip="Set or return to Cue point (hold while paused for momentary preview)"/>
+                                            <Button x:Name="BtnDjPlayA" Content="▶ PLAY" Style="{StaticResource CyanActionButton}" Padding="4,6" FontSize="11" FontWeight="Bold" Margin="1.5,0"
+                                                    Click="BtnDjPlayA_Click"
+                                                    ToolTip="Start or pause Deck A playback"/>
+                                            <Button x:Name="BtnDjSyncA" Content="SYNC" Padding="4,6" FontSize="11" FontWeight="Bold" Margin="3,0,0,0"
+                                                    Click="BtnDjSyncA_Click"
+                                                    ToolTip="Match Deck A BPM and beat phase to Deck B"/>
+                                        </UniformGrid>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- ===================================================================== -->
+                        <!-- CENTER: 2-CHANNEL PRO DJ MIXER (GAIN, 3-BAND EQ, FILTER, VU & XFADER) -->
+                        <!-- ===================================================================== -->
+                        <Border Grid.Column="1" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="8,6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Text="AUDIO • 2-CH PRO MIXER" Foreground="{StaticResource Cyan}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+
+                                <!-- 3 Columns: [Deck A EQ/Filter Knobs] [Gain + Dual Volume Faders + VU Meters + PFL] [Deck B EQ/Filter Knobs] -->
+                                <Grid Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="58"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="58"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Left Strip: Deck A HIGH / MID / LOW / FILTER Rotary Knobs -->
+                                    <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Canvas x:Name="KnobDjHighA" Width="34" Height="34" Tag="A:High" Cursor="SizeNS" Background="Transparent"
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
+                                                ToolTip="Deck A HIGH EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                        <TextBlock Text="HIGH" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+
+                                        <Canvas x:Name="KnobDjMidA" Width="34" Height="34" Tag="A:Mid" Cursor="SizeNS" Background="Transparent"
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
+                                                ToolTip="Deck A MID EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                        <TextBlock Text="MID" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+
+                                        <Canvas x:Name="KnobDjLowA" Width="34" Height="34" Tag="A:Low" Cursor="SizeNS" Background="Transparent"
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
+                                                ToolTip="Deck A LOW Bass EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                        <TextBlock Text="LOW" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+
+                                        <Canvas x:Name="KnobDjFilterA" Width="36" Height="36" Tag="A:Filter" Cursor="SizeNS" Background="Transparent"
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
+                                                ToolTip="Deck A Color FILTER (Turn left for Low-Pass sweep, right for High-Pass sweep; double-click for center bypass)"/>
+                                        <TextBlock Text="FILTER" Foreground="{StaticResource Cyan}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <!-- Center Strip: GAIN A/B Knobs + Volume Faders + Center Dual LED VU Meter + 🎧 PFL -->
+                                    <Grid Grid.Column="1" Margin="2,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="26"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Top GAIN Knobs -->
+                                        <StackPanel Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" Margin="0,0,0,3">
+                                            <Canvas x:Name="KnobDjGainA" Width="30" Height="30" Tag="A:Gain" Cursor="SizeNS" Background="Transparent"
+                                                    MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
+                                                    ToolTip="Deck A Pre-Amp GAIN (-24 to +12 dB). Double-click to reset"/>
+                                            <TextBlock Text="GAIN" Foreground="{StaticResource Muted}" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="0" Grid.Column="2" HorizontalAlignment="Center" Margin="0,0,0,3">
+                                            <Canvas x:Name="KnobDjGainB" Width="30" Height="30" Tag="B:Gain" Cursor="SizeNS" Background="Transparent"
+                                                    MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
+                                                    ToolTip="Deck B Pre-Amp GAIN (-24 to +12 dB). Double-click to reset"/>
+                                            <TextBlock Text="GAIN" Foreground="{StaticResource Muted}" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <!-- Channel Volume Fader A | Dual LED VU Meters | Channel Volume Fader B -->
+                                        <Slider x:Name="SldDjVolA" Grid.Row="1" Grid.Column="0" Orientation="Vertical" Minimum="0" Maximum="1" Value="1.0"
+                                                HorizontalAlignment="Center" Height="118" ValueChanged="SldDjVolA_ValueChanged"
+                                                ToolTip="Deck A Channel Volume Fader (100% = 0.0 dB Unity)"/>
+
+                                        <Border Grid.Row="1" Grid.Column="1" Background="#070A14" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3" Padding="2" Height="118" VerticalAlignment="Center">
+                                            <Image x:Name="ImgDjVuMeters" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                                   ToolTip="Live Deck A (Left) &amp; Deck B (Right) LED Peak Level Meters"/>
+                                        </Border>
+
+                                        <Slider x:Name="SldDjVolB" Grid.Row="1" Grid.Column="2" Orientation="Vertical" Minimum="0" Maximum="1" Value="1.0"
+                                                HorizontalAlignment="Center" Height="118" ValueChanged="SldDjVolB_ValueChanged"
+                                                ToolTip="Deck B Channel Volume Fader (100% = 0.0 dB Unity)"/>
+
+                                        <!-- Headphone Cue (🎧) Buttons -->
+                                        <Button x:Name="BtnDjPflA" Grid.Row="2" Grid.Column="0" Content="🎧" Padding="4,2" FontSize="10" Margin="2,4,2,0" Click="BtnDjPflA_Click"
+                                                ToolTip="Pre-Fade Listen / Cue monitor for Deck A"/>
+                                        <Button x:Name="BtnDjPflB" Grid.Row="2" Grid.Column="2" Content="🎧" Padding="4,2" FontSize="10" Margin="2,4,2,0" Click="BtnDjPflB_Click"
+                                                ToolTip="Pre-Fade Listen / Cue monitor for Deck B"/>
+                                    </Grid>
+
+                                    <!-- Right Strip: Deck B HIGH / MID / LOW / FILTER Rotary Knobs -->
+                                    <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Canvas x:Name="KnobDjHighB" Width="34" Height="34" Tag="B:High" Cursor="SizeNS" Background="Transparent"
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
+                                                ToolTip="Deck B HIGH EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                        <TextBlock Text="HIGH" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+
+                                        <Canvas x:Name="KnobDjMidB" Width="34" Height="34" Tag="B:Mid" Cursor="SizeNS" Background="Transparent"
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
+                                                ToolTip="Deck B MID EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                        <TextBlock Text="MID" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+
+                                        <Canvas x:Name="KnobDjLowB" Width="34" Height="34" Tag="B:Low" Cursor="SizeNS" Background="Transparent"
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
+                                                ToolTip="Deck B LOW Bass EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                        <TextBlock Text="LOW" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+
+                                        <Canvas x:Name="KnobDjFilterB" Width="36" Height="36" Tag="B:Filter" Cursor="SizeNS" Background="Transparent"
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
+                                                ToolTip="Deck B Color FILTER (Turn left for Low-Pass sweep, right for High-Pass sweep; double-click for center bypass)"/>
+                                        <TextBlock Text="FILTER" Foreground="{StaticResource Red}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Bottom Horizontal Crossfader -->
+                                <Border Grid.Row="2" Background="#0A0E1B" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4" Margin="0,5,0,0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="A" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                        <Slider x:Name="SldDjCrossfader" Grid.Column="1" Minimum="-1" Maximum="1" Value="0" VerticalAlignment="Center"
+                                                ValueChanged="SldDjCrossfader_ValueChanged" MouseDoubleClick="SldDjCrossfader_MouseDoubleClick"
+                                                ToolTip="Master DJ Crossfader (Left = Deck A, Center = Both, Right = Deck B). Double-click to snap to center"/>
+                                        <TextBlock Grid.Column="2" Text="B" Foreground="{StaticResource Red}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- ===================================================================== -->
+                        <!-- RIGHT: DECK B CONSOLE (CRIMSON / RED ACCENT) -->
+                        <!-- ===================================================================== -->
+                        <Border Grid.Column="2" Background="{StaticResource CardBg}" BorderBrush="#4A1E34" BorderThickness="1" CornerRadius="6" Padding="8,6" Margin="6,0,0,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="24"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Deck B Header: BPM, Elapsed/Remain, Key, MT, TAP, Title/Artist, Badge -->
+                                <Grid Grid.Row="0" Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="24"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <TextBlock x:Name="TxtDjBpmB" Text="128.00" Foreground="{StaticResource Red}" FontFamily="Consolas" FontWeight="Bold" FontSize="17" HorizontalAlignment="Left"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <TextBlock x:Name="TxtDjElapsedB" Text="0:00.0" Foreground="{StaticResource Text}" FontFamily="Consolas" FontSize="10" Margin="0,0,8,0" ToolTip="Elapsed time"/>
+                                            <TextBlock x:Name="TxtDjRemainB" Text="-0:00.0" Foreground="{StaticResource Muted}" FontFamily="Consolas" FontSize="10" ToolTip="Remaining time"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
+                                        <Border Background="#1F0D18" BorderBrush="#5E223B" BorderThickness="1" CornerRadius="3" Padding="6,2" Margin="0,0,6,0">
+                                            <TextBlock x:Name="TxtDjKeyB" Text="—" Foreground="{StaticResource Red}" FontFamily="Consolas" FontWeight="Bold" FontSize="11.5"
+                                                       ToolTip="Auto-detected Musical Key"/>
+                                        </Border>
+                                        <Button x:Name="BtnDjMtB" Content="MT" Padding="6,2" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource Red}" BorderBrush="{StaticResource Red}" Margin="0,0,4,0" Click="BtnDjMtB_Click"
+                                                ToolTip="Master Tempo (Keylock): keeps vocals &amp; instruments in their original musical pitch when changing BPM speed"/>
+                                        <Button Content="TAP" Padding="6,2" FontSize="9.5" FontWeight="Bold" Click="BtnDjTapB_Click"
+                                                ToolTip="Tap rhythmically to manually override Deck B BPM"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,6,0">
+                                        <TextBlock x:Name="TxtDjTitleB" Text="No Track Loaded" Foreground="{StaticResource Text}" FontWeight="Bold" FontSize="12.5" TextAlignment="Right" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="TxtDjArtistB" Text="Click '→ B' on any song below to cue Deck B" Foreground="{StaticResource Muted}" FontSize="10.5" TextAlignment="Right" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+
+                                    <Border Grid.Column="3" Background="#361222" BorderBrush="{StaticResource Red}" BorderThickness="1.5" CornerRadius="4">
+                                        <TextBlock Text="B" Foreground="{StaticResource Red}" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Deck B Full-Track Mini Overview Seek Waveform -->
+                                <Border Grid.Row="1" Background="#070B16" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3" Margin="0,0,0,6" ClipToBounds="True" Cursor="Hand"
+                                        ToolTip="Full-track overview waveform — click or drag anywhere to jump immediately">
+                                    <Grid x:Name="DjOverviewViewportB" SizeChanged="DjOverviewViewportB_SizeChanged"
+                                          MouseLeftButtonDown="DjOverviewB_MouseLeftButtonDown"
+                                          MouseMove="DjOverviewB_MouseMove">
+                                        <Image x:Name="ImgDjOverviewB" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Deck B Main Controls (Symmetrical Mirror of Deck A): [0: Pitch + Platter + Transport] [1: Hot Cues + Auto-Loop] [2: FX + Stems Pads] -->
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="0.92*"/>
+                                        <ColumnDefinition Width="1.15*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Sub-Col 0: Pitch Fader + Rotating 60 FPS Vinyl Jog Wheel + CUE / PLAY / SYNC -->
+                                    <Grid Grid.Column="0" Margin="0,0,6,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="46"/>
+                                            <ColumnDefinition Width="122"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Vertical Pitch / Tempo Fader -->
+                                        <Border Grid.Row="0" Grid.Column="0" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="3,4" Margin="0,0,4,0">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock x:Name="TxtDjPitchB" Grid.Row="0" Text="+0.0%" Foreground="{StaticResource Red}" FontFamily="Consolas" FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,2"
+                                                           MouseLeftButtonDown="TxtDjPitchB_ResetClick" Cursor="Hand" ToolTip="Click to reset pitch to 0.0%"/>
+                                                <Slider x:Name="SldDjPitchB" Grid.Row="1" Orientation="Vertical" Minimum="-16" Maximum="16" Value="0" HorizontalAlignment="Center"
+                                                        ValueChanged="SldDjPitchB_ValueChanged" MouseDoubleClick="SldDjPitchB_MouseDoubleClick"
+                                                        ToolTip="Tempo / Pitch Fader (-16% to +16%). Double-click to reset to 0.0%"/>
+                                                <UniformGrid Grid.Row="2" Rows="1" Columns="2" Margin="0,2,0,0">
+                                                    <Button Content="-" Padding="0,1" FontSize="9.5" FontWeight="Bold" Margin="0.5" PreviewMouseLeftButtonDown="BtnDjBendMinusB_Down" PreviewMouseLeftButtonUp="BtnDjBendB_Up" ToolTip="Momentary slow-down pitch bend"/>
+                                                    <Button Content="+" Padding="0,1" FontSize="9.5" FontWeight="Bold" Margin="0.5" PreviewMouseLeftButtonDown="BtnDjBendPlusB_Down" PreviewMouseLeftButtonUp="BtnDjBendB_Up" ToolTip="Momentary speed-up pitch bend"/>
+                                                </UniformGrid>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Vinyl Jog Platter -->
+                                        <Grid Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Image x:Name="ImgDjPlatterB" Width="116" Height="116" Cursor="Hand"
+                                                   MouseLeftButtonDown="ImgDjPlatterB_MouseLeftButtonDown"
+                                                   MouseMove="ImgDjPlatterB_MouseMove"
+                                                   MouseLeftButtonUp="ImgDjPlatterB_MouseLeftButtonUp"
+                                                   ToolTip="60 FPS Interactive Vinyl Platter — drag with mouse to scratch or backspin!"/>
+                                            <StackPanel Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0">
+                                                <Button x:Name="BtnDjVinylB" Content="VINYL" Padding="4,1" FontSize="8.5" FontWeight="Bold" Foreground="{StaticResource Red}" BorderBrush="{StaticResource Red}" Margin="0,0,0,2" Click="BtnDjVinylB_Click"
+                                                        ToolTip="VINYL mode ON = mouse drag scratches vinyl; OFF = mouse drag nudges pitch"/>
+                                                <Button x:Name="BtnDjSlipB" Content="SLIP" Padding="4,1" FontSize="8.5" FontWeight="Bold" Click="BtnDjSlipB_Click"
+                                                        ToolTip="SLIP mode: underlying beat playhead keeps moving forward during scratches &amp; loops"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Bottom Transport Row: CUE | ▶ PLAY | SYNC -->
+                                        <UniformGrid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Rows="1" Columns="3" Margin="0,5,0,0">
+                                            <Button x:Name="BtnDjCueB" Content="CUE" Padding="4,6" FontSize="11" FontWeight="Bold" Margin="0,0,3,0"
+                                                    PreviewMouseLeftButtonDown="BtnDjCueB_Down" PreviewMouseLeftButtonUp="BtnDjCueB_Up"
+                                                    ToolTip="Set or return to Cue point (hold while paused for momentary preview)"/>
+                                            <Button x:Name="BtnDjPlayB" Content="▶ PLAY" Style="{StaticResource AccentButton}" Padding="4,6" FontSize="11" FontWeight="Bold" Margin="1.5,0"
+                                                    Click="BtnDjPlayB_Click"
+                                                    ToolTip="Start or pause Deck B playback"/>
+                                            <Button x:Name="BtnDjSyncB" Content="SYNC" Padding="4,6" FontSize="11" FontWeight="Bold" Margin="3,0,0,0"
+                                                    Click="BtnDjSyncB_Click"
+                                                    ToolTip="Match Deck B BPM and beat phase to Deck A"/>
+                                        </UniformGrid>
+                                    </Grid>
+
+                                    <!-- Sub-Col 1: 4 Hot Cue Pads & Auto-Loop Rack -->
+                                    <Grid Grid.Column="1" Margin="0,0,6,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Border Grid.Row="0" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4" Margin="0,0,0,5">
+                                            <StackPanel>
+                                                <TextBlock Text="HOT CUES (R-CLICK CLEAR)" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                <UniformGrid Rows="2" Columns="2">
+                                                    <Button x:Name="BtnDjHot1B" Content="CUE 1" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="0"/>
+                                                    <Button x:Name="BtnDjHot2B" Content="CUE 2" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="1"/>
+                                                    <Button x:Name="BtnDjHot3B" Content="CUE 3" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="2"/>
+                                                    <Button x:Name="BtnDjHot4B" Content="CUE 4" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="3"/>
+                                                </UniformGrid>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Grid.Row="1" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4">
+                                            <StackPanel>
+                                                <TextBlock Text="BEAT LOOP" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                <Grid Margin="0,0,0,4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="26"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="26"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Button Grid.Column="0" Content="◄" Padding="0,3" FontSize="10" FontWeight="Bold" Click="BtnDjLoopHalfB_Click" ToolTip="Halve loop length (1/2x)"/>
+                                                    <Button x:Name="BtnDjLoopToggleB" Grid.Column="1" Content="4 Beats" Padding="4,3" FontSize="10" FontWeight="Bold" Margin="3,0" Click="BtnDjLoopToggleB_Click" ToolTip="Toggle active beat loop"/>
+                                                    <Button Grid.Column="2" Content="►" Padding="0,3" FontSize="10" FontWeight="Bold" Click="BtnDjLoopDoubleB_Click" ToolTip="Double loop length (2x)"/>
+                                                </Grid>
+                                                <UniformGrid Rows="1" Columns="4" Margin="0,0,0,3">
+                                                    <Button Content="1/2" Padding="0,2" FontSize="9" Margin="1" Click="BtnDjLoopQuickB_Click" Tag="0.5"/>
+                                                    <Button Content="1" Padding="0,2" FontSize="9" Margin="1" Click="BtnDjLoopQuickB_Click" Tag="1"/>
+                                                    <Button Content="4" Padding="0,2" FontSize="9" Margin="1" Click="BtnDjLoopQuickB_Click" Tag="4"/>
+                                                    <Button Content="8" Padding="0,2" FontSize="9" Margin="1" Click="BtnDjLoopQuickB_Click" Tag="8"/>
+                                                </UniformGrid>
+                                                <UniformGrid Rows="1" Columns="2">
+                                                    <Button Content="IN" Padding="2,2.5" FontSize="9.5" FontWeight="Bold" Margin="1" Click="BtnDjLoopInB_Click" ToolTip="Set manual Loop In point"/>
+                                                    <Button Content="OUT" Padding="2,2.5" FontSize="9.5" FontWeight="Bold" Margin="1" Click="BtnDjLoopOutB_Click" ToolTip="Set manual Loop Out point &amp; engage loop"/>
+                                                </UniformGrid>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Sub-Col 2: 3-Slot FX Rack & 6 Stem/Isolator Performance Pads -->
+                                    <Grid Grid.Column="2">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Border Grid.Row="0" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4" Margin="0,0,0,5">
+                                            <StackPanel>
+                                                <TextBlock Text="DECK B FX RACK" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                <Grid Margin="0,0,0,3">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="54"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="22"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="FLANGER" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    <Slider x:Name="SldDjFx1B" Grid.Column="1" Minimum="0" Maximum="1" Value="0.55" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxB_ValueChanged" Tag="0"/>
+                                                    <Button x:Name="BtnDjFx1B" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxB_Click" Tag="0" ToolTip="Toggle Stereo Flanger on Deck B"/>
+                                                </Grid>
+                                                <Grid Margin="0,0,0,3">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="54"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="22"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="REVERB" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    <Slider x:Name="SldDjFx2B" Grid.Column="1" Minimum="0" Maximum="1" Value="0.45" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxB_ValueChanged" Tag="1"/>
+                                                    <Button x:Name="BtnDjFx2B" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxB_Click" Tag="1" ToolTip="Toggle Hall Reverb / Echo on Deck B"/>
+                                                </Grid>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="54"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="22"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="WAHWAH" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    <Slider x:Name="SldDjFx3B" Grid.Column="1" Minimum="0" Maximum="1" Value="0.60" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxB_ValueChanged" Tag="2"/>
+                                                    <Button x:Name="BtnDjFx3B" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxB_Click" Tag="2" ToolTip="Toggle Swept Wah-Wah Filter on Deck B"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Grid.Row="1" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4">
+                                            <StackPanel>
+                                                <TextBlock Text="STEMS &amp; ISOLATOR PADS" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                <UniformGrid Rows="2" Columns="3">
+                                                    <Button x:Name="BtnDjPadVocalB" Content="Vocal" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="Vocal"
+                                                            ToolTip="Focus center-channel lead vocals"/>
+                                                    <Button x:Name="BtnDjPadInstruB" Content="Instru" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="Instru"
+                                                            ToolTip="Instant Instrumental: cancel center lead vocals while preserving stereo instruments &amp; bass"/>
+                                                    <Button x:Name="BtnDjPadBassB" Content="Bass" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="Bass"
+                                                            ToolTip="Boost deep sub-bass punch"/>
+                                                    <Button x:Name="BtnDjPadKickB" Content="Kick Kill" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="Kick"
+                                                            ToolTip="Kill low kick/bass band (&lt; 240 Hz) for beat-drop transitions"/>
+                                                    <Button x:Name="BtnDjPadHiHatB" Content="HiHat Kill" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="HiHat"
+                                                            ToolTip="Kill high treble/hi-hat band (&gt; 3.8 kHz)"/>
+                                                    <Button x:Name="BtnDjPadGateB" Content="Stems FX" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="Gate"
+                                                            ToolTip="BPM-synced 1/8-note rhythmic trance gate / beat chopper"/>
+                                                </UniformGrid>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Resizable Splitter Between Decks and Bottom Music Crate Browser -->
+                    <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="#161E38" ShowsPreview="True" Cursor="SizeNS"/>
+
+                    <!-- ========================================================================= -->
+                    <!-- ROW 3: BOTTOM LOCAL MUSIC FOLDER TREE & DJ CRATE BROWSER (IMAGE 2) -->
+                    <!-- ========================================================================= -->
+                    <Border x:Name="BorderDjBrowser" Grid.Row="3" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="8,6" Margin="0,3,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220" MinWidth="140"/>
+                                <ColumnDefinition Width="5"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left: Local Music Folder Tree -->
+                            <Grid Grid.Column="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Margin="0,0,0,5">
+                                    <TextBlock Text="LOCAL MUSIC &amp; FOLDERS" Foreground="{StaticResource Cyan}" FontSize="10.5" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    <Button Content="+ Folder..." HorizontalAlignment="Right" Padding="7,2" FontSize="10" Margin="0" Click="BtnDjAddFolder_Click"
+                                            ToolTip="Browse and add any folder of songs or music videos to your DJ Crate"/>
+                                </Grid>
+
+                                <TreeView x:Name="TreeDjFolders" Grid.Row="1" Background="#0A0E1B" BorderBrush="{StaticResource Line}" BorderThickness="1"
+                                          Foreground="{StaticResource Text}" FontSize="11.5" SelectedItemChanged="TreeDjFolders_SelectedItemChanged">
+                                    <TreeView.Resources>
+                                        <Style TargetType="TreeViewItem">
+                                            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+                                            <Setter Property="Padding" Value="4,2"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TreeView.Resources>
+                                </TreeView>
+                            </Grid>
+
+                            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" Cursor="SizeWE"/>
+
+                            <!-- Right: Live Search Bar + Track Crate Table -->
+                            <Grid Grid.Column="2" Margin="4,0,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Top Search & Crate Actions Bar -->
+                                <Grid Grid.Row="0" Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="260"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0" Text="🔍" Foreground="{StaticResource Cyan}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBox x:Name="TxtDjSearch" Grid.Column="1" VerticalAlignment="Center" TextChanged="TxtDjSearch_TextChanged"
+                                             ToolTip="Instant live filter by Artist, Title, Remix, BPM, or Musical Key"/>
+                                    <TextBlock x:Name="TxtDjFileCount" Grid.Column="2" Text="● 0 files" Foreground="{StaticResource Muted}" FontFamily="Consolas" FontSize="11" VerticalAlignment="Center" Margin="10,0,0,0"/>
+
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button x:Name="BtnDjLoadSelectedA" Content="→ Load Deck A" Style="{StaticResource CyanActionButton}" Padding="9,3" FontSize="10.5" FontWeight="Bold" Margin="0,0,5,0" Click="BtnDjLoadSelectedA_Click"
+                                                ToolTip="Load the selected song into Deck A (Cyan)"/>
+                                        <Button x:Name="BtnDjLoadSelectedB" Content="→ Load Deck B" Style="{StaticResource AccentButton}" Padding="9,3" FontSize="10.5" FontWeight="Bold" Margin="0,0,8,0" Click="BtnDjLoadSelectedB_Click"
+                                                ToolTip="Load the selected song into Deck B (Crimson)"/>
+                                        <Button x:Name="BtnDjAnalyzeFolder" Content="⚡ Analyze BPM &amp; Key" Padding="8,3" FontSize="10.5" Margin="0,0,5,0" Click="BtnDjAnalyzeFolder_Click"
+                                                ToolTip="Scan all tracks in this folder in the background to detect BPM and Musical Key"/>
+                                        <Button Content="Open File..." Padding="8,3" FontSize="10.5" Margin="0" Click="BtnDjOpenSingleFile_Click"
+                                                ToolTip="Browse and load a single audio or video file directly"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Track List DataGrid (Image 2 Columns: Load A/B | Artist | Title | Remix | Length | Bpm | Key | Type) -->
+                                <DataGrid x:Name="GridDjTracks" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                                          Background="#0A0E1B" RowBackground="#0E1324" AlternatingRowBackground="#12192E"
+                                          Foreground="{StaticResource Text}" BorderBrush="{StaticResource Line}" GridLinesVisibility="Horizontal"
+                                          HorizontalGridLinesBrush="#1A2240" HeadersVisibility="Column" FontSize="11.5"
+                                          MouseDoubleClick="GridDjTracks_MouseDoubleClick">
+                                    <DataGrid.Resources>
+                                        <Style TargetType="DataGridColumnHeader">
+                                            <Setter Property="Background" Value="#171F3A"/>
+                                            <Setter Property="Foreground" Value="{StaticResource Cyan}"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="Padding" Value="8,4"/>
+                                            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+                                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                        </Style>
+                                    </DataGrid.Resources>
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="Deck" Width="74">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <Button Content="A" Padding="6,1" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Cyan}" BorderBrush="{StaticResource Cyan}" Margin="1,0" Click="BtnDjRowLoadA_Click" ToolTip="Load to Deck A"/>
+                                                        <Button Content="B" Padding="6,1" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Red}" BorderBrush="{StaticResource Red}" Margin="1,0" Click="BtnDjRowLoadB_Click" ToolTip="Load to Deck B"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Artist" Binding="{Binding Artist}" Width="170"/>
+                                        <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="*"/>
+                                        <DataGridTextColumn Header="Remix" Binding="{Binding Remix}" Width="145"/>
+                                        <DataGridTextColumn Header="Length" Binding="{Binding LengthText}" Width="68"/>
+                                        <DataGridTextColumn Header="Bpm" Binding="{Binding BpmText}" Width="64"/>
+                                        <DataGridTextColumn Header="Key" Binding="{Binding MusicalKey}" Width="58"/>
+                                        <DataGridTextColumn Header="Type" Binding="{Binding TrackType}" Width="58"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
         </TabControl>
 
         <!-- ========================================================================= -->
@@ -1431,7 +2542,11 @@
         <Border Grid.Row="3" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="12,6" Margin="0,8,0,0">
             <Grid>
                 <TextBlock x:Name="TxtStatusBar" Text="Ready. Connected to Realtek High Definition Audio APO (RltkAPO64.dll)." Foreground="{StaticResource Cyan}" FontSize="12"/>
-                <TextBlock x:Name="TxtRightStatus" Text="Open-Source Community Edition • Non-Admin RPC Active" HorizontalAlignment="Right" Foreground="{StaticResource Muted}" FontSize="11.5"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtDjLiveBadge" Text="" Foreground="{StaticResource Cyan}" FontFamily="Consolas" FontWeight="Bold" FontSize="11.5" Margin="0,0,14,0" Visibility="Collapsed"/>
+                    <TextBlock x:Name="TxtRecLiveBadge" Text="" Foreground="{StaticResource Red}" FontFamily="Consolas" FontWeight="Bold" FontSize="11.5" Margin="0,0,14,0" Visibility="Collapsed"/>
+                    <TextBlock x:Name="TxtRightStatus" Text="Open-Source Community Edition • Non-Admin RPC Active" Foreground="{StaticResource Muted}" FontSize="11.5"/>
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

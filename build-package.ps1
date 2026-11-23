@@ -2,7 +2,8 @@
 param(
     [string]$Configuration = "Release",
     [switch]$SkipTests,
-    [switch]$Offline
+    [switch]$Offline,
+    [switch]$NoRestore
 )
 
 $ErrorActionPreference = "Stop"
@@ -28,15 +29,17 @@ if ($Offline) {
 }
 
 Write-Host "`n[1/5] Restoring & building solution ($Configuration)..." -ForegroundColor Yellow
-dotnet restore SpectraRealtekStudio.sln @restoreArgs -m:1 --disable-build-servers
-if ($LASTEXITCODE -ne 0) {
-    if (-not $Offline) {
-        Write-Warning "Online restore failed; retrying against local NuGet cache..."
-        $localCache = Join-Path $env:USERPROFILE ".nuget\packages"
-        dotnet restore SpectraRealtekStudio.sln --source $localCache --ignore-failed-sources -m:1 --disable-build-servers
-        if ($LASTEXITCODE -ne 0) { Write-Error "Restore failed!"; exit $LASTEXITCODE }
-    } else {
-        Write-Error "Offline restore failed!"; exit $LASTEXITCODE
+if (-not $NoRestore) {
+    dotnet restore SpectraRealtekStudio.sln @restoreArgs -m:1 --disable-build-servers
+    if ($LASTEXITCODE -ne 0) {
+        if (-not $Offline) {
+            Write-Warning "Online restore failed; retrying against local NuGet cache..."
+            $localCache = Join-Path $env:USERPROFILE ".nuget\packages"
+            dotnet restore SpectraRealtekStudio.sln --source $localCache --ignore-failed-sources -m:1 --disable-build-servers
+            if ($LASTEXITCODE -ne 0) { Write-Error "Restore failed!"; exit $LASTEXITCODE }
+        } else {
+            Write-Error "Offline restore failed!"; exit $LASTEXITCODE
+        }
     }
 }
 
@@ -63,10 +66,12 @@ if ($Offline) {
     $pubRestoreArgs += "--ignore-failed-sources"
 }
 
-dotnet restore src/SpectraRealtekStudio.App/SpectraRealtekStudio.App.csproj -r win-x64 @pubRestoreArgs -m:1 --disable-build-servers
-if ($LASTEXITCODE -ne 0) { Write-Error "Restore win-x64 App failed!"; exit $LASTEXITCODE }
-dotnet restore src/SpectraRealtekStudio.Cli/SpectraRealtekStudio.Cli.csproj -r win-x64 @pubRestoreArgs -m:1 --disable-build-servers
-if ($LASTEXITCODE -ne 0) { Write-Error "Restore win-x64 CLI failed!"; exit $LASTEXITCODE }
+if (-not $NoRestore) {
+    dotnet restore src/SpectraRealtekStudio.App/SpectraRealtekStudio.App.csproj -r win-x64 @pubRestoreArgs -m:1 --disable-build-servers
+    if ($LASTEXITCODE -ne 0) { Write-Error "Restore win-x64 App failed!"; exit $LASTEXITCODE }
+    dotnet restore src/SpectraRealtekStudio.Cli/SpectraRealtekStudio.Cli.csproj -r win-x64 @pubRestoreArgs -m:1 --disable-build-servers
+    if ($LASTEXITCODE -ne 0) { Write-Error "Restore win-x64 CLI failed!"; exit $LASTEXITCODE }
+}
 
 dotnet publish src/SpectraRealtekStudio.App/SpectraRealtekStudio.App.csproj `
     -c $Configuration -r win-x64 --self-contained true --no-restore `
@@ -81,7 +86,7 @@ dotnet publish src/SpectraRealtekStudio.Cli/SpectraRealtekStudio.Cli.csproj `
 if ($LASTEXITCODE -ne 0) { Write-Error "Publish CLI failed!"; exit $LASTEXITCODE }
 
 Copy-Item "docs" "publish/app/docs" -Recurse -Force
-Copy-Item "README.md", "LICENSE" "publish/app/" -Force
+Copy-Item "README.md", "CHANGELOG.md", "LICENSE" "publish/app/" -Force
 
 # Add convenient portable CLI status launcher
 $cliHelperBat = @"
