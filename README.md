@@ -2,7 +2,7 @@
   <img src="assets/social-preview.png" alt="Spectra Realtek Studio — Full HDA &amp; RltkAPO64 Control Console" width="100%" />
   <br /><br />
   <p>
-    <a href="https://github.com/Creator-NL/SpectraRealtekStudio/releases"><img src="https://img.shields.io/badge/Download-v1.1.0%20Setup%20%26%20Portable-22E8FF?style=for-the-badge" alt="Download Release v1.1.0" /></a>
+    <a href="https://github.com/Creator-NL/SpectraRealtekStudio/releases"><img src="https://img.shields.io/badge/Download-v1.1.1%20Setup%20%26%20Portable-22E8FF?style=for-the-badge" alt="Download Release v1.1.1" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22E87A?style=for-the-badge" alt="MIT License" /></a>
     <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-151C36?style=for-the-badge" alt="Windows x64" />
     <img src="https://img.shields.io/badge/Telemetry-Zero%20%2F%20100%25%20Offline-FF2BD6?style=for-the-badge" alt="Zero Telemetry" />
@@ -30,8 +30,8 @@ Grab the latest self-contained Windows 10/11 (x64) binaries from the **[GitHub R
 
 | Package | File | Description |
 | :--- | :--- | :--- |
-| **Windows Installer** | `SpectraRealtekStudio-v1.1.0-Setup.exe` | Modern Inno Setup 6 installer with Start Menu shortcuts, optional Desktop icon, and optional *Start minimized to tray on Windows sign-in*. |
-| **Portable Edition** | `SpectraRealtekStudio-v1.1.0-Portable.zip` | Extract anywhere and run `SpectraRealtekStudio.App.exe` directly — zero installation required! Includes `SpectraRealtekStudio.Cli.exe`. |
+| **Windows Installer** | `SpectraRealtekStudio-v1.1.1-Setup.exe` | Modern Inno Setup 6 installer with Start Menu shortcuts, optional Desktop icon, and optional *Start minimized to tray on Windows sign-in*. |
+| **Portable Edition** | `SpectraRealtekStudio-v1.1.1-Portable.zip` | Extract anywhere and run `SpectraRealtekStudio.App.exe` directly — zero installation required! Includes `SpectraRealtekStudio.Cli.exe`. |
 | **Checksums** | `SHA256SUMS.txt` | Verified SHA-256 checksums for both packages. |
 
 ---
@@ -64,8 +64,8 @@ Grab the latest self-contained Windows 10/11 (x64) binaries from the **[GitHub R
 
 ```mermaid
 flowchart LR
-    UI["Spectra Realtek Studio (9-Tab WPF Console + Sample Editor + Tray + Hotkeys)"]
-    CLI["SpectraRealtekStudio.Cli (Automation & 11-Check Verification)"]
+    UI["Spectra Realtek Studio (9-Tab WPF Console + Popout Vis + Sample Editor + Tray)"]
+    CLI["SpectraRealtekStudio.Cli (Automation & 13-Check Verification)"]
     CORE["SpectraRealtekStudio.Core"]
 
     RPC["RtkCfg64.dll / IPolicyConfig\n(Non-Admin AudioSrv RPC)"]
@@ -145,10 +145,10 @@ flowchart LR
 - **Zero-Dependency Native WASAPI Loopback + 8192-Point Radix-2 FFT**: Works seamlessly with Stereo, Quad (4.0), 5.1, and 7.1 streams (`44.1–192 kHz`) whether `RltkAPO64` is enabled or bypassed.
 - **6 Frequency Ranges & Dynamic Encoder Rolloff Recovery**: `0 Hz – 20 kHz (Default)`, `0 Hz – 20 kHz (Linear)`, `5 Hz – 24 kHz (Studio)`, `5 Hz – 48 kHz (Hi-Res)`, `0 Hz – 48 kHz (Linear)`, and `20 Hz – 20 kHz (EQ)` with `64`, `128`, or `256` bands — plus automatic brickwall rolloff detection (`11–22.5 kHz`) and raised-cosine harmonic continuity so MP3/AAC tracks display smoothly with zero dead gap!
 - **10 Real-Time Studio Visualization Modes**: *Spectrum Bars*, *Color Waveform Bars*, *Neon Liquid Aurora*, *Peak Contour (Peaks Only)*, *Starfield Bass Tunnel*, *Mirror Spectrum Wave*, *Stereo Oscilloscope (L/R)*, *Spectrogram Waterfall (Heat)*, *Stereo Vectorscope (Phase XY)*, and *Radial Cyber Halo (360°)*.
-- **8 Built-In Color Palettes + `Custom Colors...` + `Color Flow` + `⛶ Focus` Cinema Mode**: Choose from 8 neon themes or pick 3 custom swatches (saved automatically), enable sideways `Color Flow`, and expand into distraction-free `⛶ Focus` cinema mode.
-- **Live Mastering Telemetry & True `0%` Idle Overhead**: Displays Dominant Peak Hz, RMS Loudness dBFS, Stereo Phase Correlation, and WASAPI format — and completely shuts down capture (`0%` CPU) when switching tabs, pausing, minimizing, or sending to tray.
+- **8 Built-In Color Palettes + `Custom Colors...` + `Color Flow` + `⧉ Popout` Resizable Window + `⛶ Focus` Mode**: Choose from 8 neon themes or pick 3 custom swatches (saved automatically), enable sideways `Color Flow`, undock into a freely resizable **`⧉ Popout`** window (with `📌 Pin` Always-on-Top so you can watch the 60 FPS spectrum live while mixing on Tab 9!), or expand into `⛶ Focus` cinema mode.
+- **Live Mastering Telemetry & True `0%` Idle Overhead**: Displays Dominant Peak Hz, RMS Loudness dBFS, Stereo Phase Correlation, and WASAPI format — and completely shuts down capture (`0%` CPU) when switching tabs (unless popped out), pausing, minimizing, or sending to tray.
 
-### 8. Studio Audio Recorder & Dedicated Sample & Loop Studio Editor *(NEW in v1.1.0)*
+### 8. Studio Audio Recorder & Dedicated Sample & Loop Studio Editor
 - **Native WASAPI Lossless WAV Recorder**: Record **"🔊 What You Hear" (WASAPI Loopback)** from any playback endpoint OR any hardware capture input (*Line In*, *Microphone*, *Stereo Mix*) in **`16-bit PCM`**, **`24-bit PCM (Studio)`**, or **`32-bit IEEE Float`** WAV at native hardware sample rate (up to **`192 kHz`**), with Input Gain, Soft Limiter, and live waveform monitor.
 - **`Wait for Sound` Armed Trigger (`-48 / -40 / -30 / -20 dB`)**: Arms with a **30 ms pre-roll ring buffer** so recording starts automatically on the exact first sound without clipping the initial drum transient, plus `✕ Cancel` and `↻ New` quick restart buttons.
 - **Dedicated `Spectra Sample & Loop Studio` Popup Editor (`✂ Edit & Loop Selected` / `📂 Load & Edit Track...`)**:
@@ -157,11 +157,11 @@ flowchart LR
   - **Real-Time Seamless Loop Audition (`🔁 Loop Selection`)**: Loop `[IN .. OUT]` gaplessly while dragging or nudging `IN`/`OUT` live until the loop is locked in, then save **just the selected loop/part** directly with **`💾 Save Selected Loop / Part As...`**!
   - **Non-Destructive Cut & Mastering Tools**: **`✂ Cut Start & End (Keep Selection)`**, **`✂ Cut Start`**, **`✂ Cut End`**, **`🗑 Cut Selected Middle`** (with smooth zero-crossing splice), **`◢ Fade In`**, **`◣ Fade Out`**, **`⚡ Normalize`**, and 18-level **`↶ Undo` / `↷ Redo` / `↺ Reset Original`**.
 
-### 9. Dual-Deck Pro DJ Mixing Studio *(NEW in v1.1.0)*
+### 9. Dual-Deck Pro DJ Mixing Studio *(Major Upgrade in v1.1.1)*
 - **Bit-Pure `Load As-Is (Pure Native)` Engine**: Plays WAV/FLAC/MP3/M4A/AAC/OGG/WMA/MP4 tracks at their **100% original sample rate (up to `192,000 Hz`)** with 1:1 integer sample pass-through at 0% pitch and unity gain — zero unnecessary downsampling or grain artifacts!
-- **60 FPS Dual Stacked Beat-Matching Waveforms & Rotating Vinyl Platters**: Deck A (Cyan) & Deck B (Crimson) beat-colored scrolling waveforms with center playhead, beat-grid ticks, mouse drag scrubbing, `VINYL` scratch & `SLIP` modes, Pitch Fader, Keylock (`MT`), and `CUE` / `▶ PLAY` / `SYNC`.
-- **v2 High-Precision Auto-BPM & Musical Key Analyzer**: Continuous fractional-period multi-beat comb filter (`1T, 2T, 4T, 8T`) on a 200 Hz isolated kick-drum envelope + Hann-windowed Musical Key chroma detector with persistent local cache.
-- **2-Channel Pro DJ Mixer & Performance Tools**: Rotary `GAIN`, 3-Band **12 dB/oct Isolator EQ** (`HIGH` / `MID` / `LOW` with total kill), Bipolar `FILTER`, Channel Volume Faders, 16-segment LED VU Meters, `🎧` PFL, Crossfader, **3-Slot FX Rack** (`Flanger`, `Reverb`, `WahWah`), **4 Hot Cues**, **Beat Loop** rack, **6 Stem/Isolator Pads** (`Vocal`, `Instru`, `Bass`, `Kick Kill`, `HiHat Kill`, `Stems FX`), **`⇄ Auto-Mix`**, **`● REC MIX`**, Local Music Crate Browser, and **`⛶ Focus`** cinema mode.
+- **60 FPS Dual Waveforms (`0.4x – 16.0x` Sample-Accurate Zoom), Vinyl Platters & `0.01%` Fine Pitch**: Deck A (Cyan) & Deck B (Crimson) beat-matching waveforms with mouse-wheel zoom up to `16x` raw sample resolution, collapsible top toolbar, rotating platters (`VINYL` / `SLIP`), square **`■`** Stop-to-Start buttons, drift-free **`0.01%` Pitch Control** (mouse-wheel + `Shift+Drag` + exact 64-bit `SYNC`), and Keylock (`MT`).
+- **Auto-BPM, `2-PT` Manual BPM Calibrator, Draggable Beat Markers & Per-Track Memory**: Continuous fractional-period Auto-BPM & Musical Key analyzer, manual **`2-PT`** 2-point BPM calipers (`1/4/8/16 Beats`), double-clickable draggable beat markers, and automatic per-track persistence of **BPM**, **Beat-Grid Start**, **Channel `GAIN`**, **Main `CUE`**, and **`CUE 1..4` Hot Cues**.
+- **2-Channel Pro DJ Mixer, `24 dB/oct` LR4 Isolator & 4-Band Mid/Side Stems**: Per-track `GAIN` (`0.1 dB` wheel steps) + center **`MSTR`** 2-deck anti-clip Master Gain, 3-Band **24 dB/oct Linkwitz-Riley Isolator EQ** (`HIGH` / `MID` / `LOW` kill), Bipolar `FILTER`, Neon Grab-Glow Volume & Crossfader controls (`ALT+Click` max/min jump, bar-click guard), **4 Hot Cues** (`ALT+Click` set, `Click` jump-and-pause ready), **Beat-Quantized Loops**, **3-Slot FX Rack** (`Flanger`, `Reverb`, `WahWah`), **6 Stem/Isolator Pads** (`Vocal` 4-band Acapella, `Instru` full-bass Vocal Remover, `Bass` Solo, `Kick Kill`, `HiHat Kill`, `Stems FX`), **`📊 Visualizer` Popout**, **`⇄ Auto-Mix`**, and **`● REC MIX`**.
 
 ---
 
@@ -216,7 +216,7 @@ SpectraRealtekStudio.Cli.exe loudness on
 # Export a full community diagnostic JSON report
 SpectraRealtekStudio.Cli.exe diag my_codec_report.json
 
-# Run all 11 automated hardware, APO, Visualizer, Recorder, Sample Editor & DJ self-verification checks
+# Run all 13 automated hardware, APO, Visualizer, Recorder, Sample Editor & DJ self-verification checks
 SpectraRealtekStudio.Cli.exe test
 ```
 
@@ -239,7 +239,7 @@ dotnet test SpectraRealtekStudio.sln -c Release
 
 ## Privacy, Security & Community
 
-- **Changelog:** [CHANGELOG.md](CHANGELOG.md) — Full version history (`v1.0.0` → `v1.1.0`).
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md) — Full version history (`v1.0.0` → `v1.1.1`).
 - **Privacy:** [docs/PRIVACY.md](docs/PRIVACY.md) — Strictly offline, zero telemetry; user-initiated recordings & sample loops stay 100% local on your PC.
 - **Security:** [SECURITY.md](SECURITY.md) — Responsible disclosure and least-privilege architecture.
 - **Accessibility:** [ACCESSIBILITY.md](ACCESSIBILITY.md)

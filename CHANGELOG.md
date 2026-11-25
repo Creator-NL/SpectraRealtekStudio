@@ -2,6 +2,38 @@
 
 All notable changes to **Spectra Realtek Studio** are documented in this file.
 
+## [1.1.1] — 2026-11-25
+
+Precision DJ Mixing Studio & Pop-Out Visualizer Upgrade — adding **2-Point Manual BPM Calibration**, **16x Sample-Accurate Waveform Zoom**, **Per-Track Saved Beat Grids, Gains & Cue Points**, **24 dB/oct Linkwitz-Riley & 4-Subband Mid/Side Stems**, **2-Deck Master Gain (`MSTR`)**, **Neon Grab-Glow Studio Faders**, and a **Freely Resizable Pop-Out 60 FPS Visualizer**!
+
+### Added
+- **Pop-Out Resizable 60 FPS Audio Visualizer Window (`VisualizerPopoutWindow`)**:
+  - Click **`⧉ Popout`** on Tab 7 or **`📊 Visualizer`** directly on Tab 9 to undock the live 60 FPS spectrum visualizer into its own freely resizable window while mixing on Tab 9 (`📌 Pin` Always-on-Top + double-click / `⛶ Focus` borderless view).
+- **Manual 2-Point BPM Calibrator (`2-PT`) & Draggable Beat-Grid Markers**:
+  - Place two draggable calipers (`Point 1` green, `Point 2` amber) across `1`, `4`, `8`, or `16 Beats` to calculate exact `0.01` BPM live.
+  - Double-click any red/cyan beat marker on the top waveform to unlock it and drag the beat grid directly onto the kick transient.
+- **Persistent Per-Track DJ Memory (`dj_track_cache_v2.json`)**:
+  - Automatically stores and restores each song's calibrated **BPM**, **Beat-Grid Start (`FirstBeatSec`)**, **Pre-Amp Channel `GAIN` (`SavedGainDb`)**, **Main `CUE`**, and **`CUE 1..4` Hot Cue points** whenever the track is loaded in the future (protected against overwrite during batch folder analysis).
+- **Smooth `0.4x – 16.0x` Sample-Accurate Top Waveform Zoom & Collapsible DJ Toolbar**:
+  - Hover the top stacked waveforms and scroll the mouse wheel (or click `🔍− / 1.0x / 🔍+`) up to **`16.0x`**, automatically switching above `2.0x` to raw sample-level rendering for razor-sharp kick-drum marking, plus a collapsible **`»` / `« ☰`** top toolbar button so waveforms stay unobstructed.
+- **2-Deck Master Output Gain Knob (`MSTR`) & Square Stop-to-Start (`■`) Deck Buttons**:
+  - Added an emerald-green **`MSTR`** rotary trim knob (`-24.0` to `+12.0 dB`, persisted across sessions) between Deck A & Deck B `GAIN` to prevent combined 2-channel mix clipping while keeping per-deck channel VU meters 100% independent.
+  - Added dedicated square **`■`** Stop-to-Start buttons beside the pitch controls on Deck A & Deck B to stop playback and rewind immediately to `0:00.0`.
+- **24 dB/oct Linkwitz-Riley (LR4) Crossover & 4-Subband Adaptive Mid/Side DJ Stems**:
+  - Upgraded the 3-Band Isolator EQ and `Kick Kill` (`< 210 Hz`) / `HiHat Kill` (`> 2.9 kHz`) pads to true **4th-order Linkwitz-Riley (`24 dB/oct`)** filters across all sample rates up to `192 kHz`.
+  - Upgraded **`Vocal`** (4-subband center-dominance formant extraction with 24 dB/oct `< 210 Hz` & `> 4.3 kHz` stripping), **`Instru`** (center vocal cancellation preserving **100% of `< 210 Hz` Kick/Bass** + `6.2 ms` Haas stereo decorrelation), **`Bass`** (`< 210 Hz` stem solo, composable with `Vocal`), and click-free raised-cosine **`Stems FX`** 1/8-note beat gating.
+- **Pro DJ Tactile Fader, Pitch & Cue Ergonomics**:
+  - **Neon Grab-Glow Studio Faders**: Channel Volume, Pitch, Master Crossfader, FX, and EQ faders illuminate with an Electric Cyan (`#22E8FF`) or Neon Crimson (`#FF4D6D`) halo while grabbed.
+  - **`0.01%` Ultra-Fine Pitch Control**: Resets cleanly to `+0.00%` on track load, preserves full 64-bit `SYNC` precision (zero `135.99` rounding drift), supports `±0.01%` mouse-wheel & `Shift + Drag` Vernier steps, and blocks accidental pitch bar clicks.
+  - **`ALT + Click` Cue & Volume Workflow**: `ALT + Click` on `CUE` or `CUE 1..4` stores/updates cue points while normal `Click` jumps and pauses ready to launch with `▶ PLAY`; `ALT + Click` on channel volume bars jumps to Max/Min while ignoring stray bar clicks mid-mix; rotary mixer knobs step by exact `0.1 dB` per wheel notch; Beat Loops quantize cleanly to the nearest beat marker.
+- Expanded automated CLI & xUnit verification suite (`SpectraRealtekStudio.Cli.exe test`) to **13/13 checks**.
+
+### Fixed
+- Fixed **Show Helpful Tooltips** setting (`⚙` menu) using a process-wide `EventManager.RegisterClassHandler` on `ToolTipOpeningEvent` (`RoutingStrategy.Direct`) so unchecking it hides **100% of all hover tooltips** across every tab and popup window.
+- Fixed filter-state feedback bug in `Instru` stem mode that previously attenuated `< 250 Hz` bass, and synced mutually exclusive Stem/Hot-Cue button highlights.
+
+---
+
 ## [1.1.0] — 2026-11-23
 
 Major Studio Expansion adding **Tab 8 (Lossless Studio Audio Recorder & Dedicated Sample/Loop Editor)**, **Tab 9 (Dual-Deck Pro DJ Mixing Studio with Bit-Pure Native Playback)**, **Full-Spectrum Frequency Sweeps (`5 Hz – 48 kHz`)**, and major **Tab 7 Visualizer** upgrades!

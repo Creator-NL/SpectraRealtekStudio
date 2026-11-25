@@ -39,14 +39,15 @@ public sealed class DjLibraryTrackItem
     public double DurationSec { get; set; }
     public string LengthText { get; set; } = "--:--";
     public double Bpm { get; set; }
-    public string BpmText => Bpm > 1.0 ? $"{Bpm:0.0}" : "—";
+    public string BpmText => Bpm > 1.0 ? $"{Bpm:0.00}" : "—";
     public string MusicalKey { get; set; } = "—";
     public string TrackType { get; set; } = "audio";
     public bool IsAnalyzed { get; set; }
 }
 
 /// <summary>
-/// Persisted BPM, Key &amp; duration metadata cache entry so tracks in a folder display BPM/Key immediately on revisit.
+/// Persisted BPM, Beat-Grid Anchor, Per-Track Gain, Key &amp; duration metadata cache entry
+/// so every track remembers its exact calibrated beat start, manual BPM, and mixer Gain forever.
 /// </summary>
 public sealed class DjTrackCacheEntry
 {
@@ -60,6 +61,13 @@ public sealed class DjTrackCacheEntry
     public double Bpm { get; set; }
     public double FirstBeatSec { get; set; }
     public string MusicalKey { get; set; } = string.Empty;
+    public bool UserCustomBpm { get; set; }
+    public bool UserCustomBeatGrid { get; set; }
+    public bool HasSavedGain { get; set; }
+    public double SavedGainDb { get; set; }
+    public bool HasSavedCue { get; set; }
+    public double SavedCueSec { get; set; }
+    public double[]? SavedHotCueSecs { get; set; }
 }
 
 /// <summary>
@@ -85,6 +93,10 @@ public sealed class DjLoadedTrack
     public double DetectedBpm { get; set; } = 128.0;
     public double FirstBeatSec { get; set; }
     public string MusicalKey { get; set; } = "Am";
+    public bool UserCustomBpm { get; set; }
+    public bool UserCustomBeatGrid { get; set; }
+    public bool HasSavedGain { get; set; }
+    public double SavedGainDb { get; set; }
 
     // Mini overview bar envelope (360 bins across entire song)
     public float[] OverviewPeaks { get; init; } = Array.Empty<float>();

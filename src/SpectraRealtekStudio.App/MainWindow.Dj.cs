@@ -49,10 +49,38 @@ public partial class MainWindow
     private WriteableBitmap? _djVuBitmap;
     private readonly uint[] _djVuPixels = new uint[24 * 114];
 
-    // Interactive mouse drag states (Top Waveform Scrub, Platter Scratch, Rotary Mixer Knobs)
+    // Interactive mouse drag states (Top Waveform Scrub, 2-Point BPM Calibrator, Draggable Beat Markers, Platter Scratch, Rotary Mixer Knobs)
     private bool _djDraggingTopWave;
     private DjDeckId _djTopWaveDragDeck;
     private Point _djTopWaveLastPt;
+    private DateTime _djLastTopWaveClickUtc = DateTime.MinValue;
+    private Point _djLastTopWaveClickPt;
+
+    // Double-click Beat-Grid Marker Unlock & Drag state
+    private DjDeckId? _djUnlockedBeatDeck;
+    private int _djUnlockedBeatIdx;
+    private bool _djDraggingUnlockedBeat;
+
+    // Manual 2-Point BPM Calibrator state (Point 1 & Point 2 across 1 / 4 / 8 / 16 beats)
+    private DjDeckId? _djTwoPointDeck;
+    private double _djTwoPointSec1;
+    private double _djTwoPointSec2;
+    private int _djTwoPointBeatSpan = 4;
+    private int _djDraggingTwoPointHandle; // 0 = none, 1 = Point 1, 2 = Point 2
+
+    // Top Dual Beat-Waveform Zoom Factor (1.0 = default 9.0s window; 0.4x wide overview up to 16.0x sample-accurate view!)
+    private double _djWaveZoomFactor = 1.0;
+
+    // Ultra-fine 0.01% Pitch Fader thumb-drag & wheel state (drift-proof delta dragging + grab glow)
+    private bool _suppressPitchSliderSync;
+    private bool _djFineDraggingPitchA;
+    private bool _djPitchDragMovedA;
+    private Point _djPitchDragStartPtA;
+    private double _djPitchDragStartValA;
+    private bool _djFineDraggingPitchB;
+    private bool _djPitchDragMovedB;
+    private Point _djPitchDragStartPtB;
+    private double _djPitchDragStartValB;
 
     private bool _djScratchingPlatterA;
     private double _djPlatterLastAngleA;
@@ -85,6 +113,8 @@ public partial class MainWindow
         _suppressUiEvents = true;
         ChkDjLoadAsIs.IsChecked = _appSettings.DjLoadAsIsNativeQuality;
         _studio.DjMixer.PureNativeQualityMode = _appSettings.DjLoadAsIsNativeQuality;
+        _studio.DjMixer.MasterGainDb = _appSettings.DjMasterGainDb;
+        ApplyDjTopToolbarCollapsedState(_appSettings.DjTopToolbarCollapsed);
         UpdateToggleButtonVisual(BtnDjMtA, _studio.DjMixer.DeckA.MasterTempoEnabled, "Cyan");
         UpdateToggleButtonVisual(BtnDjMtB, _studio.DjMixer.DeckB.MasterTempoEnabled, "Red");
         _suppressUiEvents = prev;
@@ -251,10 +281,12 @@ public partial class MainWindow
             TxtDjElapsedA.Text = FormatDjTime(d.CurrentSec);
             TxtDjRemainA.Text = $"-{FormatDjTime(d.RemainingSec)}";
             BtnDjPlayA.Content = d.IsPlaying ? "❚❚ PAUSE" : "▶ PLAY";
-            BtnDjLoopToggleA.Content = d.LoopBeats < 1.0 ? "1/2 Beat" : $"{d.LoopBeats:0.#} Beats";
+            string loopTextA = d.LoopBeats < 1.0 ? "1/2 Beat" : $"{d.LoopBeats:0.#} Beats";
+            BtnDjLoopToggleA.Content = d.LoopActive ? $"🔁 {loopTextA}" : loopTextA;
+            BtnDjLoopToggleA.Background = d.LoopActive ? new SolidColorBrush(Color.FromRgb(16, 52, 38)) : new SolidColorBrush(Color.FromRgb(26, 33, 64));
             BtnDjLoopToggleA.BorderBrush = d.LoopActive ? (Brush)FindResource("Green") : (Brush)FindResource("Line");
             BtnDjLoopToggleA.Foreground = d.LoopActive ? (Brush)FindResource("Green") : (Brush)FindResource("Text");
-            TxtDjWaveBadgeA.Text = d.IsLoaded ? $"A • {d.Title} ({d.EffectiveBpm:0.0} BPM)" : "A • DECK 1";
+            TxtDjWaveBadgeA.Text = d.IsLoaded ? $"A • {d.Title} ({d.EffectiveBpm:0.00} BPM)" : "A • DECK 1";
         }
         else
         {
@@ -271,10 +303,12 @@ public partial class MainWindow
             TxtDjElapsedB.Text = FormatDjTime(d.CurrentSec);
             TxtDjRemainB.Text = $"-{FormatDjTime(d.RemainingSec)}";
             BtnDjPlayB.Content = d.IsPlaying ? "❚❚ PAUSE" : "▶ PLAY";
-            BtnDjLoopToggleB.Content = d.LoopBeats < 1.0 ? "1/2 Beat" : $"{d.LoopBeats:0.#} Beats";
+            string loopTextB = d.LoopBeats < 1.0 ? "1/2 Beat" : $"{d.LoopBeats:0.#} Beats";
+            BtnDjLoopToggleB.Content = d.LoopActive ? $"🔁 {loopTextB}" : loopTextB;
+            BtnDjLoopToggleB.Background = d.LoopActive ? new SolidColorBrush(Color.FromRgb(16, 52, 38)) : new SolidColorBrush(Color.FromRgb(26, 33, 64));
             BtnDjLoopToggleB.BorderBrush = d.LoopActive ? (Brush)FindResource("Green") : (Brush)FindResource("Line");
             BtnDjLoopToggleB.Foreground = d.LoopActive ? (Brush)FindResource("Green") : (Brush)FindResource("Text");
-            TxtDjWaveBadgeB.Text = d.IsLoaded ? $"B • {d.Title} ({d.EffectiveBpm:0.0} BPM)" : "B • DECK 2";
+            TxtDjWaveBadgeB.Text = d.IsLoaded ? $"B • {d.Title} ({d.EffectiveBpm:0.00} BPM)" : "B • DECK 2";
         }
     }
 
@@ -436,13 +470,13 @@ public partial class MainWindow
         if (track == null || track.BeatPeaks.Length == 0)
             return;
 
-        // Visible window: 10 seconds of audio across the viewport width (scaled by speed so beat grids line up visually when synced!)
+        // Visible window: (9.0 / _djWaveZoomFactor) seconds across the viewport width (scaled by speed so beat grids line up visually when synced!)
         double speed = Math.Max(0.4, deckSnap.EffectiveBpm / Math.Max(40.0, deckSnap.BaseBpm));
-        double visibleWindowSec = 9.0 * speed;
+        double visibleWindowSec = (9.0 / _djWaveZoomFactor) * speed;
         double secPerPixel = visibleWindowSec / w;
         int centerX = w / 2;
 
-        // 1. Highlight Active Loop Region in translucent emerald green
+        // 1. Highlight Active Loop Region in translucent emerald green (with bright IN/OUT boundary lines!)
         if (deckSnap.LoopActive && deckSnap.LoopEndSec > deckSnap.LoopStartSec)
         {
             int lx0 = centerX + (int)Math.Round((deckSnap.LoopStartSec - deckSnap.CurrentSec) / secPerPixel);
@@ -456,8 +490,10 @@ public partial class MainWindow
                     int row = y * w;
                     for (int x = cl0; x <= cl1; x++)
                     {
-                        _djTopWavePixels[row + x] = 0xFF0A241Eu;
+                        _djTopWavePixels[row + x] = 0xFF0B2A22u;
                     }
+                    if (lx0 >= 0 && lx0 < w) _djTopWavePixels[row + lx0] = 0xFF22E87Au;
+                    if (lx1 >= 0 && lx1 < w) _djTopWavePixels[row + lx1] = 0xFF22E87Au;
                 }
             }
         }
@@ -488,23 +524,18 @@ public partial class MainWindow
                     _djTopWavePixels[y * w + bx] = tickCol;
                 }
             }
-
-            // Little red/cyan downbeat marker tooth at bottom of lane (just like VirtualDJ in Image 1!)
-            if (isDownbeat)
-            {
-                for (int dy = 0; dy < 4 && yBottom - dy >= yTop; dy++)
-                {
-                    _djTopWavePixels[(yBottom - dy) * w + bx] = midCol;
-                    if (bx + 1 < w) _djTopWavePixels[(yBottom - dy) * w + bx + 1] = midCol;
-                }
-            }
         }
 
         // 3. Draw Multi-Band Beat-Colored Scrolling Waveform Envelope
+        // When zoomed in > 2.0x, sample raw audio frames directly so kick transients have razor-sharp sub-millisecond edges!
         var peaks = track.BeatPeaks;
         var bass = track.BeatBassRatio;
         int nBins = peaks.Length;
         double envRate = DjLoadedTrack.BeatEnvelopeRateHz;
+        bool useRawSampleDetail = _djWaveZoomFactor > 2.0 && track.Left.Length > 0 && track.SampleRate > 0;
+        var rawLeft = track.Left;
+        var rawRight = track.Right;
+        int totalRawFrames = Math.Min(rawLeft.Length, rawRight.Length);
 
         for (int x = 0; x < w; x++)
         {
@@ -513,14 +544,43 @@ public partial class MainWindow
                 continue;
 
             double binPos = tSec * envRate;
-            int b0 = (int)binPos;
-            if (b0 < 0 || b0 >= nBins)
-                continue;
-
+            int b0 = Math.Clamp((int)binPos, 0, nBins - 1);
             int b1 = Math.Min(nBins - 1, b0 + 1);
-            float frac = (float)(binPos - b0);
-            float amp = peaks[b0] * (1f - frac) + peaks[b1] * frac;
+            float frac = (float)Math.Clamp(binPos - b0, 0.0, 1.0);
             float bassRatio = bass[b0] * (1f - frac) + bass[b1] * frac;
+            float amp;
+
+            if (useRawSampleDetail && totalRawFrames > 2)
+            {
+                double fPos0 = tSec * track.SampleRate;
+                double fPos1 = (tSec + secPerPixel) * track.SampleRate;
+                int f0 = Math.Clamp((int)fPos0, 0, totalRawFrames - 1);
+                int f1 = Math.Clamp((int)Math.Ceiling(fPos1), f0 + 1, totalRawFrames);
+                int count = f1 - f0;
+                if (count <= 2)
+                {
+                    int fNext = Math.Min(totalRawFrames - 1, f0 + 1);
+                    float sFrac = (float)Math.Clamp(fPos0 - f0, 0.0, 1.0);
+                    float sL = rawLeft[f0] * (1f - sFrac) + rawLeft[fNext] * sFrac;
+                    float sR = rawRight[f0] * (1f - sFrac) + rawRight[fNext] * sFrac;
+                    amp = Math.Clamp(Math.Max(Math.Abs(sL), Math.Abs(sR)), 0f, 1f);
+                }
+                else
+                {
+                    int step = Math.Max(1, count / 32);
+                    float maxPeak = 0f;
+                    for (int f = f0; f < f1; f += step)
+                    {
+                        float p = Math.Max(Math.Abs(rawLeft[f]), Math.Abs(rawRight[f]));
+                        if (p > maxPeak) maxPeak = p;
+                    }
+                    amp = Math.Clamp(maxPeak, 0f, 1f);
+                }
+            }
+            else
+            {
+                amp = peaks[b0] * (1f - frac) + peaks[b1] * frac;
+            }
 
             int barHalf = (int)Math.Round(amp * halfH);
             if (barHalf < 1) continue;
@@ -539,6 +599,98 @@ public partial class MainWindow
                         ? midCol
                         : bassCol;
                 _djTopWavePixels[y * w + x] = col;
+            }
+        }
+
+        // 4. Re-draw crisp bottom beat marker teeth ON TOP of waveform bars so double-clickable beat markers are always clearly visible!
+        for (int bIdx = firstBeatIdx; bIdx <= lastBeatIdx; bIdx++)
+        {
+            double beatSec = track.FirstBeatSec + bIdx * beatPeriodSec;
+            if (beatSec < 0 || beatSec > track.DurationSec)
+                continue;
+
+            int bx = centerX + (int)Math.Round((beatSec - deckSnap.CurrentSec) / secPerPixel);
+            if (bx < 2 || bx >= w - 2)
+                continue;
+
+            bool isDownbeat = ((bIdx % 4) + 4) % 4 == 0;
+            bool isUnlockedMarker = _djUnlockedBeatDeck == deckSnap.DeckId && _djUnlockedBeatIdx == bIdx;
+
+            if (isUnlockedMarker)
+            {
+                DrawDjCalibrationHandle(bx, yTop, yBottom, w, 0xFFFFD43Bu, drawRightFlag: true);
+            }
+            else if (isDownbeat)
+            {
+                for (int dy = 0; dy < 5 && yBottom - dy >= yTop; dy++)
+                {
+                    _djTopWavePixels[(yBottom - dy) * w + bx - 1] = midCol;
+                    _djTopWavePixels[(yBottom - dy) * w + bx] = 0xFFFFFFFFu;
+                    _djTopWavePixels[(yBottom - dy) * w + bx + 1] = midCol;
+                }
+            }
+            else
+            {
+                for (int dy = 0; dy < 3 && yBottom - dy >= yTop; dy++)
+                {
+                    _djTopWavePixels[(yBottom - dy) * w + bx] = midCol;
+                }
+            }
+        }
+
+        // 5. If 2-Point Manual BPM Calibration is active on this deck, draw Point 1 & Point 2 vertical calipers + span bar!
+        if (_djTwoPointDeck == deckSnap.DeckId)
+        {
+            int px1 = centerX + (int)Math.Round((_djTwoPointSec1 - deckSnap.CurrentSec) / secPerPixel);
+            int px2 = centerX + (int)Math.Round((_djTwoPointSec2 - deckSnap.CurrentSec) / secPerPixel);
+
+            int spanLeft = Math.Clamp(Math.Min(px1, px2), 0, w - 1);
+            int spanRight = Math.Clamp(Math.Max(px1, px2), 0, w - 1);
+            int spanBarY = yTop + 3;
+            if (spanRight > spanLeft && spanBarY <= yBottom)
+            {
+                for (int x = spanLeft; x <= spanRight; x++)
+                {
+                    _djTopWavePixels[spanBarY * w + x] = 0xFF22E87Au;
+                    if (spanBarY + 1 <= yBottom)
+                        _djTopWavePixels[(spanBarY + 1) * w + x] = 0x9922E87Au;
+                }
+            }
+
+            if (px1 >= 1 && px1 < w - 1)
+            {
+                DrawDjCalibrationHandle(px1, yTop, yBottom, w, 0xFF22E87Au, drawRightFlag: true);
+            }
+            if (px2 >= 1 && px2 < w - 1)
+            {
+                DrawDjCalibrationHandle(px2, yTop, yBottom, w, 0xFFFFB020u, drawRightFlag: false);
+            }
+        }
+    }
+
+    private void DrawDjCalibrationHandle(int cx, int yTop, int yBottom, int w, uint color, bool drawRightFlag)
+    {
+        for (int y = yTop; y <= yBottom; y++)
+        {
+            int row = y * w;
+            if (cx - 1 >= 0) _djTopWavePixels[row + cx - 1] = color;
+            _djTopWavePixels[row + cx] = 0xFFFFFFFFu;
+            if (cx + 1 < w) _djTopWavePixels[row + cx + 1] = color;
+        }
+
+        int flagW = 9;
+        int flagH = 7;
+        int x0 = drawRightFlag ? cx : cx - flagW;
+        int x1 = drawRightFlag ? cx + flagW : cx;
+
+        for (int dy = 0; dy < flagH; dy++)
+        {
+            int yt = yTop + dy;
+            int yb = yBottom - dy;
+            for (int x = Math.Max(0, x0); x <= Math.Min(w - 1, x1); x++)
+            {
+                if (yt <= yBottom) _djTopWavePixels[yt * w + x] = color;
+                if (yb >= yTop) _djTopWavePixels[yb * w + x] = color;
             }
         }
     }
@@ -588,6 +740,14 @@ public partial class MainWindow
                         pixels[y * w + x] = Math.Abs(dy) <= bh / 3 && x >= playheadX ? brightCol : col;
                     }
                 }
+            }
+
+            // Main CUE marker (Emerald Green pin)
+            if (snap.CueNorm.IsSet && snap.CueNorm.NormPosition >= 0.0)
+            {
+                int cueX = Math.Clamp((int)Math.Round(snap.CueNorm.NormPosition * (w - 1)), 0, w - 1);
+                for (int y = 0; y < h; y++)
+                    pixels[y * w + cueX] = 0xFF22E87Au;
             }
 
             // Hot Cue markers (Amber pins)
@@ -738,7 +898,7 @@ public partial class MainWindow
     }
 
     // =========================================================================
-    // ROTARY MIXER KNOBS (HIGH / MID / LOW / FILTER / GAIN FOR DECK A & DECK B)
+    // ROTARY MIXER KNOBS (HIGH / MID / LOW / FILTER / GAIN / 2-DECK MASTER GAIN)
     // =========================================================================
 
     private void UpdateAllDjKnobsVisual()
@@ -749,6 +909,8 @@ public partial class MainWindow
         DrawDjKnobCanvas(KnobDjFilterA, GetDjKnobNormalized("A:Filter"), isDeckA: true, isFilter: true);
         DrawDjKnobCanvas(KnobDjGainA, GetDjKnobNormalized("A:Gain"), isDeckA: true);
 
+        DrawDjKnobCanvas(KnobDjMasterGain, GetDjKnobNormalized("M:MasterGain"), isDeckA: true, isFilter: false, isMaster: true);
+
         DrawDjKnobCanvas(KnobDjHighB, GetDjKnobNormalized("B:High"), isDeckA: false);
         DrawDjKnobCanvas(KnobDjMidB, GetDjKnobNormalized("B:Mid"), isDeckA: false);
         DrawDjKnobCanvas(KnobDjLowB, GetDjKnobNormalized("B:Low"), isDeckA: false);
@@ -758,6 +920,11 @@ public partial class MainWindow
 
     private double GetDjKnobNormalized(string tag)
     {
+        if (tag == "M:MasterGain")
+        {
+            return (_studio.DjMixer.MasterGainDb + 24.0) / 36.0;
+        }
+
         var deck = tag.StartsWith("A:", StringComparison.Ordinal) ? _studio.DjMixer.DeckA : _studio.DjMixer.DeckB;
         string param = tag[2..];
         return param switch
@@ -774,6 +941,16 @@ public partial class MainWindow
     private void SetDjKnobNormalized(string tag, double norm)
     {
         norm = Math.Clamp(norm, 0.0, 1.0);
+        if (tag == "M:MasterGain")
+        {
+            double masterDb = Math.Round(-24.0 + norm * 36.0, 1);
+            _studio.DjMixer.MasterGainDb = masterDb;
+            _appSettings.DjMasterGainDb = masterDb;
+            _studio.Presets.SaveAppSettings(_appSettings);
+            SetStatus($"DJ 2-Deck Master Output GAIN: {masterDb:+0.0;-0.0;0.0} dB{(masterDb < -0.05 ? " (anti-clip mix headroom)" : "")}");
+            return;
+        }
+
         bool isA = tag.StartsWith("A:", StringComparison.Ordinal);
         var deck = isA ? _studio.DjMixer.DeckA : _studio.DjMixer.DeckB;
         string param = tag[2..];
@@ -795,7 +972,15 @@ public partial class MainWindow
                 break;
             case "Gain":
                 deck.GainDb = Math.Round(-24.0 + norm * 36.0, 1);
-                SetStatus($"{deckLabel} Channel GAIN: {deck.GainDb:+0.0;-0.0;0.0} dB");
+                if (deck.Track != null)
+                {
+                    _studio.DjDecoder.SaveTrackGainDb(deck.Track, deck.GainDb);
+                    SetStatus($"{deckLabel} Channel GAIN: {deck.GainDb:+0.0;-0.0;0.0} dB (saved to '{deck.Track.Title}')");
+                }
+                else
+                {
+                    SetStatus($"{deckLabel} Channel GAIN: {deck.GainDb:+0.0;-0.0;0.0} dB");
+                }
                 break;
             case "Filter":
                 deck.FilterKnob = Math.Round(norm * 2.0 - 1.0, 2);
@@ -823,7 +1008,7 @@ public partial class MainWindow
         return Math.Round(((norm - 0.5) / 0.5) * 12.0, 1);
     }
 
-    private void DrawDjKnobCanvas(Canvas? canvas, double norm, bool isDeckA, bool isFilter = false)
+    private void DrawDjKnobCanvas(Canvas? canvas, double norm, bool isDeckA, bool isFilter = false, bool isMaster = false)
     {
         if (canvas == null)
             return;
@@ -832,17 +1017,21 @@ public partial class MainWindow
         double size = canvas.Width > 0 ? canvas.Width : 34.0;
         double cx = size / 2.0;
         double cy = size / 2.0;
-        double r = cx - 3.0;
+        double r = cx - (isMaster ? 2.0 : 3.0);
+
+        Color ringCol = isMaster
+            ? Color.FromRgb(28, 138, 86)
+            : isFilter
+                ? (isDeckA ? Color.FromRgb(34, 232, 255) : Color.FromRgb(255, 51, 102))
+                : Color.FromRgb(42, 56, 98);
 
         var body = new Ellipse
         {
             Width = r * 2,
             Height = r * 2,
             Fill = new SolidColorBrush(Color.FromRgb(13, 18, 34)),
-            Stroke = new SolidColorBrush(isFilter
-                ? (isDeckA ? Color.FromRgb(34, 232, 255) : Color.FromRgb(255, 51, 102))
-                : Color.FromRgb(42, 56, 98)),
-            StrokeThickness = isFilter ? 1.8 : 1.4
+            Stroke = new SolidColorBrush(ringCol),
+            StrokeThickness = isFilter ? 1.8 : (isMaster ? 1.5 : 1.4)
         };
         Canvas.SetLeft(body, cx - r);
         Canvas.SetTop(body, cy - r);
@@ -851,14 +1040,16 @@ public partial class MainWindow
         // Pointer needle from -135 deg (0.0) to +135 deg (1.0)
         double angleDeg = -135.0 + Math.Clamp(norm, 0.0, 1.0) * 270.0;
         double rad = (angleDeg - 90.0) * Math.PI / 180.0;
+        double innerOffset = isMaster ? 2.0 : 3.0;
+        double outerOffset = isMaster ? (r - 1.6) : (r - 2.0);
         var line = new Line
         {
-            X1 = cx + Math.Cos(rad) * 3.0,
-            Y1 = cy + Math.Sin(rad) * 3.0,
-            X2 = cx + Math.Cos(rad) * (r - 2.0),
-            Y2 = cy + Math.Sin(rad) * (r - 2.0),
-            Stroke = (Brush)FindResource(isDeckA ? "Cyan" : "Red"),
-            StrokeThickness = 2.2,
+            X1 = cx + Math.Cos(rad) * innerOffset,
+            Y1 = cy + Math.Sin(rad) * innerOffset,
+            X2 = cx + Math.Cos(rad) * outerOffset,
+            Y2 = cy + Math.Sin(rad) * outerOffset,
+            Stroke = (Brush)FindResource(isMaster ? "Green" : (isDeckA ? "Cyan" : "Red")),
+            StrokeThickness = isMaster ? 1.9 : 2.2,
             StrokeStartLineCap = PenLineCap.Round,
             StrokeEndLineCap = PenLineCap.Round
         };
@@ -870,13 +1061,14 @@ public partial class MainWindow
         if (sender is not Canvas canvas || canvas.Tag is not string tag)
             return;
 
+        bool isMaster = tag == "M:MasterGain";
         var now = DateTime.UtcNow;
         if ((now - _djLastKnobClickUtc).TotalMilliseconds < 320)
         {
             // Double-click resets knob to 0 dB / center bypass!
-            double defaultNorm = tag.EndsWith(":Gain", StringComparison.Ordinal) ? (24.0 / 36.0) : 0.5;
+            double defaultNorm = (isMaster || tag.EndsWith(":Gain", StringComparison.Ordinal)) ? (24.0 / 36.0) : 0.5;
             SetDjKnobNormalized(tag, defaultNorm);
-            DrawDjKnobCanvas(canvas, defaultNorm, tag.StartsWith("A:", StringComparison.Ordinal), tag.EndsWith(":Filter", StringComparison.Ordinal));
+            DrawDjKnobCanvas(canvas, defaultNorm, tag.StartsWith("A:", StringComparison.Ordinal), tag.EndsWith(":Filter", StringComparison.Ordinal), isMaster);
             _djLastKnobClickUtc = DateTime.MinValue;
             e.Handled = true;
             return;
@@ -905,8 +1097,9 @@ public partial class MainWindow
         Point pt = e.GetPosition(this);
         double deltaY = _djKnobDragStartPt.Y - pt.Y;
         double newNorm = Math.Clamp(_djKnobDragStartNorm + deltaY / 110.0, 0.0, 1.0);
+        bool isMaster = tag == "M:MasterGain";
         SetDjKnobNormalized(tag, newNorm);
-        DrawDjKnobCanvas(_activeDjKnob, newNorm, tag.StartsWith("A:", StringComparison.Ordinal), tag.EndsWith(":Filter", StringComparison.Ordinal));
+        DrawDjKnobCanvas(_activeDjKnob, newNorm, tag.StartsWith("A:", StringComparison.Ordinal), tag.EndsWith(":Filter", StringComparison.Ordinal), isMaster);
     }
 
     private void DjKnob_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -918,14 +1111,395 @@ public partial class MainWindow
         }
     }
 
+    private void DjKnob_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is not Canvas canvas || canvas.Tag is not string tag)
+            return;
+
+        int dir = Math.Sign(e.Delta);
+        if (dir == 0)
+            return;
+
+        double stepScale = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ? 5.0 : 1.0;
+
+        if (tag == "M:MasterGain")
+        {
+            double newMaster = Math.Clamp(Math.Round(_studio.DjMixer.MasterGainDb + dir * 0.1 * stepScale, 1), -24.0, 12.0);
+            double newNorm = (newMaster + 24.0) / 36.0;
+            SetDjKnobNormalized(tag, newNorm);
+            DrawDjKnobCanvas(canvas, newNorm, isDeckA: true, isFilter: false, isMaster: true);
+            e.Handled = true;
+            return;
+        }
+
+        bool isA = tag.StartsWith("A:", StringComparison.Ordinal);
+        var deck = isA ? _studio.DjMixer.DeckA : _studio.DjMixer.DeckB;
+        string param = tag[2..];
+
+        if (param == "Gain")
+        {
+            // Exact 0.1 dB single-step precision per wheel tick (e.g. 1.2 dB -> 1.3 dB -> 1.4 dB)!
+            double newGain = Math.Clamp(Math.Round(deck.GainDb + dir * 0.1 * stepScale, 1), -24.0, 12.0);
+            double newNorm = (newGain + 24.0) / 36.0;
+            SetDjKnobNormalized(tag, newNorm);
+            DrawDjKnobCanvas(canvas, newNorm, isA, isFilter: false);
+        }
+        else if (param is "High" or "Mid" or "Low")
+        {
+            double curDb = param == "High" ? deck.HighDb : param == "Mid" ? deck.MidDb : deck.LowDb;
+            double newDb = Math.Clamp(Math.Round(curDb + dir * 0.1 * stepScale, 1), -36.0, 12.0);
+            double newNorm = DbToKnobNorm(newDb);
+            SetDjKnobNormalized(tag, newNorm);
+            DrawDjKnobCanvas(canvas, newNorm, isA, isFilter: false);
+        }
+        else if (param == "Filter")
+        {
+            double newFilt = Math.Clamp(Math.Round(deck.FilterKnob + dir * 0.01 * stepScale, 2), -1.0, 1.0);
+            double newNorm = (newFilt + 1.0) * 0.5;
+            SetDjKnobNormalized(tag, newNorm);
+            DrawDjKnobCanvas(canvas, newNorm, isA, isFilter: true);
+        }
+        e.Handled = true;
+    }
+
     // =========================================================================
-    // INTERACTIVE WAVEFORM SCRUBBING & VINYL PLATTER SCRATCHING
+    // INTERACTIVE WAVEFORM ZOOM, SCRUBBING, 2-POINT BPM CALIBRATOR & BEAT MARKERS
     // =========================================================================
+
+    private void SetDjWaveZoomFactor(double newZoom)
+    {
+        _djWaveZoomFactor = Math.Clamp(Math.Round(newZoom, 2), 0.4, 16.0);
+        if (BtnDjWaveZoomReset != null)
+        {
+            BtnDjWaveZoomReset.Content = $"{_djWaveZoomFactor:0.0}x";
+            bool zoomed = Math.Abs(_djWaveZoomFactor - 1.0) > 0.05;
+            BtnDjWaveZoomReset.Foreground = zoomed ? (Brush)FindResource("Cyan") : (Brush)FindResource("Text");
+            BtnDjWaveZoomReset.BorderBrush = zoomed ? (Brush)FindResource("Cyan") : (Brush)FindResource("Line");
+        }
+        RenderDjTopWaveforms(_studio.DjMixer.GetSnapshot());
+    }
+
+    private void DjTopWaveform_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        int dir = Math.Sign(e.Delta);
+        if (dir == 0) return;
+
+        double factor = dir > 0 ? 1.25 : 0.80;
+        double nextZoom = _djWaveZoomFactor * factor;
+        if (Math.Abs(nextZoom - 1.0) < 0.08)
+            nextZoom = 1.0;
+
+        SetDjWaveZoomFactor(nextZoom);
+        e.Handled = true;
+    }
+
+    private void BtnDjWaveZoomIn_Click(object sender, RoutedEventArgs e) => SetDjWaveZoomFactor(_djWaveZoomFactor * 1.35);
+    private void BtnDjWaveZoomOut_Click(object sender, RoutedEventArgs e) => SetDjWaveZoomFactor(_djWaveZoomFactor / 1.35);
+    private void BtnDjWaveZoomReset_Click(object sender, RoutedEventArgs e) => SetDjWaveZoomFactor(1.0);
+
+    private (double secPerPixel, double currentSec, double beatPeriodSec) GetTopLaneMetrics(DjDeckId deckId)
+    {
+        var snap = _studio.DjMixer.GetSnapshot();
+        var deckSnap = deckId == DjDeckId.DeckA ? snap.DeckA : snap.DeckB;
+        double w = Math.Max(200.0, DjTopWaveformViewport.ActualWidth);
+        double speed = Math.Max(0.4, deckSnap.EffectiveBpm / Math.Max(40.0, deckSnap.BaseBpm));
+        double visibleWindowSec = (9.0 / _djWaveZoomFactor) * speed;
+        double secPerPixel = visibleWindowSec / w;
+        double beatPeriodSec = 60.0 / Math.Max(40.0, deckSnap.BaseBpm);
+        return (secPerPixel, deckSnap.CurrentSec, beatPeriodSec);
+    }
+
+    private void BtnDjTwoPtA_Click(object sender, RoutedEventArgs e) => ToggleTwoPointBpmCalibrator(DjDeckId.DeckA);
+    private void BtnDjTwoPtB_Click(object sender, RoutedEventArgs e) => ToggleTwoPointBpmCalibrator(DjDeckId.DeckB);
+
+    private void ToggleTwoPointBpmCalibrator(DjDeckId deckId)
+    {
+        var deck = _studio.DjMixer.GetDeck(deckId);
+        if (deck.Track == null)
+        {
+            SetStatus($"Load a song into {(deckId == DjDeckId.DeckA ? "Deck A" : "Deck B")} first to calibrate BPM with 2 points.");
+            return;
+        }
+
+        if (_djTwoPointDeck == deckId)
+        {
+            LockAndCloseDjCalibration();
+            return;
+        }
+
+        _djUnlockedBeatDeck = null;
+        _djDraggingUnlockedBeat = false;
+        _djTwoPointDeck = deckId;
+
+        var (secPerPixel, curSec, beatPeriodSec) = GetTopLaneMetrics(deckId);
+        double w = Math.Max(200.0, DjTopWaveformViewport.ActualWidth);
+        double halfVisibleSec = (w * 0.5) * secPerPixel;
+        double leftLead = Math.Min(1.8, halfVisibleSec * 0.55);
+        double rawStart = Math.Max(0.0, curSec - leftLead);
+        int nearestBeat = (int)Math.Round((rawStart - deck.Track.FirstBeatSec) / beatPeriodSec);
+        double p1 = Math.Clamp(deck.Track.FirstBeatSec + nearestBeat * beatPeriodSec, 0.0, Math.Max(0.0, deck.Track.DurationSec - 0.5));
+        double p2 = Math.Clamp(p1 + _djTwoPointBeatSpan * beatPeriodSec, p1 + 0.15, deck.Track.DurationSec);
+
+        _djTwoPointSec1 = p1;
+        _djTwoPointSec2 = p2;
+
+        UpdateToggleButtonVisual(BtnDjTwoPtA, _djTwoPointDeck == DjDeckId.DeckA, "Amber");
+        UpdateToggleButtonVisual(BtnDjTwoPtB, _djTwoPointDeck == DjDeckId.DeckB, "Amber");
+        ShowDjCalibrationOverlayUi();
+        RenderDjTopWaveforms(_studio.DjMixer.GetSnapshot());
+
+        string label = deckId == DjDeckId.DeckA ? "Deck A" : "Deck B";
+        SetStatus($"{label} 2-Point BPM Calibrator active — Drag green Point 1 & amber Point 2 onto beats ({_djTwoPointBeatSpan} beats apart) to calculate & save exact BPM!");
+    }
+
+    private void BtnDjCalibSpan_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not string s || !int.TryParse(s, out int beats))
+            return;
+
+        _djTwoPointBeatSpan = beats;
+        UpdateToggleButtonVisual(BtnDjSpan1, beats == 1, "Amber");
+        UpdateToggleButtonVisual(BtnDjSpan4, beats == 4, "Amber");
+        UpdateToggleButtonVisual(BtnDjSpan8, beats == 8, "Amber");
+        UpdateToggleButtonVisual(BtnDjSpan16, beats == 16, "Amber");
+
+        if (_djTwoPointDeck.HasValue)
+        {
+            ApplyTwoPointBpmCalculation(_djTwoPointDeck.Value, saveToDisk: true);
+            ShowDjCalibrationOverlayUi();
+            RenderDjTopWaveforms(_studio.DjMixer.GetSnapshot());
+        }
+    }
+
+    private void BtnDjCalibLock_Click(object sender, RoutedEventArgs e)
+    {
+        LockAndCloseDjCalibration();
+    }
+
+    private void LockAndCloseDjCalibration()
+    {
+        if (_djTwoPointDeck.HasValue)
+        {
+            PersistDeckBeatGridAndBpm(_djTwoPointDeck.Value);
+        }
+        else if (_djUnlockedBeatDeck.HasValue)
+        {
+            PersistDeckBeatGridAndBpm(_djUnlockedBeatDeck.Value);
+        }
+
+        _djTwoPointDeck = null;
+        _djDraggingTwoPointHandle = 0;
+        _djUnlockedBeatDeck = null;
+        _djDraggingUnlockedBeat = false;
+
+        UpdateToggleButtonVisual(BtnDjTwoPtA, false, "Amber");
+        UpdateToggleButtonVisual(BtnDjTwoPtB, false, "Amber");
+        if (BorderDjCalibBar != null)
+            BorderDjCalibBar.Visibility = Visibility.Collapsed;
+
+        RenderDjTopWaveforms(_studio.DjMixer.GetSnapshot());
+    }
+
+    private void ShowDjCalibrationOverlayUi()
+    {
+        if (BorderDjCalibBar == null)
+            return;
+
+        if (_djTwoPointDeck.HasValue)
+        {
+            var deck = _studio.DjMixer.GetDeck(_djTwoPointDeck.Value);
+            string dName = _djTwoPointDeck.Value == DjDeckId.DeckA ? "Deck A" : "Deck B";
+            TxtDjCalibLabel.Text = $"🎯 2-PT BPM ({dName}):";
+            PanelDjCalibBeatBtns.Visibility = Visibility.Visible;
+            TxtDjCalibReadout.Text = $"{deck.BaseBpm:0.00} BPM";
+            BorderDjCalibBar.VerticalAlignment = _djTwoPointDeck.Value == DjDeckId.DeckA ? VerticalAlignment.Bottom : VerticalAlignment.Top;
+            BorderDjCalibBar.Margin = new Thickness(95, 4, 0, 4);
+            BorderDjCalibBar.Visibility = Visibility.Visible;
+        }
+        else if (_djUnlockedBeatDeck.HasValue)
+        {
+            var deck = _studio.DjMixer.GetDeck(_djUnlockedBeatDeck.Value);
+            string dName = _djUnlockedBeatDeck.Value == DjDeckId.DeckA ? "Deck A" : "Deck B";
+            TxtDjCalibLabel.Text = $"🔓 BEAT START UNLOCKED ({dName}) — Drag gold marker onto beat:";
+            PanelDjCalibBeatBtns.Visibility = Visibility.Collapsed;
+            TxtDjCalibReadout.Text = $"Start @ {(deck.Track?.FirstBeatSec ?? 0.0):0.000}s";
+            BorderDjCalibBar.VerticalAlignment = _djUnlockedBeatDeck.Value == DjDeckId.DeckA ? VerticalAlignment.Bottom : VerticalAlignment.Top;
+            BorderDjCalibBar.Margin = new Thickness(95, 4, 0, 4);
+            BorderDjCalibBar.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            BorderDjCalibBar.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void ApplyTwoPointBpmCalculation(DjDeckId deckId, bool saveToDisk)
+    {
+        var deck = _studio.DjMixer.GetDeck(deckId);
+        var track = deck.Track;
+        if (track == null)
+            return;
+
+        double pStart = Math.Min(_djTwoPointSec1, _djTwoPointSec2);
+        double spanSec = Math.Abs(_djTwoPointSec2 - _djTwoPointSec1);
+        if (spanSec < 0.08)
+            return;
+
+        double calcBpm = (60.0 * _djTwoPointBeatSpan) / spanSec;
+        if (calcBpm >= 35.0 && calcBpm <= 250.0)
+        {
+            double roundedBpm = Math.Round(calcBpm, 2);
+            deck.ManualBpmOverride = roundedBpm;
+            track.DetectedBpm = roundedBpm;
+            track.FirstBeatSec = Math.Clamp(pStart, 0.0, track.DurationSec);
+
+            if (TxtDjCalibReadout != null)
+                TxtDjCalibReadout.Text = $"{roundedBpm:0.00} BPM";
+
+            var snap = _studio.DjMixer.GetSnapshot();
+            UpdateDeckTelemetryUi(deckId == DjDeckId.DeckA ? snap.DeckA : snap.DeckB, deckId == DjDeckId.DeckA);
+
+            if (saveToDisk)
+            {
+                PersistDeckBeatGridAndBpm(deckId);
+            }
+        }
+    }
+
+    private void PersistDeckBeatGridAndBpm(DjDeckId deckId)
+    {
+        var deck = _studio.DjMixer.GetDeck(deckId);
+        var track = deck.Track;
+        if (track == null)
+            return;
+
+        double bpmToSave = deck.BaseBpm;
+        _studio.DjDecoder.SaveTrackBeatGridAndBpm(track, bpmToSave, track.FirstBeatSec);
+
+        // Sync matching track row in the bottom DJ crate table immediately!
+        bool refreshed = false;
+        foreach (var row in _djAllFolderTracks)
+        {
+            if (string.Equals(row.FilePath, track.FilePath, StringComparison.OrdinalIgnoreCase))
+            {
+                row.Bpm = track.DetectedBpm;
+                row.IsAnalyzed = true;
+                refreshed = true;
+            }
+        }
+        if (refreshed)
+        {
+            GridDjTracks.Items.Refresh();
+        }
+
+        string dName = deckId == DjDeckId.DeckA ? "Deck A" : "Deck B";
+        SetStatus($"Saved {dName} Beat Grid & BPM ({track.DetectedBpm:0.00} BPM • Beat Start {track.FirstBeatSec:0.000}s) linked to '{track.Title}'.");
+    }
 
     private void DjTopWaveform_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         Point pt = e.GetPosition(DjTopWaveformViewport);
-        _djTopWaveDragDeck = pt.Y < DjTopWaveformViewport.ActualHeight / 2.0 ? DjDeckId.DeckA : DjDeckId.DeckB;
+        double w = Math.Max(200.0, DjTopWaveformViewport.ActualWidth);
+        double centerX = w * 0.5;
+        var laneDeck = pt.Y < DjTopWaveformViewport.ActualHeight / 2.0 ? DjDeckId.DeckA : DjDeckId.DeckB;
+        var deck = _studio.DjMixer.GetDeck(laneDeck);
+        var track = deck.Track;
+
+        if (track != null && track.DurationSec > 0.1)
+        {
+            var (secPerPixel, curSec, beatPeriodSec) = GetTopLaneMetrics(laneDeck);
+
+            // 1. Check if grabbing Point 1 or Point 2 in Manual 2-Point BPM Calibration mode
+            if (_djTwoPointDeck == laneDeck)
+            {
+                double px1 = centerX + (_djTwoPointSec1 - curSec) / secPerPixel;
+                double px2 = centerX + (_djTwoPointSec2 - curSec) / secPerPixel;
+                double d1 = Math.Abs(pt.X - px1);
+                double d2 = Math.Abs(pt.X - px2);
+                if (d1 <= 12.0 && d1 <= d2)
+                {
+                    _djDraggingTwoPointHandle = 1;
+                    DjTopWaveformViewport.CaptureMouse();
+                    return;
+                }
+                if (d2 <= 12.0)
+                {
+                    _djDraggingTwoPointHandle = 2;
+                    DjTopWaveformViewport.CaptureMouse();
+                    return;
+                }
+            }
+
+            // 2. Check if grabbing an already-unlocked beat marker
+            if (_djUnlockedBeatDeck == laneDeck)
+            {
+                double unlockedSec = track.FirstBeatSec + _djUnlockedBeatIdx * beatPeriodSec;
+                double unlockedPx = centerX + (unlockedSec - curSec) / secPerPixel;
+                if (Math.Abs(pt.X - unlockedPx) <= 13.0)
+                {
+                    // Double-clicking the unlocked marker again locks & saves it!
+                    var nowCheck = DateTime.UtcNow;
+                    if (e.ClickCount >= 2 || (nowCheck - _djLastTopWaveClickUtc).TotalMilliseconds < 330)
+                    {
+                        _djLastTopWaveClickUtc = DateTime.MinValue;
+                        LockAndCloseDjCalibration();
+                        return;
+                    }
+                    _djLastTopWaveClickUtc = nowCheck;
+                    _djDraggingUnlockedBeat = true;
+                    DjTopWaveformViewport.CaptureMouse();
+                    return;
+                }
+            }
+
+            // 3. Detect Double-Click on ANY red/cyan beat marker to unlock & make it draggable!
+            var now = DateTime.UtcNow;
+            bool isDoubleClick = e.ClickCount >= 2
+                || ((now - _djLastTopWaveClickUtc).TotalMilliseconds < 350 && Math.Abs(pt.X - _djLastTopWaveClickPt.X) < 15.0 && Math.Abs(pt.Y - _djLastTopWaveClickPt.Y) < 24.0);
+            _djLastTopWaveClickUtc = now;
+            _djLastTopWaveClickPt = pt;
+
+            if (isDoubleClick)
+            {
+                double clickSec = curSec + (pt.X - centerX) * secPerPixel;
+                int nearestBeatIdx = (int)Math.Round((clickSec - track.FirstBeatSec) / beatPeriodSec);
+                double nearestBeatSec = track.FirstBeatSec + nearestBeatIdx * beatPeriodSec;
+                double nearestBeatPx = centerX + (nearestBeatSec - curSec) / secPerPixel;
+
+                if (Math.Abs(pt.X - nearestBeatPx) <= 18.0 && nearestBeatSec >= -0.2 && nearestBeatSec <= track.DurationSec + 0.2)
+                {
+                    if (_djDraggingTopWave)
+                    {
+                        _studio.DjMixer.EndScratch(_djTopWaveDragDeck);
+                        _djDraggingTopWave = false;
+                    }
+
+                    _djTwoPointDeck = null;
+                    UpdateToggleButtonVisual(BtnDjTwoPtA, false, "Amber");
+                    UpdateToggleButtonVisual(BtnDjTwoPtB, false, "Amber");
+
+                    _djUnlockedBeatDeck = laneDeck;
+                    _djUnlockedBeatIdx = nearestBeatIdx;
+                    _djDraggingUnlockedBeat = true;
+                    DjTopWaveformViewport.CaptureMouse();
+                    ShowDjCalibrationOverlayUi();
+                    RenderDjTopWaveforms(_studio.DjMixer.GetSnapshot());
+                    SetStatus($"Unlocked beat marker on {(laneDeck == DjDeckId.DeckA ? "Deck A" : "Deck B")} — drag left/right onto the exact beat start!");
+                    return;
+                }
+            }
+
+            // Clicking away from an unlocked single beat marker locks & saves it cleanly
+            if (_djUnlockedBeatDeck == laneDeck)
+            {
+                PersistDeckBeatGridAndBpm(laneDeck);
+                _djUnlockedBeatDeck = null;
+                _djDraggingUnlockedBeat = false;
+                ShowDjCalibrationOverlayUi();
+            }
+        }
+
+        _djTopWaveDragDeck = laneDeck;
         _djTopWaveLastPt = pt;
         _djDraggingTopWave = true;
         _studio.DjMixer.BeginScratch(_djTopWaveDragDeck);
@@ -934,8 +1508,108 @@ public partial class MainWindow
 
     private void DjTopWaveform_MouseMove(object sender, MouseEventArgs e)
     {
-        if (!_djDraggingTopWave)
+        Point pt = e.GetPosition(DjTopWaveformViewport);
+        double w = Math.Max(200.0, DjTopWaveformViewport.ActualWidth);
+        double centerX = w * 0.5;
+
+        // 1. Dragging Point 1 or Point 2 in Manual 2-Point BPM Calibrator
+        if (_djDraggingTwoPointHandle != 0 && _djTwoPointDeck.HasValue)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed)
+            {
+                ApplyTwoPointBpmCalculation(_djTwoPointDeck.Value, saveToDisk: true);
+                _djDraggingTwoPointHandle = 0;
+                DjTopWaveformViewport.ReleaseMouseCapture();
+                return;
+            }
+
+            var deck = _studio.DjMixer.GetDeck(_djTwoPointDeck.Value);
+            if (deck.Track != null)
+            {
+                var (secPerPixel, curSec, _) = GetTopLaneMetrics(_djTwoPointDeck.Value);
+                double targetSec = Math.Clamp(curSec + (pt.X - centerX) * secPerPixel, 0.0, deck.Track.DurationSec);
+                if (_djDraggingTwoPointHandle == 1)
+                    _djTwoPointSec1 = targetSec;
+                else
+                    _djTwoPointSec2 = targetSec;
+
+                ApplyTwoPointBpmCalculation(_djTwoPointDeck.Value, saveToDisk: false);
+                RenderDjTopWaveforms(_studio.DjMixer.GetSnapshot());
+            }
             return;
+        }
+
+        // 2. Dragging an unlocked Beat-Grid Marker onto the exact kick/beat start
+        if (_djDraggingUnlockedBeat && _djUnlockedBeatDeck.HasValue)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed)
+            {
+                PersistDeckBeatGridAndBpm(_djUnlockedBeatDeck.Value);
+                _djDraggingUnlockedBeat = false;
+                DjTopWaveformViewport.ReleaseMouseCapture();
+                return;
+            }
+
+            var deck = _studio.DjMixer.GetDeck(_djUnlockedBeatDeck.Value);
+            var track = deck.Track;
+            if (track != null)
+            {
+                var (secPerPixel, curSec, beatPeriodSec) = GetTopLaneMetrics(_djUnlockedBeatDeck.Value);
+                double targetSec = Math.Clamp(curSec + (pt.X - centerX) * secPerPixel, 0.0, track.DurationSec);
+
+                if (_djUnlockedBeatIdx == 0)
+                {
+                    track.FirstBeatSec = targetSec;
+                }
+                else
+                {
+                    double newFirst = targetSec - _djUnlockedBeatIdx * beatPeriodSec;
+                    double fourBeats = 4.0 * beatPeriodSec;
+                    while (newFirst < 0.0) newFirst += fourBeats;
+                    while (newFirst >= fourBeats && targetSec >= fourBeats) newFirst -= fourBeats;
+                    track.FirstBeatSec = Math.Clamp(newFirst, 0.0, track.DurationSec);
+                    _djUnlockedBeatIdx = (int)Math.Round((targetSec - track.FirstBeatSec) / beatPeriodSec);
+                }
+
+                if (TxtDjCalibReadout != null)
+                    TxtDjCalibReadout.Text = $"Start @ {targetSec:0.000}s";
+
+                RenderDjTopWaveforms(_studio.DjMixer.GetSnapshot());
+            }
+            return;
+        }
+
+        // 3. Hover cursor feedback when not dragging
+        if (!_djDraggingTopWave)
+        {
+            var hoverDeck = pt.Y < DjTopWaveformViewport.ActualHeight / 2.0 ? DjDeckId.DeckA : DjDeckId.DeckB;
+            var track = _studio.DjMixer.GetDeck(hoverDeck).Track;
+            if (track != null)
+            {
+                var (secPerPixel, curSec, beatPeriodSec) = GetTopLaneMetrics(hoverDeck);
+                if (_djTwoPointDeck == hoverDeck)
+                {
+                    double px1 = centerX + (_djTwoPointSec1 - curSec) / secPerPixel;
+                    double px2 = centerX + (_djTwoPointSec2 - curSec) / secPerPixel;
+                    if (Math.Abs(pt.X - px1) <= 12.0 || Math.Abs(pt.X - px2) <= 12.0)
+                    {
+                        DjTopWaveformViewport.Cursor = Cursors.SizeWE;
+                        return;
+                    }
+                }
+                if (_djUnlockedBeatDeck == hoverDeck)
+                {
+                    double uPx = centerX + (track.FirstBeatSec + _djUnlockedBeatIdx * beatPeriodSec - curSec) / secPerPixel;
+                    if (Math.Abs(pt.X - uPx) <= 13.0)
+                    {
+                        DjTopWaveformViewport.Cursor = Cursors.SizeWE;
+                        return;
+                    }
+                }
+            }
+            DjTopWaveformViewport.Cursor = Cursors.Arrow;
+            return;
+        }
 
         if (e.LeftButton != MouseButtonState.Pressed)
         {
@@ -945,17 +1619,39 @@ public partial class MainWindow
             return;
         }
 
-        Point pt = e.GetPosition(DjTopWaveformViewport);
         double dx = pt.X - _djTopWaveLastPt.X;
         _djTopWaveLastPt = pt;
 
-        double secPerPixel = 9.0 / Math.Max(200.0, DjTopWaveformViewport.ActualWidth);
-        double deltaSec = -dx * secPerPixel;
+        // Zoom-locked 1:1 scrubbing: kick transients stay glued right under your mouse cursor at any zoom level!
+        var (scrubSecPerPx, _, _) = GetTopLaneMetrics(_djTopWaveDragDeck);
+        double deltaSec = -dx * scrubSecPerPx;
         _studio.DjMixer.UpdateScratch(_djTopWaveDragDeck, deltaSec, deltaSec * 25.0);
     }
 
     private void DjTopWaveform_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (_djDraggingTwoPointHandle != 0)
+        {
+            if (_djTwoPointDeck.HasValue)
+            {
+                ApplyTwoPointBpmCalculation(_djTwoPointDeck.Value, saveToDisk: true);
+            }
+            _djDraggingTwoPointHandle = 0;
+            DjTopWaveformViewport.ReleaseMouseCapture();
+            return;
+        }
+
+        if (_djDraggingUnlockedBeat)
+        {
+            if (_djUnlockedBeatDeck.HasValue)
+            {
+                PersistDeckBeatGridAndBpm(_djUnlockedBeatDeck.Value);
+            }
+            _djDraggingUnlockedBeat = false;
+            DjTopWaveformViewport.ReleaseMouseCapture();
+            return;
+        }
+
         if (_djDraggingTopWave)
         {
             _studio.DjMixer.EndScratch(_djTopWaveDragDeck);
@@ -1097,39 +1793,100 @@ public partial class MainWindow
     private void BtnDjPlayA_Click(object sender, RoutedEventArgs e) => _studio.DjMixer.TogglePlay(DjDeckId.DeckA);
     private void BtnDjPlayB_Click(object sender, RoutedEventArgs e) => _studio.DjMixer.TogglePlay(DjDeckId.DeckB);
 
-    private void BtnDjCueA_Down(object sender, MouseButtonEventArgs e) => _studio.DjMixer.CueDown(DjDeckId.DeckA);
-    private void BtnDjCueA_Up(object sender, MouseButtonEventArgs e) => _studio.DjMixer.CueUp(DjDeckId.DeckA);
-    private void BtnDjCueB_Down(object sender, MouseButtonEventArgs e) => _studio.DjMixer.CueDown(DjDeckId.DeckB);
-    private void BtnDjCueB_Up(object sender, MouseButtonEventArgs e) => _studio.DjMixer.CueUp(DjDeckId.DeckB);
+    private void BtnDjStopStartA_Click(object sender, RoutedEventArgs e) => StopDeckAndReturnToStartUi(DjDeckId.DeckA);
+    private void BtnDjStopStartB_Click(object sender, RoutedEventArgs e) => StopDeckAndReturnToStartUi(DjDeckId.DeckB);
+
+    private void StopDeckAndReturnToStartUi(DjDeckId deckId)
+    {
+        _studio.DjMixer.StopAndReturnToStart(deckId);
+        var snap = _studio.DjMixer.GetSnapshot();
+        bool isA = deckId == DjDeckId.DeckA;
+        UpdateDeckTelemetryUi(isA ? snap.DeckA : snap.DeckB, isA);
+        RenderDjStaticOverviews();
+        RenderDjPlatter(deckId, 0.0, isPlaying: false, isScratching: false);
+        RenderDjVuMeters(
+            Math.Max(snap.DeckA.PeakLeft, snap.DeckA.PeakRight),
+            Math.Max(snap.DeckB.PeakLeft, snap.DeckB.PeakRight));
+        SetStatus(snap.StatusMessage);
+    }
+
+    private static bool IsAltModifierHeld()
+    {
+        return (Keyboard.Modifiers & ModifierKeys.Alt) != 0
+            || Keyboard.IsKeyDown(Key.LeftAlt)
+            || Keyboard.IsKeyDown(Key.RightAlt);
+    }
+
+    private static bool IsSliderThumbClicked(Slider slider, DependencyObject? originalSource)
+    {
+        DependencyObject? cur = originalSource;
+        while (cur != null && !ReferenceEquals(cur, slider))
+        {
+            if (cur is System.Windows.Controls.Primitives.Thumb)
+                return true;
+
+            cur = cur is Visual || cur is System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(cur)
+                : LogicalTreeHelper.GetParent(cur);
+        }
+        return false;
+    }
+
+    private void BtnDjCueA_Click(object sender, RoutedEventArgs e) => HandleDeckMainCueClick(DjDeckId.DeckA);
+    private void BtnDjCueB_Click(object sender, RoutedEventArgs e) => HandleDeckMainCueClick(DjDeckId.DeckB);
+
+    private void HandleDeckMainCueClick(DjDeckId deckId)
+    {
+        bool setCue = IsAltModifierHeld();
+        if (!_studio.DjMixer.TriggerMainCue(deckId, setCuePoint: setCue))
+            return;
+
+        var deck = _studio.DjMixer.GetDeck(deckId);
+        if (setCue && deck.Track != null)
+        {
+            _studio.DjDecoder.SaveTrackCues(deck.Track, updateMainCue: true);
+        }
+
+        var snap = _studio.DjMixer.GetSnapshot();
+        bool isA = deckId == DjDeckId.DeckA;
+        UpdateDeckTelemetryUi(isA ? snap.DeckA : snap.DeckB, isA);
+        RenderDjStaticOverviews();
+        SetStatus(snap.StatusMessage);
+    }
 
     private void BtnDjSyncA_Click(object sender, RoutedEventArgs e)
     {
         _studio.DjMixer.SyncDeck(DjDeckId.DeckA);
-        double reqRange = _studio.DjMixer.DeckA.PitchRangePercent;
-        if (SldDjPitchA.Maximum < reqRange)
-        {
-            SldDjPitchA.Minimum = -reqRange;
-            SldDjPitchA.Maximum = reqRange;
-        }
-        SldDjPitchA.Value = _studio.DjMixer.DeckA.PitchPercent;
+        SetDeckPitchPercent(DjDeckId.DeckA, _studio.DjMixer.DeckA.PitchPercent, roundToHundredth: false);
         SetStatus(_studio.DjMixer.GetSnapshot().StatusMessage);
     }
 
     private void BtnDjSyncB_Click(object sender, RoutedEventArgs e)
     {
         _studio.DjMixer.SyncDeck(DjDeckId.DeckB);
-        double reqRange = _studio.DjMixer.DeckB.PitchRangePercent;
-        if (SldDjPitchB.Maximum < reqRange)
-        {
-            SldDjPitchB.Minimum = -reqRange;
-            SldDjPitchB.Maximum = reqRange;
-        }
-        SldDjPitchB.Value = _studio.DjMixer.DeckB.PitchPercent;
+        SetDeckPitchPercent(DjDeckId.DeckB, _studio.DjMixer.DeckB.PitchPercent, roundToHundredth: false);
         SetStatus(_studio.DjMixer.GetSnapshot().StatusMessage);
     }
 
-    private void BtnDjTapA_Click(object sender, RoutedEventArgs e) => _studio.DjMixer.DeckA.RegisterTapTempo();
-    private void BtnDjTapB_Click(object sender, RoutedEventArgs e) => _studio.DjMixer.DeckB.RegisterTapTempo();
+    private void BtnDjTapA_Click(object sender, RoutedEventArgs e)
+    {
+        _studio.DjMixer.DeckA.RegisterTapTempo();
+        if (_studio.DjMixer.DeckA.ManualBpmOverride > 30.0 && _studio.DjMixer.DeckA.Track != null)
+        {
+            _studio.DjMixer.DeckA.Track.DetectedBpm = _studio.DjMixer.DeckA.ManualBpmOverride;
+            PersistDeckBeatGridAndBpm(DjDeckId.DeckA);
+        }
+    }
+
+    private void BtnDjTapB_Click(object sender, RoutedEventArgs e)
+    {
+        _studio.DjMixer.DeckB.RegisterTapTempo();
+        if (_studio.DjMixer.DeckB.ManualBpmOverride > 30.0 && _studio.DjMixer.DeckB.Track != null)
+        {
+            _studio.DjMixer.DeckB.Track.DetectedBpm = _studio.DjMixer.DeckB.ManualBpmOverride;
+            PersistDeckBeatGridAndBpm(DjDeckId.DeckB);
+        }
+    }
 
     private void BtnDjMtA_Click(object sender, RoutedEventArgs e)
     {
@@ -1177,24 +1934,225 @@ public partial class MainWindow
         SetStatus($"Deck B SLIP Mode: {(d.SlipModeEnabled ? "ENABLED" : "OFF")}");
     }
 
+    private void SetDeckPitchPercent(DjDeckId deckId, double rawPitchPercent, bool roundToHundredth = true)
+    {
+        bool isA = deckId == DjDeckId.DeckA;
+        var deck = isA ? _studio.DjMixer.DeckA : _studio.DjMixer.DeckB;
+        var slider = isA ? SldDjPitchA : SldDjPitchB;
+        var label = isA ? TxtDjPitchA : TxtDjPitchB;
+
+        double clamped = Math.Clamp(rawPitchPercent, -deck.PitchRangePercent, deck.PitchRangePercent);
+        if (roundToHundredth)
+        {
+            clamped = Math.Round(clamped, 2);
+        }
+        deck.PitchPercent = clamped;
+
+        double displayPct = Math.Round(clamped, 2);
+        if (Math.Abs(displayPct) < 0.005) displayPct = 0.0;
+
+        if (slider != null)
+        {
+            if (displayPct < slider.Minimum) slider.Minimum = -Math.Ceiling(Math.Abs(displayPct));
+            if (displayPct > slider.Maximum) slider.Maximum = Math.Ceiling(Math.Abs(displayPct));
+            if (Math.Abs(slider.Value - displayPct) >= 0.004)
+            {
+                _suppressPitchSliderSync = true;
+                slider.Value = displayPct;
+                _suppressPitchSliderSync = false;
+            }
+        }
+
+        if (label != null)
+        {
+            label.Text = $"{displayPct:+0.00;-0.00;+0.00}%";
+        }
+
+        var snap = _studio.DjMixer.GetSnapshot();
+        UpdateDeckTelemetryUi(isA ? snap.DeckA : snap.DeckB, isA);
+    }
+
     private void SldDjPitchA_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (TxtDjPitchA == null) return;
-        _studio.DjMixer.DeckA.PitchPercent = Math.Round(e.NewValue, 2);
-        TxtDjPitchA.Text = $"{_studio.DjMixer.DeckA.PitchPercent:+0.0;-0.0;+0.0}%";
+        // Guard against stray WPF layout/resize/coercion events shifting pitch unexpectedly!
+        if (_suppressPitchSliderSync || !_djFineDraggingPitchA || TxtDjPitchA == null) return;
+        SetDeckPitchPercent(DjDeckId.DeckA, e.NewValue, roundToHundredth: true);
     }
 
     private void SldDjPitchB_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (TxtDjPitchB == null) return;
-        _studio.DjMixer.DeckB.PitchPercent = Math.Round(e.NewValue, 2);
-        TxtDjPitchB.Text = $"{_studio.DjMixer.DeckB.PitchPercent:+0.0;-0.0;+0.0}%";
+        if (_suppressPitchSliderSync || !_djFineDraggingPitchB || TxtDjPitchB == null) return;
+        SetDeckPitchPercent(DjDeckId.DeckB, e.NewValue, roundToHundredth: true);
     }
 
-    private void SldDjPitchA_MouseDoubleClick(object sender, MouseButtonEventArgs e) => SldDjPitchA.Value = 0.0;
-    private void SldDjPitchB_MouseDoubleClick(object sender, MouseButtonEventArgs e) => SldDjPitchB.Value = 0.0;
-    private void TxtDjPitchA_ResetClick(object sender, MouseButtonEventArgs e) => SldDjPitchA.Value = 0.0;
-    private void TxtDjPitchB_ResetClick(object sender, MouseButtonEventArgs e) => SldDjPitchB.Value = 0.0;
+    private void DjPitchBorderA_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        int notches = e.Delta / 120;
+        if (notches == 0) notches = Math.Sign(e.Delta);
+        double step = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ? 0.10 : 0.01;
+        double baseVal = Math.Round(_studio.DjMixer.DeckA.PitchPercent, 2);
+        SetDeckPitchPercent(DjDeckId.DeckA, baseVal + notches * step, roundToHundredth: true);
+        e.Handled = true;
+    }
+
+    private void DjPitchBorderB_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        int notches = e.Delta / 120;
+        if (notches == 0) notches = Math.Sign(e.Delta);
+        double step = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ? 0.10 : 0.01;
+        double baseVal = Math.Round(_studio.DjMixer.DeckB.PitchPercent, 2);
+        SetDeckPitchPercent(DjDeckId.DeckB, baseVal + notches * step, roundToHundredth: true);
+        e.Handled = true;
+    }
+
+    // Drift-proof delta-based Pitch Fader dragging + Grab Glow + ALT+Click reset + Accidental Bar-Click Guard
+    private void SldDjPitchA_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount >= 2 || IsAltModifierHeld())
+        {
+            SetDeckPitchPercent(DjDeckId.DeckA, 0.0, roundToHundredth: true);
+            SetStatus("Deck A Pitch reset to +0.00%.");
+            e.Handled = true;
+            return;
+        }
+
+        if (!IsSliderThumbClicked(SldDjPitchA, e.OriginalSource as DependencyObject))
+        {
+            // Ignore stray clicks on the pitch track bar outside the thumb so pitch never jumps!
+            e.Handled = true;
+            return;
+        }
+
+        _djFineDraggingPitchA = true;
+        _djPitchDragMovedA = false;
+        _djPitchDragStartPtA = e.GetPosition(this);
+        _djPitchDragStartValA = _studio.DjMixer.DeckA.PitchPercent;
+        SldDjPitchA.Tag = "GRABBED";
+        SldDjPitchA.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void SldDjPitchA_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_djFineDraggingPitchA) return;
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            EndPitchDragA();
+            return;
+        }
+
+        double dy = _djPitchDragStartPtA.Y - e.GetPosition(this).Y;
+        if (!_djPitchDragMovedA && Math.Abs(dy) < 1.5)
+            return;
+
+        _djPitchDragMovedA = true;
+        bool fineMode = (Keyboard.Modifiers & (ModifierKeys.Shift | ModifierKeys.Control)) != 0;
+        double pctPerPx = fineMode
+            ? 0.01
+            : (SldDjPitchA.Maximum - SldDjPitchA.Minimum) / Math.Max(40.0, SldDjPitchA.ActualHeight - 16.0);
+
+        SetDeckPitchPercent(DjDeckId.DeckA, _djPitchDragStartValA + dy * pctPerPx, roundToHundredth: true);
+        e.Handled = true;
+    }
+
+    private void SldDjPitchA_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_djFineDraggingPitchA)
+        {
+            EndPitchDragA();
+            e.Handled = true;
+        }
+    }
+
+    private void SldDjPitchA_LostMouseCapture(object sender, MouseEventArgs e) => EndPitchDragA();
+
+    private void EndPitchDragA()
+    {
+        _djFineDraggingPitchA = false;
+        _djPitchDragMovedA = false;
+        if (SldDjPitchA != null)
+        {
+            SldDjPitchA.Tag = null;
+            if (SldDjPitchA.IsMouseCaptured)
+                SldDjPitchA.ReleaseMouseCapture();
+        }
+    }
+
+    private void SldDjPitchB_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount >= 2 || IsAltModifierHeld())
+        {
+            SetDeckPitchPercent(DjDeckId.DeckB, 0.0, roundToHundredth: true);
+            SetStatus("Deck B Pitch reset to +0.00%.");
+            e.Handled = true;
+            return;
+        }
+
+        if (!IsSliderThumbClicked(SldDjPitchB, e.OriginalSource as DependencyObject))
+        {
+            e.Handled = true;
+            return;
+        }
+
+        _djFineDraggingPitchB = true;
+        _djPitchDragMovedB = false;
+        _djPitchDragStartPtB = e.GetPosition(this);
+        _djPitchDragStartValB = _studio.DjMixer.DeckB.PitchPercent;
+        SldDjPitchB.Tag = "GRABBED";
+        SldDjPitchB.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void SldDjPitchB_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_djFineDraggingPitchB) return;
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            EndPitchDragB();
+            return;
+        }
+
+        double dy = _djPitchDragStartPtB.Y - e.GetPosition(this).Y;
+        if (!_djPitchDragMovedB && Math.Abs(dy) < 1.5)
+            return;
+
+        _djPitchDragMovedB = true;
+        bool fineMode = (Keyboard.Modifiers & (ModifierKeys.Shift | ModifierKeys.Control)) != 0;
+        double pctPerPx = fineMode
+            ? 0.01
+            : (SldDjPitchB.Maximum - SldDjPitchB.Minimum) / Math.Max(40.0, SldDjPitchB.ActualHeight - 16.0);
+
+        SetDeckPitchPercent(DjDeckId.DeckB, _djPitchDragStartValB + dy * pctPerPx, roundToHundredth: true);
+        e.Handled = true;
+    }
+
+    private void SldDjPitchB_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_djFineDraggingPitchB)
+        {
+            EndPitchDragB();
+            e.Handled = true;
+        }
+    }
+
+    private void SldDjPitchB_LostMouseCapture(object sender, MouseEventArgs e) => EndPitchDragB();
+
+    private void EndPitchDragB()
+    {
+        _djFineDraggingPitchB = false;
+        _djPitchDragMovedB = false;
+        if (SldDjPitchB != null)
+        {
+            SldDjPitchB.Tag = null;
+            if (SldDjPitchB.IsMouseCaptured)
+                SldDjPitchB.ReleaseMouseCapture();
+        }
+    }
+
+    private void SldDjPitchA_MouseDoubleClick(object sender, MouseButtonEventArgs e) => SetDeckPitchPercent(DjDeckId.DeckA, 0.0);
+    private void SldDjPitchB_MouseDoubleClick(object sender, MouseButtonEventArgs e) => SetDeckPitchPercent(DjDeckId.DeckB, 0.0);
+    private void TxtDjPitchA_ResetClick(object sender, MouseButtonEventArgs e) => SetDeckPitchPercent(DjDeckId.DeckA, 0.0);
+    private void TxtDjPitchB_ResetClick(object sender, MouseButtonEventArgs e) => SetDeckPitchPercent(DjDeckId.DeckB, 0.0);
 
     private void BtnDjBendMinusA_Down(object sender, MouseButtonEventArgs e) => _studio.DjMixer.DeckA.TempNudgePercent = -3.5;
     private void BtnDjBendPlusA_Down(object sender, MouseButtonEventArgs e) => _studio.DjMixer.DeckA.TempNudgePercent = 3.5;
@@ -1206,6 +2164,63 @@ public partial class MainWindow
 
     private void SldDjVolA_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => _studio.DjMixer.DeckA.ChannelVolume = e.NewValue;
     private void SldDjVolB_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => _studio.DjMixer.DeckB.ChannelVolume = e.NewValue;
+
+    /// <summary>
+    /// Protects vertical DJ channel volume faders during live mixing:
+    /// - Normal clicks on the fader bar outside the Thumb are ignored (no accidental jumps to Max/Min!).
+    /// - Dragging the Thumb works normally.
+    /// - Holding ALT + Click on the fader bar jumps cleanly to MAX (100%) above the thumb or MIN (0%) below the thumb!
+    /// </summary>
+    private void SldDjVol_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not Slider slider)
+            return;
+
+        bool clickedThumb = false;
+        DependencyObject? cur = e.OriginalSource as DependencyObject;
+        while (cur != null && !ReferenceEquals(cur, slider))
+        {
+            if (cur is System.Windows.Controls.Primitives.Thumb)
+            {
+                clickedThumb = true;
+                break;
+            }
+            cur = cur is Visual || cur is System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(cur)
+                : LogicalTreeHelper.GetParent(cur);
+        }
+
+        bool altHeld = (Keyboard.Modifiers & ModifierKeys.Alt) != 0
+            || Keyboard.IsKeyDown(Key.LeftAlt)
+            || Keyboard.IsKeyDown(Key.RightAlt);
+
+        if (altHeld)
+        {
+            Point pt = e.GetPosition(slider);
+            double h = Math.Max(1.0, slider.ActualHeight);
+            double thumbY = (1.0 - slider.Value) * h;
+
+            double targetVal;
+            if (slider.Value >= 0.99 && pt.Y > 14.0)
+                targetVal = 0.0;
+            else if (slider.Value <= 0.01 && pt.Y < h - 14.0)
+                targetVal = 1.0;
+            else
+                targetVal = pt.Y < thumbY ? 1.0 : 0.0;
+
+            slider.Value = targetVal;
+            string deckName = ReferenceEquals(slider, SldDjVolA) ? "Deck A" : "Deck B";
+            SetStatus($"{deckName} Channel Volume: {(targetVal > 0.5 ? "MAX (100% / 0.0 dB)" : "MIN (0% / Muted)")} [ALT+Click]");
+            e.Handled = true;
+            return;
+        }
+
+        if (!clickedThumb)
+        {
+            // Ignore plain clicks on the track bar so volume never jumps accidentally mid-mix!
+            e.Handled = true;
+        }
+    }
 
     private void SldDjCrossfader_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
@@ -1256,36 +2271,67 @@ public partial class MainWindow
     private void BtnDjHotCueA_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string s && int.TryParse(s, out int idx))
-        {
-            _studio.DjMixer.TriggerHotCue(DjDeckId.DeckA, idx, clearOnly: false);
-            UpdateToggleButtonVisual(btn, true, "Cyan");
-        }
+            HandleDeckHotCueAction(DjDeckId.DeckA, idx, clearOnly: false);
     }
 
     private void BtnDjHotCueA_RightClick(object sender, MouseButtonEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string s && int.TryParse(s, out int idx))
         {
-            _studio.DjMixer.TriggerHotCue(DjDeckId.DeckA, idx, clearOnly: true);
-            UpdateToggleButtonVisual(btn, false, "Cyan");
+            HandleDeckHotCueAction(DjDeckId.DeckA, idx, clearOnly: true);
+            e.Handled = true;
         }
     }
 
     private void BtnDjHotCueB_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string s && int.TryParse(s, out int idx))
-        {
-            _studio.DjMixer.TriggerHotCue(DjDeckId.DeckB, idx, clearOnly: false);
-            UpdateToggleButtonVisual(btn, true, "Red");
-        }
+            HandleDeckHotCueAction(DjDeckId.DeckB, idx, clearOnly: false);
     }
 
     private void BtnDjHotCueB_RightClick(object sender, MouseButtonEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string s && int.TryParse(s, out int idx))
         {
-            _studio.DjMixer.TriggerHotCue(DjDeckId.DeckB, idx, clearOnly: true);
-            UpdateToggleButtonVisual(btn, false, "Red");
+            HandleDeckHotCueAction(DjDeckId.DeckB, idx, clearOnly: true);
+            e.Handled = true;
+        }
+    }
+
+    private void HandleDeckHotCueAction(DjDeckId deckId, int idx, bool clearOnly)
+    {
+        bool setCue = !clearOnly && IsAltModifierHeld();
+        _studio.DjMixer.TriggerHotCue(deckId, idx, clearOnly: clearOnly, setCuePoint: setCue);
+
+        var deck = _studio.DjMixer.GetDeck(deckId);
+        if ((clearOnly || setCue) && deck.Track != null)
+        {
+            _studio.DjDecoder.SaveTrackCues(deck.Track, updateMainCue: false);
+        }
+
+        RefreshDeckHotCueVisuals(deckId);
+        var snap = _studio.DjMixer.GetSnapshot();
+        bool isA = deckId == DjDeckId.DeckA;
+        UpdateDeckTelemetryUi(isA ? snap.DeckA : snap.DeckB, isA);
+        RenderDjStaticOverviews();
+        SetStatus(snap.StatusMessage);
+    }
+
+    private void RefreshDeckHotCueVisuals(DjDeckId deckId)
+    {
+        bool isA = deckId == DjDeckId.DeckA;
+        var track = _studio.DjMixer.GetDeck(deckId).Track;
+        string accent = isA ? "Cyan" : "Red";
+        Color activeBg = isA ? Color.FromRgb(16, 48, 76) : Color.FromRgb(56, 18, 36);
+
+        Button[] btns = isA
+            ? new[] { BtnDjHot1A, BtnDjHot2A, BtnDjHot3A, BtnDjHot4A }
+            : new[] { BtnDjHot1B, BtnDjHot2B, BtnDjHot3B, BtnDjHot4B };
+
+        for (int i = 0; i < 4; i++)
+        {
+            bool hasCue = track != null && track.HotCueFrames[i] >= 0;
+            ApplyStemPadVisual(btns[i], hasCue, accent, activeBg);
         }
     }
 
@@ -1331,8 +2377,8 @@ public partial class MainWindow
     {
         if (sender is Button btn && btn.Tag is string pad)
         {
-            bool active = ToggleDeckStemPad(_studio.DjMixer.DeckA, pad);
-            UpdateToggleButtonVisual(btn, active, "Cyan");
+            ToggleDeckStemPad(_studio.DjMixer.DeckA, pad, "Deck A");
+            RefreshDeckStemPadVisuals(isDeckA: true);
         }
     }
 
@@ -1340,38 +2386,93 @@ public partial class MainWindow
     {
         if (sender is Button btn && btn.Tag is string pad)
         {
-            bool active = ToggleDeckStemPad(_studio.DjMixer.DeckB, pad);
-            UpdateToggleButtonVisual(btn, active, "Red");
+            ToggleDeckStemPad(_studio.DjMixer.DeckB, pad, "Deck B");
+            RefreshDeckStemPadVisuals(isDeckA: false);
         }
     }
 
-    private static bool ToggleDeckStemPad(DjDeckChannelState deck, string pad)
+    private void ToggleDeckStemPad(DjDeckChannelState deck, string pad, string deckName)
     {
         switch (pad)
         {
             case "Vocal":
                 deck.PadVocalActive = !deck.PadVocalActive;
-                if (deck.PadVocalActive) deck.PadInstruActive = false;
-                return deck.PadVocalActive;
+                if (deck.PadVocalActive)
+                {
+                    deck.PadInstruActive = false;
+                }
+                SetStatus(deck.PadVocalActive
+                    ? $"{deckName} STEMS: Vocal / Acapella Isolator ON {(deck.PadBassActive ? "(+ Bass Stem)" : "(24 dB/oct <210 Hz & >4.3 kHz stripped + 4-band center extraction)")}"
+                    : $"{deckName} STEMS: Vocal Isolator OFF");
+                break;
+
             case "Instru":
                 deck.PadInstruActive = !deck.PadInstruActive;
-                if (deck.PadInstruActive) deck.PadVocalActive = false;
-                return deck.PadInstruActive;
+                if (deck.PadInstruActive)
+                {
+                    deck.PadVocalActive = false;
+                    deck.PadBassActive = false;
+                }
+                SetStatus(deck.PadInstruActive
+                    ? $"{deckName} STEMS: Instrumental (Vocal Remover) ON — Center vocals cancelled, 100% Kick/Bass & Stereo Instruments preserved"
+                    : $"{deckName} STEMS: Instrumental OFF");
+                break;
+
             case "Bass":
                 deck.PadBassActive = !deck.PadBassActive;
-                return deck.PadBassActive;
+                if (deck.PadBassActive)
+                {
+                    deck.PadInstruActive = false;
+                    deck.PadKickKillActive = false;
+                }
+                SetStatus(deck.PadBassActive
+                    ? $"{deckName} STEMS: Bass & Kick Stem Solo ON (< 210 Hz 24 dB/oct LR4){(deck.PadVocalActive ? " + Vocal Stem" : "")}"
+                    : $"{deckName} STEMS: Bass & Kick Stem Solo OFF");
+                break;
+
             case "Kick":
                 deck.PadKickKillActive = !deck.PadKickKillActive;
-                return deck.PadKickKillActive;
+                if (deck.PadKickKillActive)
+                {
+                    deck.PadBassActive = false;
+                }
+                SetStatus($"{deckName} ISOLATOR: Kick & Sub-Bass Kill (< 210 Hz 24 dB/oct): {(deck.PadKickKillActive ? "KILLED (-∞ dB)" : "OFF")}");
+                break;
+
             case "HiHat":
                 deck.PadHiHatKillActive = !deck.PadHiHatKillActive;
-                return deck.PadHiHatKillActive;
+                SetStatus($"{deckName} ISOLATOR: Hi-Hat & Cymbal Kill (> 2.9 kHz 24 dB/oct): {(deck.PadHiHatKillActive ? "KILLED (-∞ dB)" : "OFF")}");
+                break;
+
             case "Gate":
                 deck.PadStemsFxGateActive = !deck.PadStemsFxGateActive;
-                return deck.PadStemsFxGateActive;
-            default:
-                return false;
+                SetStatus($"{deckName} STEMS FX: BPM-Synced 1/8-Note Trance Gate: {(deck.PadStemsFxGateActive ? "ACTIVE" : "OFF")}");
+                break;
         }
+    }
+
+    private void RefreshDeckStemPadVisuals(bool isDeckA)
+    {
+        var d = isDeckA ? _studio.DjMixer.DeckA : _studio.DjMixer.DeckB;
+        string accent = isDeckA ? "Cyan" : "Red";
+        Color activeBg = isDeckA ? Color.FromRgb(16, 48, 76) : Color.FromRgb(56, 18, 36);
+
+        ApplyStemPadVisual(isDeckA ? BtnDjPadVocalA : BtnDjPadVocalB, d.PadVocalActive, accent, activeBg);
+        ApplyStemPadVisual(isDeckA ? BtnDjPadInstruA : BtnDjPadInstruB, d.PadInstruActive, accent, activeBg);
+        ApplyStemPadVisual(isDeckA ? BtnDjPadBassA : BtnDjPadBassB, d.PadBassActive, accent, activeBg);
+        ApplyStemPadVisual(isDeckA ? BtnDjPadKickA : BtnDjPadKickB, d.PadKickKillActive, accent, activeBg);
+        ApplyStemPadVisual(isDeckA ? BtnDjPadHiHatA : BtnDjPadHiHatB, d.PadHiHatKillActive, accent, activeBg);
+        ApplyStemPadVisual(isDeckA ? BtnDjPadGateA : BtnDjPadGateB, d.PadStemsFxGateActive, accent, activeBg);
+    }
+
+    private void ApplyStemPadVisual(Button? btn, bool active, string accentResource, Color activeBg)
+    {
+        if (btn == null) return;
+        UpdateToggleButtonVisual(btn, active, accentResource);
+        if (active)
+            btn.Background = new SolidColorBrush(activeBg);
+        else
+            btn.ClearValue(Control.BackgroundProperty);
     }
 
     private void UpdateToggleButtonVisual(Button btn, bool active, string accentResource)
@@ -1463,6 +2564,30 @@ public partial class MainWindow
         SetVisualizerFocusMode(!_visFocusMode);
         if (BtnDjFocus != null)
             BtnDjFocus.Content = _visFocusMode ? "✕ Exit Focus" : "⛶ Focus";
+    }
+
+    private void BtnDjCollapseTopBar_Click(object sender, RoutedEventArgs e)
+    {
+        bool nextCollapsed = !_appSettings.DjTopToolbarCollapsed;
+        _appSettings.DjTopToolbarCollapsed = nextCollapsed;
+        _studio.Presets.SaveAppSettings(_appSettings);
+        ApplyDjTopToolbarCollapsedState(nextCollapsed);
+        SetStatus(nextCollapsed
+            ? "Collapsed DJ top toolbar into compact icon button — full beat waveform view clear!"
+            : "Expanded DJ top toolbar.");
+    }
+
+    private void ApplyDjTopToolbarCollapsedState(bool collapsed)
+    {
+        if (PanelDjTopBarItems == null || BtnDjCollapseTopBar == null || BorderDjTopBar == null)
+            return;
+
+        PanelDjTopBarItems.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        BorderDjTopBar.Padding = collapsed ? new Thickness(3, 2, 3, 2) : new Thickness(8, 3, 6, 3);
+        BtnDjCollapseTopBar.Content = collapsed ? "« ☰" : "»";
+        BtnDjCollapseTopBar.ToolTip = collapsed
+            ? "Show DJ Waveform Toolbar (Zoom, Load As-Is, REC MIX, Auto-Mix, Visualizer, Crate, Focus)"
+            : "Collapse DJ toolbar into a single compact icon button so the top waveform stays 100% clear!";
     }
 
     // =========================================================================
@@ -1805,6 +2930,20 @@ public partial class MainWindow
                     _studio.DjMixer.SetMasterEndpoint(_activePlaybackEndpoint?.EndpointId);
                     _studio.DjMixer.LoadTrackToDeck(deckId, track);
 
+                    if (_djTwoPointDeck == deckId || _djUnlockedBeatDeck == deckId)
+                    {
+                        _djTwoPointDeck = null;
+                        _djUnlockedBeatDeck = null;
+                        _djDraggingTwoPointHandle = 0;
+                        _djDraggingUnlockedBeat = false;
+                        UpdateToggleButtonVisual(BtnDjTwoPtA, false, "Amber");
+                        UpdateToggleButtonVisual(BtnDjTwoPtB, false, "Amber");
+                        ShowDjCalibrationOverlayUi();
+                    }
+
+                    // Immediately update rotary GAIN knob needle to reflect this track's automatically restored GainDb!
+                    UpdateAllDjKnobsVisual();
+
                     if (rowItem != null)
                     {
                         rowItem.Bpm = track.DetectedBpm;
@@ -1815,21 +2954,19 @@ public partial class MainWindow
                         GridDjTracks.Items.Refresh();
                     }
 
-                    // Reset Hot Cue button highlights on new track load
+                    // Reset Pitch Fader cleanly to +0.00% and restore saved Hot Cue pad highlights on new track load!
                     if (deckId == DjDeckId.DeckA)
                     {
-                        UpdateToggleButtonVisual(BtnDjHot1A, false, "Cyan");
-                        UpdateToggleButtonVisual(BtnDjHot2A, false, "Cyan");
-                        UpdateToggleButtonVisual(BtnDjHot3A, false, "Cyan");
-                        UpdateToggleButtonVisual(BtnDjHot4A, false, "Cyan");
+                        SldDjPitchA.Minimum = -10.0;
+                        SldDjPitchA.Maximum = 10.0;
                     }
                     else
                     {
-                        UpdateToggleButtonVisual(BtnDjHot1B, false, "Red");
-                        UpdateToggleButtonVisual(BtnDjHot2B, false, "Red");
-                        UpdateToggleButtonVisual(BtnDjHot3B, false, "Red");
-                        UpdateToggleButtonVisual(BtnDjHot4B, false, "Red");
+                        SldDjPitchB.Minimum = -10.0;
+                        SldDjPitchB.Maximum = 10.0;
                     }
+                    SetDeckPitchPercent(deckId, 0.0, roundToHundredth: true);
+                    RefreshDeckHotCueVisuals(deckId);
 
                     var snap = _studio.DjMixer.GetSnapshot();
                     UpdateDeckTelemetryUi(snap.DeckA, isDeckA: true);

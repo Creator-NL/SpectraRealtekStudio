@@ -1,10 +1,68 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using SpectraRealtekStudio.Core.Interop;
 using SpectraRealtekStudio.Core.Models;
 
 namespace SpectraRealtekStudio.Core.Services;
+
+/// <summary>
+/// Zero-allocation Transposed Direct Form II biquad filter state for 24 dB/oct Linkwitz-Riley DJ crossovers &amp; stem isolation.
+/// </summary>
+public struct DjBiquadState
+{
+    public double Z1;
+    public double Z2;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double Process(double x, double b0, double b1, double b2, double a1, double a2)
+    {
+        double y = b0 * x + Z1;
+        Z1 = b1 * x - a1 * y + Z2;
+        Z2 = b2 * x - a2 * y;
+        return y;
+    }
+
+    public void Reset()
+    {
+        Z1 = 0.0;
+        Z2 = 0.0;
+    }
+}
+
+/// <summary>
+/// Cached 2nd-order Butterworth Low-Pass &amp; High-Pass biquad coefficients for cascading into 4th-order (24 dB/oct) Linkwitz-Riley crossovers.
+/// </summary>
+public struct DjButterworthPairCoeffs
+{
+    public double LpB0, LpB1, LpB2;
+    public double HpB0, HpB1, HpB2;
+    public double A1, A2;
+
+    public static DjButterworthPairCoeffs Compute(double cutoffHz, int sampleRate)
+    {
+        double fs = Math.Max(8000.0, sampleRate);
+        double fc = Math.Clamp(cutoffHz, 20.0, fs * 0.44);
+        double k = Math.Tan(Math.PI * fc / fs);
+        double k2 = k * k;
+        const double sqrt2 = 1.4142135623730951;
+        double norm = 1.0 / (1.0 + sqrt2 * k + k2);
+
+        double lpB0 = k2 * norm;
+        return new DjButterworthPairCoeffs
+        {
+            LpB0 = lpB0,
+            LpB1 = 2.0 * lpB0,
+            LpB2 = lpB0,
+            HpB0 = norm,
+            HpB1 = -2.0 * norm,
+            HpB2 = norm,
+            A1 = 2.0 * (k2 - 1.0) * norm,
+            A2 = (1.0 - sqrt2 * k + k2) * norm
+        };
+    }
+}
 
 [ComImport, Guid("F294ACFC-3146-4483-A7BF-ADDCA7C260E2"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IAudioRenderClient
@@ -75,12 +133,35 @@ public sealed class DjDeckChannelState
     public float PeakLeft;
     public float PeakRight;
 
-    // Crossover & SVF filter state per channel
+    // Crossover & SVF filter state per channel (True 24 dB/oct Linkwitz-Riley LR4 + 4-Subband Stem Isolation)
     public double Recon1L, Recon1R, Recon2L, Recon2R, Recon3L, Recon3R, Recon4L, Recon4R;
-    public double LpLowL, LpLowR;
-    public double LpLow2L, LpLow2R;
-    public double HpLowLpL, HpLowLpR;
-    public double LpHighL, LpHighR;
+    public int CachedFilterRate;
+    public DjButterworthPairCoeffs XoverLow210;    // 210 Hz Kick/Sub-Bass <-> Vocal/Mid split
+    public DjButterworthPairCoeffs XoverHigh2900;  // 2,900 Hz Mid <-> Hi-Hat/Treble split
+    public DjButterworthPairCoeffs StemSplit650;   // Vocal Subband 0/1 split (650 Hz)
+    public DjButterworthPairCoeffs StemSplit1550;  // Vocal Subband 1/2 split (1,550 Hz)
+    public DjButterworthPairCoeffs StemSplit6200;  // Vocal Articulation <-> Cymbal Air split (6,200 Hz)
+    public double EnvAttackCoeff;
+    public double EnvReleaseCoeff;
+    public double MaskSmoothCoeff;
+
+    // LR4 (2 cascaded Butterworth stages per L/R) for 210 Hz & 2,900 Hz main isolator crossover
+    public DjBiquadState LowLp1L, LowLp2L, LowLp1R, LowLp2R;
+    public DjBiquadState LowHp1L, LowHp2L, LowHp1R, LowHp2R;
+    public DjBiquadState HighLp1L, HighLp2L, HighLp1R, HighLp2R;
+    public DjBiquadState HighHp1L, HighHp2L, HighHp1R, HighHp2R;
+
+    // 4-Subband Mid/Side Stem Separator filters & adaptive envelopes (210-650, 650-1550, 1550-2900, 2900-6200 Hz)
+    public DjBiquadState Stem650LpL, Stem650LpR, Stem650HpL, Stem650HpR;
+    public DjBiquadState Stem1550LpL, Stem1550LpR, Stem1550HpL, Stem1550HpR;
+    public DjBiquadState Stem6200Lp1L, Stem6200Lp2L, Stem6200Lp1R, Stem6200Lp2R;
+    public DjBiquadState Stem6200Hp1L, Stem6200Hp2L, Stem6200Hp1R, Stem6200Hp2R;
+    public readonly double[] StemEnvMid = new double[4];
+    public readonly double[] StemEnvSide = new double[4];
+    public readonly double[] StemMaskSmooth = new double[] { 0.5, 0.5, 0.5, 0.5 };
+    public readonly float[] InstruHaasBuf = new float[2048]; // ~6.2 ms stereo Haas decorrelation buffer up to 192 kHz
+    public int InstruHaasWritePos;
+
     public double SvfLowL, SvfBandL, SvfLowR, SvfBandR;
     public double WahLowL, WahBandL, WahLowR, WahBandR;
     public double WahPhase;
@@ -136,7 +217,7 @@ public sealed class DjDeckChannelState
             double avgMs = (double)(_tapTicks[_tapCount - 1] - _tapTicks[0]) / (_tapCount - 1);
             if (avgMs >= 250 && avgMs <= 1200)
             {
-                ManualBpmOverride = Math.Round(60000.0 / avgMs, 1);
+                ManualBpmOverride = Math.Round(60000.0 / avgMs, 2);
             }
         }
     }
@@ -183,6 +264,7 @@ public sealed class DjMixerEngineService : IDisposable
     private float _masterPeakL;
     private float _masterPeakR;
     private int _outputSampleRate = 48000;
+    private double _masterGainDb;
     private string _statusMessage = "DJ Dual-Deck Engine Ready";
 
     public DjDeckChannelState DeckA => _deckA;
@@ -190,6 +272,16 @@ public sealed class DjMixerEngineService : IDisposable
     public DjDeckChannelState GetDeck(DjDeckId id) => id == DjDeckId.DeckA ? _deckA : _deckB;
 
     public bool IsAnyDeckPlaying => _deckA.IsPlaying || _deckB.IsPlaying || _deckA.IsScratching || _deckB.IsScratching;
+
+    /// <summary>
+    /// Combined 2-Deck Master Output Trim Gain (-24.0 dB to +12.0 dB; 0.0 dB = exact 1.0f unity).
+    /// Allows trimming combined Deck A + Deck B output headroom so 2-channel mixes never clip.
+    /// </summary>
+    public double MasterGainDb
+    {
+        get => _masterGainDb;
+        set => _masterGainDb = Math.Clamp(value, -24.0, 12.0);
+    }
 
     public double Crossfader
     {
@@ -227,16 +319,22 @@ public sealed class DjMixerEngineService : IDisposable
         {
             deck.IsPlaying = false;
             deck.IsScratching = false;
+            deck.IsCuePreviewing = false;
             deck.LoopActive = false;
             deck.ManualBpmOverride = 0.0;
+            deck.PitchPercent = 0.0;
+            deck.PitchRangePercent = 16.0;
+            deck.TempNudgePercent = 0.0;
             deck.Track = track;
+            deck.GainDb = track.HasSavedGain ? Math.Clamp(track.SavedGainDb, -24.0, 12.0) : 0.0;
             deck.PlayheadFrame = track.CueFrame;
             deck.SlipPlayheadFrame = track.CueFrame;
             deck.PlatterAngleDeg = 0.0;
             deck.PeakLeft = 0f;
             deck.PeakRight = 0f;
         }
-        _statusMessage = $"Loaded '{track.Artist} — {track.Title}' ({track.DetectedBpm:0.0} BPM • {track.MusicalKey}) to {(deckId == DjDeckId.DeckA ? "Deck A" : "Deck B")}.";
+        string gainInfo = track.HasSavedGain ? $" • Saved Gain {deck.GainDb:+0.0;-0.0;0.0} dB" : string.Empty;
+        _statusMessage = $"Loaded '{track.Artist} — {track.Title}' ({track.DetectedBpm:0.00} BPM • {track.MusicalKey}{gainInfo}) to {(deckId == DjDeckId.DeckA ? "Deck A" : "Deck B")}.";
     }
 
     public void TogglePlay(DjDeckId deckId)
@@ -261,31 +359,67 @@ public sealed class DjMixerEngineService : IDisposable
         }
     }
 
-    public void CueDown(DjDeckId deckId)
+    /// <summary>
+    /// Stops deck playback immediately and rewinds playhead to 0:00.0 (frame 0, the absolute start of the track).
+    /// </summary>
+    public void StopAndReturnToStart(DjDeckId deckId)
     {
         var deck = GetDeck(deckId);
-        if (deck.Track == null)
-            return;
-
-        if (deck.IsPlaying && !deck.IsCuePreviewing)
+        lock (_engineLock)
         {
-            // While playing, CUE returns immediately to the cue point and pauses
             deck.IsPlaying = false;
-            deck.PlayheadFrame = deck.Track.CueFrame;
-            deck.SlipPlayheadFrame = deck.Track.CueFrame;
+            deck.IsScratching = false;
+            deck.IsCuePreviewing = false;
+            deck.LoopActive = false;
+            deck.TempNudgePercent = 0.0;
+            deck.PlayheadFrame = 0.0;
+            deck.SlipPlayheadFrame = 0.0;
+            deck.PlatterAngleDeg = 0.0;
+            deck.PeakLeft = 0f;
+            deck.PeakRight = 0f;
         }
-        else
+        _statusMessage = $"Stopped {(deckId == DjDeckId.DeckA ? "Deck A" : "Deck B")} and returned to start of track (0:00.0).";
+    }
+
+    /// <summary>
+    /// Handles Main CUE button:
+    /// - setCuePoint == true (ALT + Click): stores current playhead as the track's Main Cue point.
+    /// - setCuePoint == false (Normal Click): jumps playhead to the stored Main Cue point and pauses, ready to press PLAY!
+    /// </summary>
+    public bool TriggerMainCue(DjDeckId deckId, bool setCuePoint)
+    {
+        var deck = GetDeck(deckId);
+        var track = deck.Track;
+        if (track == null)
+            return false;
+
+        string deckLabel = deckId == DjDeckId.DeckA ? "Deck A" : "Deck B";
+        lock (_engineLock)
         {
-            // While paused: if moved away from CueFrame, set new CueFrame; otherwise momentary preview play
-            if (Math.Abs(deck.PlayheadFrame - deck.Track.CueFrame) > deck.Track.SampleRate * 0.08)
+            deck.IsCuePreviewing = false;
+            if (setCuePoint)
             {
-                deck.Track.CueFrame = Math.Clamp((long)Math.Round(deck.PlayheadFrame), 0L, Math.Max(0, deck.Track.TotalFrames - 1));
+                track.CueFrame = Math.Clamp((long)Math.Round(deck.PlayheadFrame), 0L, Math.Max(0, track.TotalFrames - 1));
+                double sec = (double)track.CueFrame / Math.Max(1, track.SampleRate);
+                _statusMessage = $"{deckLabel} Main CUE set at { (int)(sec / 60)}:{sec % 60:00.0} [ALT+Click].";
+                return true;
             }
-            deck.IsCuePreviewing = true;
-            deck.IsPlaying = true;
-            EnsureEngineRunning();
+            else
+            {
+                deck.IsPlaying = false;
+                deck.IsScratching = false;
+                deck.PlayheadFrame = track.CueFrame;
+                deck.SlipPlayheadFrame = track.CueFrame;
+                deck.PeakLeft = 0f;
+                deck.PeakRight = 0f;
+                double sec = (double)track.CueFrame / Math.Max(1, track.SampleRate);
+                _statusMessage = $"{deckLabel} jumped to Main CUE ({(int)(sec / 60)}:{sec % 60:00.0}) — press ▶ PLAY to launch!";
+                return true;
+            }
         }
     }
+
+    public void CueDown(DjDeckId deckId) => TriggerMainCue(deckId, setCuePoint: false);
 
     public void CueUp(DjDeckId deckId)
     {
@@ -406,15 +540,17 @@ public sealed class DjMixerEngineService : IDisposable
     public void ToggleAutoLoop(DjDeckId deckId, double? explicitBeats = null)
     {
         var deck = GetDeck(deckId);
-        if (deck.Track == null)
+        var track = deck.Track;
+        if (track == null || track.TotalFrames < 4)
             return;
 
+        bool wasActive = deck.LoopActive;
         if (explicitBeats.HasValue)
         {
             deck.LoopBeats = explicitBeats.Value;
         }
 
-        if (deck.LoopActive && !explicitBeats.HasValue)
+        if (wasActive && !explicitBeats.HasValue)
         {
             deck.LoopActive = false;
             if (deck.SlipModeEnabled && deck.IsPlaying)
@@ -424,12 +560,33 @@ public sealed class DjMixerEngineService : IDisposable
             return;
         }
 
-        double beatFrames = (60.0 / Math.Max(40.0, deck.BaseBpm)) * deck.Track.SampleRate;
+        double beatPeriodSec = 60.0 / Math.Max(40.0, deck.BaseBpm);
+        double beatFrames = beatPeriodSec * track.SampleRate;
         double loopLenFrames = Math.Max(200.0, beatFrames * deck.LoopBeats);
 
-        deck.LoopStartFrame = deck.PlayheadFrame;
-        deck.LoopEndFrame = Math.Min(deck.Track.TotalFrames - 1, deck.LoopStartFrame + loopLenFrames);
-        deck.LoopActive = deck.LoopEndFrame > deck.LoopStartFrame + 100;
+        if (!wasActive)
+        {
+            // Beat-Grid Quantize: snap LoopStartFrame to the exact nearest beat marker on the track's beat grid!
+            double curSec = deck.PlayheadFrame / Math.Max(1, track.SampleRate);
+            double nearestBeatIdx = Math.Round((curSec - track.FirstBeatSec) / beatPeriodSec);
+            double snappedStartSec = Math.Clamp(track.FirstBeatSec + nearestBeatIdx * beatPeriodSec, 0.0, Math.Max(0.0, track.DurationSec - 0.05));
+            deck.LoopStartFrame = snappedStartSec * track.SampleRate;
+
+            if (!deck.IsPlaying)
+            {
+                deck.PlayheadFrame = deck.LoopStartFrame;
+                deck.SlipPlayheadFrame = deck.LoopStartFrame;
+            }
+        }
+
+        deck.LoopEndFrame = Math.Min(track.TotalFrames - 1, deck.LoopStartFrame + loopLenFrames);
+        double actualLen = deck.LoopEndFrame - deck.LoopStartFrame;
+        if (wasActive && actualLen > 100.0 && deck.PlayheadFrame >= deck.LoopEndFrame)
+        {
+            deck.PlayheadFrame = deck.LoopStartFrame + ((deck.PlayheadFrame - deck.LoopStartFrame) % actualLen);
+        }
+
+        deck.LoopActive = actualLen > 100.0;
     }
 
     public void ScaleLoopLength(DjDeckId deckId, double factor)
@@ -444,6 +601,11 @@ public sealed class DjMixerEngineService : IDisposable
             double beatFrames = (60.0 / Math.Max(40.0, deck.BaseBpm)) * deck.Track.SampleRate;
             double loopLenFrames = Math.Max(200.0, beatFrames * deck.LoopBeats);
             deck.LoopEndFrame = Math.Min(deck.Track.TotalFrames - 1, deck.LoopStartFrame + loopLenFrames);
+            double actualLen = deck.LoopEndFrame - deck.LoopStartFrame;
+            if (actualLen > 100.0 && deck.PlayheadFrame >= deck.LoopEndFrame)
+            {
+                deck.PlayheadFrame = deck.LoopStartFrame + ((deck.PlayheadFrame - deck.LoopStartFrame) % actualLen);
+            }
         }
     }
 
@@ -470,36 +632,60 @@ public sealed class DjMixerEngineService : IDisposable
         }
     }
 
-    public void TriggerHotCue(DjDeckId deckId, int slotIndex, bool clearOnly = false)
+    /// <summary>
+    /// Handles Hot Cue buttons (CUE 1..4):
+    /// - clearOnly == true (Right-Click): clears the hot cue slot.
+    /// - setCuePoint == true (ALT + Click): sets/overwrites the hot cue slot at the current playhead position.
+    /// - Normal Click: jumps playhead to the stored hot cue position and pauses ready for ▶ PLAY (does NOT overwrite or auto-start!).
+    /// </summary>
+    public bool TriggerHotCue(DjDeckId deckId, int slotIndex, bool clearOnly = false, bool setCuePoint = false)
     {
         if (slotIndex < 0 || slotIndex >= 4)
-            return;
+            return false;
 
         var deck = GetDeck(deckId);
-        if (deck.Track == null)
-            return;
+        var track = deck.Track;
+        if (track == null)
+            return false;
 
-        if (clearOnly)
-        {
-            deck.Track.HotCueFrames[slotIndex] = -1;
-            return;
-        }
+        string deckLabel = deckId == DjDeckId.DeckA ? "Deck A" : "Deck B";
+        int num = slotIndex + 1;
 
-        long frame = deck.Track.HotCueFrames[slotIndex];
-        if (frame < 0)
+        lock (_engineLock)
         {
-            deck.Track.HotCueFrames[slotIndex] = Math.Clamp((long)Math.Round(deck.PlayheadFrame), 0L, Math.Max(0, deck.Track.TotalFrames - 1));
-        }
-        else
-        {
-            deck.PlayheadFrame = frame;
-            if (!deck.SlipModeEnabled)
-                deck.SlipPlayheadFrame = frame;
-            if (!deck.IsPlaying)
+            if (clearOnly)
             {
-                deck.IsPlaying = true;
-                EnsureEngineRunning();
+                track.HotCueFrames[slotIndex] = -1;
+                _statusMessage = $"{deckLabel} CUE {num} cleared.";
+                return false;
             }
+
+            if (setCuePoint)
+            {
+                long newFrame = Math.Clamp((long)Math.Round(deck.PlayheadFrame), 0L, Math.Max(0, track.TotalFrames - 1));
+                track.HotCueFrames[slotIndex] = newFrame;
+                double sec = (double)newFrame / Math.Max(1, track.SampleRate);
+                _statusMessage = $"{deckLabel} CUE {num} set at {(int)(sec / 60)}:{sec % 60:00.0} [ALT+Click].";
+                return true;
+            }
+
+            long frame = track.HotCueFrames[slotIndex];
+            if (frame < 0)
+            {
+                _statusMessage = $"{deckLabel} CUE {num} is not set yet — hold ALT + Click to store CUE {num} at the current track position!";
+                return false;
+            }
+
+            deck.IsPlaying = false;
+            deck.IsScratching = false;
+            deck.IsCuePreviewing = false;
+            deck.PlayheadFrame = frame;
+            deck.SlipPlayheadFrame = frame;
+            deck.PeakLeft = 0f;
+            deck.PeakRight = 0f;
+            double jumpSec = (double)frame / Math.Max(1, track.SampleRate);
+            _statusMessage = $"{deckLabel} jumped to CUE {num} ({(int)(jumpSec / 60)}:{jumpSec % 60:00.0}) — press ▶ PLAY to start from here!";
+            return true;
         }
     }
 
@@ -563,6 +749,8 @@ public sealed class DjMixerEngineService : IDisposable
             xfGainB = _crossfader >= 0.0 ? 1.0f : (float)Math.Clamp(1.0 + _crossfader, 0.0, 1.0);
         }
 
+        float masterGainLin = Math.Abs(_masterGainDb) < 0.01 ? 1.0f : (float)Math.Pow(10.0, _masterGainDb / 20.0);
+
         float masterPeakL = 0f;
         float masterPeakR = 0f;
         float peakAL = 0f, peakAR = 0f;
@@ -573,6 +761,7 @@ public sealed class DjMixerEngineService : IDisposable
             RenderDeckSample(_deckA, outputRate, pureNative, out float aL, out float aR);
             RenderDeckSample(_deckB, outputRate, pureNative, out float bL, out float bR);
 
+            // Deck A & Deck B channel VU meters reflect pure per-deck level (100% independent of MSTR master output trim!)
             float absAL = Math.Abs(aL); if (absAL > peakAL) peakAL = absAL;
             float absAR = Math.Abs(aR); if (absAR > peakAR) peakAR = absAR;
             float absBL = Math.Abs(bL); if (absBL > peakBL) peakBL = absBL;
@@ -582,8 +771,8 @@ public sealed class DjMixerEngineService : IDisposable
             float cueBoostA = _deckA.HeadphoneCueEnabled ? Math.Max(xfGainA, 0.55f) : xfGainA;
             float cueBoostB = _deckB.HeadphoneCueEnabled ? Math.Max(xfGainB, 0.55f) : xfGainB;
 
-            float mixL = aL * cueBoostA + bL * cueBoostB;
-            float mixR = aR * cueBoostA + bR * cueBoostB;
+            float mixL = (aL * cueBoostA + bL * cueBoostB) * masterGainLin;
+            float mixR = (aR * cueBoostA + bR * cueBoostB) * masterGainLin;
 
             if (pureNative)
             {
@@ -780,70 +969,140 @@ public sealed class DjMixerEngineService : IDisposable
         double sL = rawL * gainLin;
         double sR = rawR * gainLin;
 
-        // 2. 6 Stem / Frequency Isolator Performance Pads (Vocal, Instru, Bass, Kick, HiHat, StemsFX)
-        if (deck.PadInstruActive)
+        // 2 & 3. True 24 dB/oct Linkwitz-Riley (LR4) 3-Band Isolator Crossover + 4-Subband Adaptive Mid/Side Stem Engine
+        if (deck.CachedFilterRate != outputRate)
         {
-            // Mid/Side Vocal Cancellation: removes center-panned lead vocals while keeping stereo instruments & bass
-            double side = (sL - sR) * 0.72;
-            double lowMono = (deck.LpLowL + deck.LpLowR) * 0.5;
-            sL = lowMono + side;
-            sR = lowMono - side;
-        }
-        else if (deck.PadVocalActive)
-        {
-            // Center-channel vocal presence focus
-            double mid = (sL + sR) * 0.62;
-            double side = (sL - sR) * 0.18;
-            sL = mid + side;
-            sR = mid - side;
+            deck.CachedFilterRate = outputRate;
+            deck.XoverLow210 = DjButterworthPairCoeffs.Compute(210.0, outputRate);
+            deck.XoverHigh2900 = DjButterworthPairCoeffs.Compute(2900.0, outputRate);
+            deck.StemSplit650 = DjButterworthPairCoeffs.Compute(650.0, outputRate);
+            deck.StemSplit1550 = DjButterworthPairCoeffs.Compute(1550.0, outputRate);
+            deck.StemSplit6200 = DjButterworthPairCoeffs.Compute(4300.0, outputRate);
+            deck.EnvAttackCoeff = 1.0 - Math.Exp(-1.0 / Math.Max(1.0, outputRate * 0.005));
+            deck.EnvReleaseCoeff = 1.0 - Math.Exp(-1.0 / Math.Max(1.0, outputRate * 0.032));
+            deck.MaskSmoothCoeff = 1.0 - Math.Exp(-1.0 / Math.Max(1.0, outputRate * 0.004));
         }
 
-        // 3. 3-Band 12 dB/oct Isolator EQ Crossover (Low < 250 Hz, Mid 250..3800 Hz, High > 3800 Hz)
-        double aLow = Math.Clamp(1.0 - Math.Exp(-2.0 * Math.PI * 250.0 / outputRate), 0.002, 0.25);
-        double aHigh = Math.Clamp(1.0 - Math.Exp(-2.0 * Math.PI * 3800.0 / outputRate), 0.02, 0.65);
+        // Always keep main LR4 crossover states warm on clean (sL, sR) so engaging any EQ or Stem pad mid-mix is 100% click-free,
+        // while keeping (sL, sR) 100% untouched bit-exact when all EQ knobs == 0 dB and all Stem pads are OFF!
+        double bandLowL = ProcessLr4Lp(ref deck.LowLp1L, ref deck.LowLp2L, sL, in deck.XoverLow210);
+        double bandLowR = ProcessLr4Lp(ref deck.LowLp1R, ref deck.LowLp2R, sR, in deck.XoverLow210);
+        double aboveLowL = ProcessLr4Hp(ref deck.LowHp1L, ref deck.LowHp2L, sL, in deck.XoverLow210);
+        double aboveLowR = ProcessLr4Hp(ref deck.LowHp1R, ref deck.LowHp2R, sR, in deck.XoverLow210);
 
-        deck.LpLowL += aLow * (sL - deck.LpLowL);
-        deck.LpLowR += aLow * (sR - deck.LpLowR);
-        double hp1L = sL - deck.LpLowL;
-        double hp1R = sR - deck.LpLowR;
+        double bandMidL = ProcessLr4Lp(ref deck.HighLp1L, ref deck.HighLp2L, aboveLowL, in deck.XoverHigh2900);
+        double bandMidR = ProcessLr4Lp(ref deck.HighLp1R, ref deck.HighLp2R, aboveLowR, in deck.XoverHigh2900);
+        double bandHighL = ProcessLr4Hp(ref deck.HighHp1L, ref deck.HighHp2L, aboveLowL, in deck.XoverHigh2900);
+        double bandHighR = ProcessLr4Hp(ref deck.HighHp1R, ref deck.HighHp2R, aboveLowR, in deck.XoverHigh2900);
 
-        deck.LpLow2L += aLow * (deck.LpLowL - deck.LpLow2L);
-        deck.LpLow2R += aLow * (deck.LpLowR - deck.LpLow2R);
-        deck.HpLowLpL += aLow * (hp1L - deck.HpLowLpL);
-        deck.HpLowLpR += aLow * (hp1R - deck.HpLowLpR);
+        bool stemOrEqActive = deck.PadVocalActive
+                           || deck.PadInstruActive
+                           || deck.PadBassActive
+                           || deck.PadKickKillActive
+                           || deck.PadHiHatKillActive
+                           || Math.Abs(deck.LowDb) > 0.05
+                           || Math.Abs(deck.MidDb) > 0.05
+                           || Math.Abs(deck.HighDb) > 0.05;
 
-        double bandLowL = deck.LpLow2L;
-        double bandLowR = deck.LpLow2R;
-        double midHighL = hp1L - deck.HpLowLpL;
-        double midHighR = hp1R - deck.HpLowLpR;
-
-        deck.LpHighL += aHigh * (midHighL - deck.LpHighL);
-        deck.LpHighR += aHigh * (midHighR - deck.LpHighR);
-
-        double bandMidL = deck.LpHighL;
-        double bandMidR = deck.LpHighR;
-        double bandHighL = midHighL - deck.LpHighL;
-        double bandHighR = midHighR - deck.LpHighR;
-
-        bool eqActive = Math.Abs(deck.LowDb) > 0.05
-                     || Math.Abs(deck.MidDb) > 0.05
-                     || Math.Abs(deck.HighDb) > 0.05
-                     || deck.PadBassActive
-                     || deck.PadKickKillActive
-                     || deck.PadHiHatKillActive;
-
-        if (eqActive)
+        if (stemOrEqActive)
         {
-            double gLow = deck.LowDb <= -34.0 ? 0.0 : Math.Pow(10.0, deck.LowDb / 20.0);
+            double gLow = (deck.PadKickKillActive || deck.LowDb <= -34.0) ? 0.0 : Math.Pow(10.0, deck.LowDb / 20.0);
             double gMid = deck.MidDb <= -34.0 ? 0.0 : Math.Pow(10.0, deck.MidDb / 20.0);
-            double gHigh = deck.HighDb <= -34.0 ? 0.0 : Math.Pow(10.0, deck.HighDb / 20.0);
+            double gHigh = (deck.PadHiHatKillActive || deck.HighDb <= -34.0) ? 0.0 : Math.Pow(10.0, deck.HighDb / 20.0);
 
-            if (deck.PadBassActive) gLow *= 1.65;
-            if (deck.PadKickKillActive) gLow = 0.0;
-            if (deck.PadHiHatKillActive) gHigh = 0.0;
+            if (deck.PadVocalActive || deck.PadInstruActive)
+            {
+                // Decompose vocal spectrum (210 - 6,200 Hz) into 4 formant sub-bands + (> 6,200 Hz) cymbal air
+                ref readonly var c650 = ref deck.StemSplit650;
+                ref readonly var c1550 = ref deck.StemSplit1550;
+                double sub0L = deck.Stem650LpL.Process(bandMidL, c650.LpB0, c650.LpB1, c650.LpB2, c650.A1, c650.A2);
+                double sub0R = deck.Stem650LpR.Process(bandMidR, c650.LpB0, c650.LpB1, c650.LpB2, c650.A1, c650.A2);
+                double remMidL = bandMidL - sub0L;
+                double remMidR = bandMidR - sub0R;
 
-            sL = bandLowL * gLow + bandMidL * gMid + bandHighL * gHigh;
-            sR = bandLowR * gLow + bandMidR * gMid + bandHighR * gHigh;
+                double sub1L = deck.Stem1550LpL.Process(remMidL, c1550.LpB0, c1550.LpB1, c1550.LpB2, c1550.A1, c1550.A2);
+                double sub1R = deck.Stem1550LpR.Process(remMidR, c1550.LpB0, c1550.LpB1, c1550.LpB2, c1550.A1, c1550.A2);
+                double sub2L = remMidL - sub1L;
+                double sub2R = remMidR - sub1R;
+
+                double sub3L = ProcessLr4Lp(ref deck.Stem6200Lp1L, ref deck.Stem6200Lp2L, bandHighL, in deck.StemSplit6200);
+                double sub3R = ProcessLr4Lp(ref deck.Stem6200Lp1R, ref deck.Stem6200Lp2R, bandHighR, in deck.StemSplit6200);
+                double airL = ProcessLr4Hp(ref deck.Stem6200Hp1L, ref deck.Stem6200Hp2L, bandHighL, in deck.StemSplit6200);
+                double airR = ProcessLr4Hp(ref deck.Stem6200Hp1R, ref deck.Stem6200Hp2R, bandHighR, in deck.StemSplit6200);
+
+                UpdateSubbandMask(deck, 0, sub0L, sub0R, out double mid0, out double side0, out double mask0);
+                UpdateSubbandMask(deck, 1, sub1L, sub1R, out double mid1, out double side1, out double mask1);
+                UpdateSubbandMask(deck, 2, sub2L, sub2R, out double mid2, out double side2, out double mask2);
+                UpdateSubbandMask(deck, 3, sub3L, sub3R, out double mid3, out double side3, out double mask3);
+
+                if (deck.PadVocalActive)
+                {
+                    // Vocal / Acapella Stem Isolator:
+                    // - Strips Kick & Sub-Bass (< 210 Hz) completely unless Bass Stem is ALSO toggled ON (Vocal + Bass combo!)
+                    // - Strips Cymbal/Hi-Hat sizzle (> 4.3 kHz at 24 dB/oct)
+                    // - Applies squared Center-Dominance Mask per vocal formant sub-band to reject wide stereo synths/guitars
+                    double vMidBand = (mid0 * (mask0 * mask0 * 1.10)
+                                     + mid1 * (mask1 * mask1 * 1.25)
+                                     + mid2 * (mask2 * mask2 * 1.32)) * gMid;
+                    double vHighArtic = (mid3 * (mask3 * mask3 * 0.92)) * gHigh;
+                    double vSideRoom = (side0 * mask0 + side1 * mask1 + side2 * mask2) * 0.05 * gMid;
+
+                    double vocL = vMidBand + vHighArtic + vSideRoom;
+                    double vocR = vMidBand + vHighArtic - vSideRoom;
+
+                    if (deck.PadBassActive)
+                    {
+                        vocL += bandLowL * 1.20 * gLow;
+                        vocR += bandLowR * 1.20 * gLow;
+                    }
+
+                    sL = vocL;
+                    sR = vocR;
+                }
+                else // deck.PadInstruActive
+                {
+                    // Instrumental Stem (Vocal Remover):
+                    // - Preserves 100% of Kick & Sub-Bass (< 210 Hz) in solid stereo phase!
+                    // - Cancels center-panned lead vocals across 210 - 6,200 Hz while keeping 100% of stereo synths/instruments
+                    // - Uses 6.2 ms Haas stereo decorrelation so stereo instruments remain lush and mono-compatible
+                    double keepMid012 = (mid0 * (1.0 - 0.96 * mask0)
+                                       + mid1 * (1.0 - 0.96 * mask1)
+                                       + mid2 * (1.0 - 0.96 * mask2)) * gMid;
+                    double keepMid3 = (mid3 * (1.0 - 0.94 * mask3)) * gHigh;
+
+                    double sideMid012 = (side0 + side1 + side2) * gMid;
+                    double side3Scaled = side3 * gHigh;
+                    double totalSide = sideMid012 + side3Scaled;
+
+                    int wPos = deck.InstruHaasWritePos;
+                    deck.InstruHaasBuf[wPos] = (float)Math.Clamp(totalSide, -2.0, 2.0);
+                    int delaySamples = Math.Clamp((int)(outputRate * 0.0062), 32, 2000);
+                    int rPos = (wPos - delaySamples + 2048) & 2047;
+                    double haasSide = deck.InstruHaasBuf[rPos];
+                    deck.InstruHaasWritePos = (wPos + 1) & 2047;
+
+                    double airMid = 0.5 * (airL + airR) * 0.65 * gHigh;
+                    double airSide = 0.5 * (airL - airR) * 1.05 * gHigh;
+
+                    double instVocalRangeL = keepMid012 + keepMid3 + totalSide * 1.12;
+                    double instVocalRangeR = keepMid012 + keepMid3 - totalSide * 0.82 + haasSide * 0.42;
+
+                    sL = bandLowL * gLow + instVocalRangeL + (airMid + airSide);
+                    sR = bandLowR * gLow + instVocalRangeR + (airMid - airSide);
+                }
+            }
+            else if (deck.PadBassActive)
+            {
+                // Bass & Kick Stem Isolator: solos < 210 Hz sub-bass & kick at 24 dB/oct while muting vocals, mids & hi-hats!
+                sL = bandLowL * 1.22 * gLow;
+                sR = bandLowR * 1.22 * gLow;
+            }
+            else
+            {
+                // Standard 24 dB/oct Linkwitz-Riley 3-Band Isolator EQ + Kick Kill + HiHat Kill
+                sL = bandLowL * gLow + bandMidL * gMid + bandHighL * gHigh;
+                sR = bandLowR * gLow + bandMidR * gMid + bandHighR * gHigh;
+            }
         }
 
         // 4. Bipolar Resonant DJ Color FILTER Knob (-1 = Low-Pass, 0 = Bypass, +1 = High-Pass)
@@ -943,24 +1202,79 @@ public sealed class DjMixerEngineService : IDisposable
             sR = sR * (1.0 - depth * 0.75) + deck.WahBandR * (depth * 1.65);
         }
 
-        // Stems FX Rhythmic Beat Gate (1/8 note DJ Chopper synced to track beat grid)
+        // Stems FX Rhythmic Beat Gate (Click-Free Raised-Cosine 1/8-Note DJ Chopper synced to track beat grid)
         if (deck.PadStemsFxGateActive)
         {
             double curSec = deck.PlayheadFrame / Math.Max(1, track.SampleRate);
             double eighthPeriod = 30.0 / Math.Max(40.0, deck.BaseBpm);
             double gatePhase = ((curSec - track.FirstBeatSec) / eighthPeriod) % 1.0;
             if (gatePhase < 0) gatePhase += 1.0;
-            if (gatePhase > 0.52)
-            {
-                sL *= 0.08;
-                sR *= 0.08;
-            }
+
+            double gateEnv;
+            if (gatePhase < 0.04)
+                gateEnv = 0.5 - 0.5 * Math.Cos(Math.PI * (gatePhase / 0.04));
+            else if (gatePhase < 0.46)
+                gateEnv = 1.0;
+            else if (gatePhase < 0.54)
+                gateEnv = 0.5 + 0.5 * Math.Cos(Math.PI * ((gatePhase - 0.46) / 0.08));
+            else
+                gateEnv = 0.0;
+
+            sL *= gateEnv;
+            sR *= gateEnv;
         }
 
         // 6. Channel Volume Fader
         float chVol = (float)Math.Clamp(deck.ChannelVolume, 0.0, 1.0);
         outL = (float)(sL * chVol);
         outR = (float)(sR * chVol);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static double ProcessLr4Lp(ref DjBiquadState s1, ref DjBiquadState s2, double x, in DjButterworthPairCoeffs c)
+    {
+        double y1 = s1.Process(x, c.LpB0, c.LpB1, c.LpB2, c.A1, c.A2);
+        return s2.Process(y1, c.LpB0, c.LpB1, c.LpB2, c.A1, c.A2);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static double ProcessLr4Hp(ref DjBiquadState s1, ref DjBiquadState s2, double x, in DjButterworthPairCoeffs c)
+    {
+        double y1 = s1.Process(x, c.HpB0, c.HpB1, c.HpB2, c.A1, c.A2);
+        return s2.Process(y1, c.HpB0, c.HpB1, c.HpB2, c.A1, c.A2);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void UpdateSubbandMask(
+        DjDeckChannelState deck,
+        int subIdx,
+        double inL,
+        double inR,
+        out double mid,
+        out double side,
+        out double smoothedCenterMask)
+    {
+        mid = 0.5 * (inL + inR);
+        side = 0.5 * (inL - inR);
+
+        double absM = Math.Abs(mid);
+        double absS = Math.Abs(side);
+
+        double curM = deck.StemEnvMid[subIdx];
+        double curS = deck.StemEnvSide[subIdx];
+        curM += (absM > curM ? deck.EnvAttackCoeff : deck.EnvReleaseCoeff) * (absM - curM);
+        curS += (absS > curS ? deck.EnvAttackCoeff : deck.EnvReleaseCoeff) * (absS - curS);
+        deck.StemEnvMid[subIdx] = curM;
+        deck.StemEnvSide[subIdx] = curS;
+
+        double m2 = curM * curM;
+        double s2 = curS * curS;
+        double centerDom = m2 / (m2 + 2.8 * s2 + 1e-10);
+
+        double sm = deck.StemMaskSmooth[subIdx];
+        sm += deck.MaskSmoothCoeff * (centerDom - sm);
+        deck.StemMaskSmooth[subIdx] = sm;
+        smoothedCenterMask = sm;
     }
 
     private static void SampleHermiteStereo(float[] left, float[] right, int totalFrames, double pos, out float outL, out float outR)

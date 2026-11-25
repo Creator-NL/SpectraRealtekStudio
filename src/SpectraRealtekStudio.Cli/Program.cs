@@ -455,6 +455,154 @@ internal static class Program
         Console.WriteLine("  [PASS] 11. Sample & Loop Studio Editor (Zero-Crossing Loop Snap, Cut Start/End, Undo/Redo & 192 kHz 24-bit Loop Export) verified.");
         passed++;
 
+        // 12. DJ 2-Point Manual BPM, Draggable Beat-Start Persistence, Per-Track Gain Auto-Restore & 0.01% Fine Pitch
+        string tempCalibWav = Path.Combine(Path.GetTempPath(), $"Spectra_Calib_{Guid.NewGuid():N}.wav");
+        try
+        {
+            File.WriteAllBytes(tempCalibWav, SpeakerTestToneService.GeneratePureToneWav(220.0, 2.5, 48000));
+            var t1 = studio.DjDecoder.LoadAndAnalyzeTrack(tempCalibWav, forceReanalyze: true, preserveNativeSampleRate: true);
+            double pt1 = 0.312;
+            double pt2 = pt1 + (240.0 / 136.00);
+            double twoPtBpm = Math.Round((60.0 * 4) / (pt2 - pt1), 2);
+            studio.DjDecoder.SaveTrackBeatGridAndBpm(t1, twoPtBpm, pt1);
+            studio.DjDecoder.SaveTrackGainDb(t1, -2.8);
+
+            var t2 = studio.DjDecoder.LoadAndAnalyzeTrack(tempCalibWav, forceReanalyze: true, preserveNativeSampleRate: true);
+            if (Math.Abs(t2.DetectedBpm - 136.00) > 0.01 || Math.Abs(t2.FirstBeatSec - 0.312) > 0.001 || !t2.HasSavedGain || Math.Abs(t2.SavedGainDb - (-2.8)) > 0.05)
+                throw new InvalidOperationException("DJ per-track BPM, Beat-Start, or Gain persistence verification failed.");
+
+            using var calibMixer = new DjMixerEngineService();
+            calibMixer.LoadTrackToDeck(DjDeckId.DeckA, t2);
+            calibMixer.DeckA.PitchPercent = 6.31;
+            double sp1 = calibMixer.DeckA.SpeedMultiplier;
+            calibMixer.DeckA.PitchPercent = 6.32;
+            double sp2 = calibMixer.DeckA.SpeedMultiplier;
+            if (Math.Abs(calibMixer.DeckA.GainDb - (-2.8)) > 0.05 || Math.Abs(sp1 - 1.0631) > 1e-6 || Math.Abs(sp2 - 1.0632) > 1e-6)
+                throw new InvalidOperationException("DJ automatic Gain restore or 0.01% pitch step verification failed.");
+
+            // Verify Beat-Quantized Loop snaps LoopStartFrame to exact Beat Marker even when triggered mid-beat
+            double beatSec = 60.0 / 136.00;
+            double expectedBeat2Frame = (0.312 + 2.0 * beatSec) * t2.SampleRate;
+            calibMixer.DeckA.IsPlaying = true;
+            calibMixer.DeckA.PlayheadFrame = expectedBeat2Frame + 0.14 * beatSec * t2.SampleRate;
+            calibMixer.ToggleAutoLoop(DjDeckId.DeckA, 1.0);
+            if (!calibMixer.DeckA.LoopActive || Math.Abs(calibMixer.DeckA.LoopStartFrame - expectedBeat2Frame) > 1.0)
+                throw new InvalidOperationException("DJ Beat-Quantized Auto-Loop failed to snap to nearest beat marker.");
+
+            // Verify StopAndReturnToStart stops playback, clears loop, and rewinds PlayheadFrame to 0.0
+            calibMixer.StopAndReturnToStart(DjDeckId.DeckA);
+            if (calibMixer.DeckA.IsPlaying || calibMixer.DeckA.LoopActive || Math.Abs(calibMixer.DeckA.PlayheadFrame) > 1e-6)
+                throw new InvalidOperationException("DJ StopAndReturnToStart failed to stop and rewind Deck A to 0:00.0.");
+
+            // Verify Pitch resets to 0.00% on new track load, exact Sync precision (142 -> 136.00 BPM without 135.99 rounding drift),
+            // and ALT+Click Cue Set + Normal Click Jump-and-Pause Ready behavior!
+            calibMixer.DeckA.PitchPercent = -4.23;
+            calibMixer.LoadTrackToDeck(DjDeckId.DeckA, t2);
+            if (Math.Abs(calibMixer.DeckA.PitchPercent) > 1e-9)
+                throw new InvalidOperationException("DJ LoadTrackToDeck failed to reset PitchPercent to 0.00%.");
+
+            calibMixer.DeckA.PlayheadFrame = 12000;
+            calibMixer.DeckA.IsPlaying = true;
+            calibMixer.TriggerHotCue(DjDeckId.DeckA, 0, clearOnly: false, setCuePoint: true); // ALT+Click sets CUE 1 at 12000
+            calibMixer.DeckA.PlayheadFrame = 36000;
+            calibMixer.TriggerHotCue(DjDeckId.DeckA, 0, clearOnly: false, setCuePoint: false); // Normal Click jumps to 12000 & pauses ready!
+            if (calibMixer.DeckA.IsPlaying || Math.Abs(calibMixer.DeckA.PlayheadFrame - 12000) > 1e-3)
+                throw new InvalidOperationException("DJ Hot Cue ALT+Click set / Normal Click jump-and-pause failed.");
+
+            calibMixer.DeckA.PlayheadFrame = 24000;
+            calibMixer.DeckA.IsPlaying = true;
+            calibMixer.TriggerMainCue(DjDeckId.DeckA, setCuePoint: true); // ALT+Click sets Main CUE at 24000
+            calibMixer.DeckA.PlayheadFrame = 40000;
+            calibMixer.TriggerMainCue(DjDeckId.DeckA, setCuePoint: false); // Normal Click jumps to 24000 & pauses ready!
+            if (calibMixer.DeckA.IsPlaying || Math.Abs(calibMixer.DeckA.PlayheadFrame - 24000) > 1e-3)
+                throw new InvalidOperationException("DJ Main CUE ALT+Click set / Normal Click jump-and-pause failed.");
+
+            // Verify 2-Deck MasterGainDb (-6.02 dB) prevents combined 2-channel mix clipping while 0.0 dB keeps exact unity
+            float[] fullScale = new float[256];
+            Array.Fill(fullScale, 0.85f);
+            using var masterTrimMixer = new DjMixerEngineService { PureNativeQualityMode = true };
+            masterTrimMixer.LoadTrackToDeck(DjDeckId.DeckA, new DjLoadedTrack { Title = "A", SampleRate = 48000, TotalFrames = 256, Left = fullScale, Right = fullScale, DetectedBpm = 128 });
+            masterTrimMixer.LoadTrackToDeck(DjDeckId.DeckB, new DjLoadedTrack { Title = "B", SampleRate = 48000, TotalFrames = 256, Left = fullScale, Right = fullScale, DetectedBpm = 128 });
+            masterTrimMixer.DeckA.IsPlaying = true;
+            masterTrimMixer.DeckB.IsPlaying = true;
+            masterTrimMixer.MasterGainDb = -6.02; // ~0.50x master trim -> 0.85 + 0.85 = 1.70 * 0.50 = ~0.85 (no clipping!)
+            float[] mL = new float[64];
+            float[] mR = new float[64];
+            masterTrimMixer.MixStereoBuffer(mL, mR, 64, 48000);
+            if (mL[0] < 0.80f || mL[0] > 0.90f || Math.Abs(masterTrimMixer.DeckA.PeakLeft - 0.85f) > 0.01f || Math.Abs(masterTrimMixer.DeckB.PeakLeft - 0.85f) > 0.01f)
+                throw new InvalidOperationException($"DJ 2-Deck MasterGainDb check failed: mix={mL[0]:0.000}, deckAPeak={masterTrimMixer.DeckA.PeakLeft:0.000}");
+        }
+        finally
+        {
+            if (File.Exists(tempCalibWav)) File.Delete(tempCalibWav);
+        }
+        Console.WriteLine("  [PASS] 12. DJ 2-Point BPM, Beat-Start & Gain, Master Gain Trim, Stop-to-Start & 0.01% Pitch verified.");
+        passed++;
+
+        // 13. 24 dB/oct Linkwitz-Riley & 4-Subband Mid/Side DJ Stems Verification (Vocal, Instru, Bass, Kick Kill, HiHat Kill @ 192 kHz)
+        {
+            int sr = 192000;
+            int n = sr / 2; // 0.5 sec = 96,000 frames at 192 kHz
+            float[] bass70 = new float[n];
+            float[] vocal1400 = new float[n];
+            float[] synthSideL = new float[n];
+            float[] synthSideR = new float[n];
+            float[] hihat9000 = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                bass70[i] = 0.5f * MathF.Sin((float)(2.0 * Math.PI * 70.0 * i / sr));
+                vocal1400[i] = 0.5f * MathF.Sin((float)(2.0 * Math.PI * 1400.0 * i / sr));
+                float syn = 0.5f * MathF.Sin((float)(2.0 * Math.PI * 750.0 * i / sr));
+                synthSideL[i] = syn;
+                synthSideR[i] = -syn;
+                hihat9000[i] = 0.5f * MathF.Sin((float)(2.0 * Math.PI * 9000.0 * i / sr));
+            }
+
+            static float MeasureSteadyPeak(float[] inL, float[] inR, int rate, Action<DjDeckChannelState> cfg)
+            {
+                using var m = new DjMixerEngineService { PureNativeQualityMode = true };
+                m.LoadTrackToDeck(DjDeckId.DeckA, new DjLoadedTrack { Title = "StemTest", SampleRate = rate, TotalFrames = inL.Length, Left = inL, Right = inR, DetectedBpm = 128 });
+                m.DeckA.IsPlaying = true;
+                cfg(m.DeckA);
+                int frames = rate / 4; // 250 ms settle + measure tail
+                float[] oL = new float[frames];
+                float[] oR = new float[frames];
+                m.MixStereoBuffer(oL, oR, frames, rate);
+                float pk = 0f;
+                for (int i = frames / 2; i < frames; i++)
+                {
+                    float p = Math.Max(Math.Abs(oL[i]), Math.Abs(oR[i]));
+                    if (p > pk) pk = p;
+                }
+                return pk;
+            }
+
+            // Vocal Stem: passes 1.4 kHz center vocal (>0.45), kills 70 Hz kick (<0.03), kills 9 kHz hihat (<0.04), rejects 750 Hz stereo synth (<0.03)
+            float vocOnVocal = MeasureSteadyPeak(vocal1400, vocal1400, sr, d => d.PadVocalActive = true);
+            float vocOnBass = MeasureSteadyPeak(bass70, bass70, sr, d => d.PadVocalActive = true);
+            float vocOnSynth = MeasureSteadyPeak(synthSideL, synthSideR, sr, d => d.PadVocalActive = true);
+            float vocOnHihat = MeasureSteadyPeak(hihat9000, hihat9000, sr, d => d.PadVocalActive = true);
+            if (vocOnVocal < 0.45f || vocOnBass > 0.035f || vocOnSynth > 0.03f || vocOnHihat > 0.04f)
+                throw new InvalidOperationException($"Vocal Stem isolation failed: voc={vocOnVocal:0.000}, bass={vocOnBass:0.000}, syn={vocOnSynth:0.000}, hat={vocOnHihat:0.000}");
+
+            // Instru Stem: preserves 100% of 70 Hz kick (>0.47), preserves stereo synth (>0.45), cancels 1.4 kHz center vocal (<0.035)
+            float instOnBass = MeasureSteadyPeak(bass70, bass70, sr, d => d.PadInstruActive = true);
+            float instOnSynth = MeasureSteadyPeak(synthSideL, synthSideR, sr, d => d.PadInstruActive = true);
+            float instOnVocal = MeasureSteadyPeak(vocal1400, vocal1400, sr, d => d.PadInstruActive = true);
+            if (instOnBass < 0.47f || instOnSynth < 0.45f || instOnVocal > 0.035f)
+                throw new InvalidOperationException($"Instru Stem separation failed: bass={instOnBass:0.000}, syn={instOnSynth:0.000}, voc={instOnVocal:0.000}");
+
+            // Bass Stem Solo + 24 dB/oct Kick Kill + 24 dB/oct HiHat Kill
+            float bassSoloOnBass = MeasureSteadyPeak(bass70, bass70, sr, d => d.PadBassActive = true);
+            float bassSoloOnVoc = MeasureSteadyPeak(vocal1400, vocal1400, sr, d => d.PadBassActive = true);
+            float kickKillOnBass = MeasureSteadyPeak(bass70, bass70, sr, d => d.PadKickKillActive = true);
+            float hihatKillOnHat = MeasureSteadyPeak(hihat9000, hihat9000, sr, d => d.PadHiHatKillActive = true);
+            if (bassSoloOnBass < 0.50f || bassSoloOnVoc > 0.02f || kickKillOnBass > 0.035f || hihatKillOnHat > 0.035f)
+                throw new InvalidOperationException($"Bass Solo / Kick Kill / HiHat Kill 24 dB/oct check failed: bSolo={bassSoloOnBass:0.000}, bVoc={bassSoloOnVoc:0.000}, kKill={kickKillOnBass:0.000}, hKill={hihatKillOnHat:0.000}");
+        }
+        Console.WriteLine("  [PASS] 13. 24 dB/oct LR4 & 4-Subband Mid/Side DJ Stems (Vocal, Instru w/ Full Bass, Bass Solo, Kick & HiHat Kill @ 192 kHz) verified.");
+        passed++;
+
         Console.WriteLine($"All {passed}/{passed} verification checks PASSED.");
         return 0;
     }

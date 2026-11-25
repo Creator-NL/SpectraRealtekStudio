@@ -102,6 +102,8 @@ public partial class MainWindow : Window
     };
 
     private bool _suppressUiEvents;
+    private static volatile bool _globalTooltipsEnabled = true;
+    private static bool _tooltipClassHandlerRegistered;
     private System.Windows.Forms.NotifyIcon? _trayIcon;
     private System.Windows.Forms.ToolStripMenuItem? _trayPresetsMenu;
     private HwndSource? _hwndSource;
@@ -130,11 +132,13 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _appSettings = _studio.Presets.LoadAppSettings();
+        _globalTooltipsEnabled = _appSettings.TooltipsEnabled;
         _userTargetGainDb = Math.Round(Math.Clamp(_appSettings.MasterPreampGainDb, MinMasterGainDb, MaxMasterGainDb), 1);
         _liveEffectiveGainDb = _userTargetGainDb;
 
-        // Global tooltip gate so toggling "Show Helpful Tooltips" disables/enables every tooltip across all tabs instantly
-        AddHandler(ToolTipService.ToolTipOpeningEvent, new ToolTipEventHandler(OnAnyToolTipOpening), handledEventsToo: true);
+        // Global class-level tooltip gate: ToolTipService.ToolTipOpeningEvent uses RoutingStrategy.Direct (never bubbles!),
+        // so registering a ClassHandler on FrameworkElement & FrameworkContentElement intercepts 100% of tooltips across all tabs & popups!
+        EnsureGlobalTooltipGateRegistered();
 
         BuildEqualizerBandSliders();
         BuildRoomCorrectionChannelRows();
@@ -171,11 +175,62 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnAnyToolTipOpening(object sender, ToolTipEventArgs e)
+    private static void EnsureGlobalTooltipGateRegistered()
     {
-        if (!_appSettings.TooltipsEnabled)
+        if (_tooltipClassHandlerRegistered)
+            return;
+
+        _tooltipClassHandlerRegistered = true;
+        EventManager.RegisterClassHandler(
+            typeof(FrameworkElement),
+            ToolTipService.ToolTipOpeningEvent,
+            new ToolTipEventHandler(OnClassToolTipOpening),
+            handledEventsToo: true);
+        EventManager.RegisterClassHandler(
+            typeof(FrameworkContentElement),
+            ToolTipService.ToolTipOpeningEvent,
+            new ToolTipEventHandler(OnClassToolTipOpening),
+            handledEventsToo: true);
+    }
+
+    private static void OnClassToolTipOpening(object sender, ToolTipEventArgs e)
+    {
+        if (!_globalTooltipsEnabled)
         {
             e.Handled = true;
+        }
+    }
+
+    private static void ApplyTooltipStateAcrossOpenWindows(bool enabled)
+    {
+        _globalTooltipsEnabled = enabled;
+        if (Application.Current == null)
+            return;
+
+        foreach (Window win in Application.Current.Windows)
+        {
+            SetElementTooltipsRecursive(win, enabled);
+        }
+    }
+
+    private static void SetElementTooltipsRecursive(DependencyObject? root, bool enabled)
+    {
+        if (root == null)
+            return;
+
+        ToolTipService.SetIsEnabled(root, enabled);
+        if (!enabled && root is FrameworkElement fe && fe.ToolTip is ToolTip openTt && openTt.IsOpen)
+        {
+            openTt.IsOpen = false;
+        }
+
+        if (root is Visual || root is System.Windows.Media.Media3D.Visual3D)
+        {
+            int count = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                SetElementTooltipsRecursive(VisualTreeHelper.GetChild(root, i), enabled);
+            }
         }
     }
 
@@ -191,6 +246,7 @@ public partial class MainWindow : Window
         try
         {
             MnuShowTooltips.IsChecked = _appSettings.TooltipsEnabled;
+            ApplyTooltipStateAcrossOpenWindows(_appSettings.TooltipsEnabled);
             MnuShowIdleHints.IsChecked = _appSettings.ShowIdleHints;
             ApplyIdleHintPreference();
             BtnAutoGain.IsChecked = _appSettings.AutoGainEnabled;
@@ -219,6 +275,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        ApplyTooltipStateAcrossOpenWindows(_appSettings.TooltipsEnabled);
         RefreshPresetComboBox();
         RefreshAllData();
         UpdateGainKnobVisual();
@@ -243,13 +300,14 @@ public partial class MainWindow : Window
     {
         if (WindowState == WindowState.Minimized)
         {
-            StopVisualizer();
+            if (!IsVisualizerPoppedOut)
+                StopVisualizer();
             OnRecorderWindowMinimized();
             OnDjWindowMinimized();
         }
         else
         {
-            if (_visIsActiveTab && IsVisible && !_visPaused)
+            if ((IsVisualizerPoppedOut || (_visIsActiveTab && IsVisible)) && !_visPaused)
             {
                 StartVisualizer();
             }
@@ -262,6 +320,7 @@ public partial class MainWindow : Window
     {
         _meterTimer.Stop();
         _jackSenseTimer.Stop();
+        CloseVisualizerPopoutOnAppExit();
         StopVisualizer();
         ShutdownRecorderOnAppClose();
         ShutdownDjOnAppClose();
@@ -1345,8 +1404,9 @@ public partial class MainWindow : Window
     private void MnuShowTooltips_Click(object sender, RoutedEventArgs e)
     {
         _appSettings.TooltipsEnabled = MnuShowTooltips.IsChecked;
+        ApplyTooltipStateAcrossOpenWindows(_appSettings.TooltipsEnabled);
         _studio.Presets.SaveAppSettings(_appSettings);
-        SetStatus($"Helpful Tooltips {(_appSettings.TooltipsEnabled ? "ENABLED" : "DISABLED")}.");
+        SetStatus($"Helpful Tooltips {(_appSettings.TooltipsEnabled ? "ENABLED" : "DISABLED (all hover popups hidden)")}.");
     }
 
     private void MnuShowIdleHints_Click(object sender, RoutedEventArgs e)
@@ -1625,7 +1685,8 @@ public partial class MainWindow : Window
 
     private void BtnToTray_Click(object sender, RoutedEventArgs e)
     {
-        StopVisualizer();
+        if (!IsVisualizerPoppedOut)
+            StopVisualizer();
         OnRecorderWindowMinimized();
         Hide();
         _trayIcon?.ShowBalloonTip(

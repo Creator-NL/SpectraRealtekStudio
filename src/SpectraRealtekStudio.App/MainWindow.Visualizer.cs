@@ -22,9 +22,26 @@ public partial class MainWindow
     private bool _visIsActiveTab;
     private bool _visSweepActive;
     private bool _visFocusMode;
+    private bool _visPopoutMinimalMode;
+    private VisualizerPopoutWindow? _visPopoutWindow;
+    private bool _visDockingInProgress;
+    private DateTime _visLastViewportClickUtc = DateTime.MinValue;
     private int _visLastAxisSampleRate;
     private bool _visIdleHintConsumedThisSession;
     private DateTime _visIdleHintExpiresUtc = DateTime.MinValue;
+
+    public bool IsVisualizerPoppedOut => _visPopoutWindow != null;
+
+    private bool IsVisualizerActiveAndVisible()
+    {
+        if (_visPaused)
+            return false;
+
+        if (_visPopoutWindow != null)
+            return _visPopoutWindow.IsVisible && _visPopoutWindow.WindowState != WindowState.Minimized;
+
+        return _visIsActiveTab && IsVisible && WindowState != WindowState.Minimized;
+    }
 
     // 256-entry precomputed color lookup table (BGRA32) + cyclic LUT for seamless sideways Color Flow
     private readonly uint[] _visPaletteLut = new uint[256];
@@ -96,7 +113,10 @@ public partial class MainWindow
 
     private void StartVisualizer()
     {
-        if (_visualizerTimer == null || WindowState == WindowState.Minimized || !IsVisible)
+        if (_visualizerTimer == null)
+            return;
+
+        if (_visPopoutWindow == null && (WindowState == WindowState.Minimized || !IsVisible))
             return;
 
         EnsureVisualizerBitmap();
@@ -129,7 +149,7 @@ public partial class MainWindow
 
     private void OnActivePlaybackEndpointChangedForVisualizer()
     {
-        if (_visIsActiveTab && !_visPaused && IsVisible && WindowState != WindowState.Minimized)
+        if (IsVisualizerActiveAndVisible())
         {
             _studio.Visualizer.Start(_activePlaybackEndpoint?.EndpointId);
         }
@@ -146,19 +166,27 @@ public partial class MainWindow
             _visIsActiveTab = nowOnVis;
             if (nowOnVis)
             {
-                _visPaused = false;
-                if (BtnVisPause != null)
-                    BtnVisPause.Content = "Pause";
-                StartVisualizer();
+                if (_visPopoutWindow == null)
+                {
+                    _visPaused = false;
+                    if (BtnVisPause != null)
+                        BtnVisPause.Content = "Pause";
+                    StartVisualizer();
+                }
             }
             else
             {
                 if (_visFocusMode)
                     SetVisualizerFocusMode(false);
-                _visPaused = false;
-                if (BtnVisPause != null)
-                    BtnVisPause.Content = "Pause";
-                StopVisualizer();
+
+                // Keep the 60 FPS Visualizer running continuously while popped out (e.g. while mixing on Tab 9 DJ)!
+                if (_visPopoutWindow == null)
+                {
+                    _visPaused = false;
+                    if (BtnVisPause != null)
+                        BtnVisPause.Content = "Pause";
+                    StopVisualizer();
+                }
             }
         }
 
@@ -171,16 +199,230 @@ public partial class MainWindow
 
     private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && _visFocusMode)
+        if (e.Key == Key.Escape)
         {
-            SetVisualizerFocusMode(false);
-            e.Handled = true;
+            if (_djTwoPointDeck.HasValue || _djUnlockedBeatDeck.HasValue)
+            {
+                LockAndCloseDjCalibration();
+                e.Handled = true;
+                return;
+            }
+
+            if (_visFocusMode)
+            {
+                SetVisualizerFocusMode(false);
+                e.Handled = true;
+            }
         }
     }
 
     private void BtnVisFocus_Click(object sender, RoutedEventArgs e)
     {
-        SetVisualizerFocusMode(!_visFocusMode);
+        if (_visPopoutWindow != null)
+        {
+            SetPopoutMinimalMode(!_visPopoutMinimalMode);
+        }
+        else
+        {
+            SetVisualizerFocusMode(!_visFocusMode);
+        }
+    }
+
+    private void VisualizerViewport_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var now = DateTime.UtcNow;
+        if (e.ClickCount >= 2 || (now - _visLastViewportClickUtc).TotalMilliseconds < 320)
+        {
+            _visLastViewportClickUtc = DateTime.MinValue;
+            if (_visPopoutWindow != null)
+                SetPopoutMinimalMode(!_visPopoutMinimalMode);
+            else
+                SetVisualizerFocusMode(!_visFocusMode);
+            e.Handled = true;
+            return;
+        }
+        _visLastViewportClickUtc = now;
+    }
+
+    private void SetPopoutMinimalMode(bool minimal)
+    {
+        _visPopoutMinimalMode = minimal;
+        if (BorderVisToolbar != null)
+            BorderVisToolbar.Visibility = minimal ? Visibility.Collapsed : Visibility.Visible;
+        if (BorderVisTelemetry != null)
+            BorderVisTelemetry.Visibility = minimal ? Visibility.Collapsed : Visibility.Visible;
+        if (GridVisualizerContent != null)
+            GridVisualizerContent.Margin = minimal ? new Thickness(6, 6, 6, 4) : new Thickness(12, 10, 12, 10);
+        if (BtnVisFocus != null)
+            BtnVisFocus.Content = minimal ? "✕ Toolbar" : "⛶ Focus";
+    }
+
+    private void BtnVisPopout_Click(object sender, RoutedEventArgs e)
+    {
+        if (_visPopoutWindow == null)
+        {
+            OpenVisualizerPopoutWindow();
+        }
+        else
+        {
+            DockVisualizerBackToTab();
+        }
+    }
+
+    private void BtnVisBringPopoutFront_Click(object sender, RoutedEventArgs e)
+    {
+        if (_visPopoutWindow != null)
+        {
+            if (_visPopoutWindow.WindowState == WindowState.Minimized)
+                _visPopoutWindow.WindowState = WindowState.Normal;
+            _visPopoutWindow.Activate();
+        }
+    }
+
+    private void BtnVisPinTop_Click(object sender, RoutedEventArgs e)
+    {
+        if (_visPopoutWindow == null || BtnVisPinTop == null)
+            return;
+
+        _visPopoutWindow.Topmost = !_visPopoutWindow.Topmost;
+        BtnVisPinTop.Content = _visPopoutWindow.Topmost ? "📌 Pinned" : "📌 Pin";
+        BtnVisPinTop.BorderBrush = _visPopoutWindow.Topmost ? (Brush)FindResource("Green") : (Brush)FindResource("Line");
+        BtnVisPinTop.Foreground = _visPopoutWindow.Topmost ? (Brush)FindResource("Green") : (Brush)FindResource("Cyan");
+    }
+
+    private void OpenVisualizerPopoutWindow()
+    {
+        if (_visPopoutWindow != null || TabVisualizerHost == null || GridVisualizerContent == null)
+            return;
+
+        if (_visFocusMode)
+            SetVisualizerFocusMode(false);
+
+        TabVisualizerHost.Children.Remove(GridVisualizerContent);
+        GridVisualizerContent.Margin = new Thickness(12, 10, 12, 10);
+        BorderVisPopoutPlaceholder.Visibility = Visibility.Visible;
+
+        var popout = new VisualizerPopoutWindow
+        {
+            Owner = this
+        };
+        popout.AttachVisualizerView(GridVisualizerContent);
+        popout.DockRequested += () =>
+        {
+            if (!_visDockingInProgress)
+                DockVisualizerBackToTab(fromWindowClosing: true);
+        };
+        popout.EscapePressed += () =>
+        {
+            if (_visPopoutMinimalMode)
+                SetPopoutMinimalMode(false);
+        };
+        popout.WindowStateUpdated += () =>
+        {
+            if (popout.WindowState == WindowState.Minimized)
+            {
+                if (!_visIsActiveTab)
+                    StopVisualizer();
+            }
+            else if (!_visPaused)
+            {
+                StartVisualizer();
+            }
+        };
+
+        _visPopoutWindow = popout;
+        BtnVisPopout.Content = "↙ Dock";
+        BtnVisPinTop.Visibility = Visibility.Visible;
+        BtnVisPinTop.Content = "📌 Pin";
+        if (BtnDjPopoutVis != null)
+        {
+            BtnDjPopoutVis.Content = "📊 Dock Vis";
+            BtnDjPopoutVis.BorderBrush = (Brush)FindResource("Green");
+            BtnDjPopoutVis.Foreground = (Brush)FindResource("Green");
+        }
+
+        _visPaused = false;
+        if (BtnVisPause != null)
+            BtnVisPause.Content = "Pause";
+
+        popout.Show();
+        StartVisualizer();
+        SetStatus("Popped out Live 60 FPS Visualizer — resize & place anywhere on screen while mixing on Tab 9 DJ! (Double-click spectrum for borderless Focus view)");
+    }
+
+    private void DockVisualizerBackToTab(bool fromWindowClosing = false)
+    {
+        if (_visPopoutWindow == null || _visDockingInProgress)
+            return;
+
+        _visDockingInProgress = true;
+        try
+        {
+            var popout = _visPopoutWindow;
+            _visPopoutWindow = null;
+
+            if (_visPopoutMinimalMode)
+                SetPopoutMinimalMode(false);
+
+            popout.DetachVisualizerView();
+            if (!fromWindowClosing)
+            {
+                popout.Close();
+            }
+
+            if (TabVisualizerHost != null && GridVisualizerContent != null && !TabVisualizerHost.Children.Contains(GridVisualizerContent))
+            {
+                GridVisualizerContent.Margin = new Thickness(14, 12, 14, 12);
+                TabVisualizerHost.Children.Add(GridVisualizerContent);
+            }
+
+            if (BorderVisPopoutPlaceholder != null)
+                BorderVisPopoutPlaceholder.Visibility = Visibility.Collapsed;
+
+            if (BtnVisPopout != null)
+                BtnVisPopout.Content = "⧉ Popout";
+            if (BtnVisPinTop != null)
+                BtnVisPinTop.Visibility = Visibility.Collapsed;
+            if (BtnDjPopoutVis != null)
+            {
+                BtnDjPopoutVis.Content = "📊 Visualizer";
+                BtnDjPopoutVis.BorderBrush = (Brush)FindResource("Line");
+                BtnDjPopoutVis.Foreground = (Brush)FindResource("Cyan");
+            }
+
+            if (_visIsActiveTab && IsVisible && WindowState != WindowState.Minimized && !_visPaused)
+            {
+                EnsureVisualizerBitmap();
+                RenderVisualizerFreqAxis();
+                StartVisualizer();
+            }
+            else
+            {
+                StopVisualizer();
+            }
+
+            SetStatus("Docked Live 60 FPS Visualizer back into Tab 7.");
+        }
+        finally
+        {
+            _visDockingInProgress = false;
+        }
+    }
+
+    private void CloseVisualizerPopoutOnAppExit()
+    {
+        if (_visPopoutWindow != null)
+        {
+            _visDockingInProgress = true;
+            try
+            {
+                _visPopoutWindow.DetachVisualizerView();
+                _visPopoutWindow.Close();
+            }
+            catch { }
+            _visPopoutWindow = null;
+            _visDockingInProgress = false;
+        }
     }
 
     private void SetVisualizerFocusMode(bool enable)
@@ -389,8 +631,8 @@ public partial class MainWindow
         if (VisualizerViewport == null || ImgVisualizer == null)
             return;
 
-        int w = Math.Clamp((int)Math.Round(VisualizerViewport.ActualWidth), 512, 1920);
-        int h = Math.Clamp((int)Math.Round(VisualizerViewport.ActualHeight), 260, 1080);
+        int w = Math.Clamp((int)Math.Round(VisualizerViewport.ActualWidth), 240, 3840);
+        int h = Math.Clamp((int)Math.Round(VisualizerViewport.ActualHeight), 120, 2160);
         if (w == _visWidth && h == _visHeight && _visBitmap != null)
             return;
 
@@ -417,7 +659,7 @@ public partial class MainWindow
 
     private void VisualizerTimer_Tick(object? sender, EventArgs e)
     {
-        if (!_visIsActiveTab || _visPaused || WindowState == WindowState.Minimized || !IsVisible)
+        if (!IsVisualizerActiveAndVisible())
             return;
 
         if (_visBitmap == null || _visWidth <= 0 || _visHeight <= 0)

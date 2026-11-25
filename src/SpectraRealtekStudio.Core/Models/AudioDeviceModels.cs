@@ -282,6 +282,8 @@ public sealed class AppUserSettings
     public string DjLastFolderPath { get; set; } = string.Empty;
     public List<string> DjCustomFolders { get; set; } = new();
     public bool DjLoadAsIsNativeQuality { get; set; } = true;
+    public bool DjTopToolbarCollapsed { get; set; } = false;
+    public double DjMasterGainDb { get; set; } = 0.0;
 }
 
 public enum RecordingBitFormat

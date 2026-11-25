@@ -404,6 +404,154 @@ public class RealtekStudioTests
     }
 
     [Fact]
+    public void DjTrackCalibration_ShouldPersistCustom2PointBpmBeatStartAndTrackGainAndSupport001Pitch()
+    {
+        string tempWav = Path.Combine(Path.GetTempPath(), $"spectra_calib_{Guid.NewGuid():N}.wav");
+        try
+        {
+            File.WriteAllBytes(tempWav, SpeakerTestToneService.GeneratePureToneWav(220.0, 2.5, 48000));
+
+            var decoder = new DjTrackDecoderService();
+            var track = decoder.LoadAndAnalyzeTrack(tempWav, forceReanalyze: true, preserveNativeSampleRate: true);
+
+            // 1. 2-Point BPM calculation across 4 beats: P1 = 0.245s, P2 = 0.245s + (240.0 / 136.0)s -> 136.00 BPM
+            double p1 = 0.245;
+            double p2 = p1 + (240.0 / 136.0);
+            double calcBpm = Math.Round((60.0 * 4) / (p2 - p1), 2);
+            Assert.Equal(136.00, calcBpm, 2);
+
+            // 2. Save custom BPM, dragged beat-grid start, and per-track Gain (-3.4 dB)
+            decoder.SaveTrackBeatGridAndBpm(track, calcBpm, p1);
+            decoder.SaveTrackGainDb(track, -3.4);
+
+            // 3. Re-load track (even with forceReanalyze: true!) and verify custom BPM, beat start & Gain are preserved!
+            var reloaded = decoder.LoadAndAnalyzeTrack(tempWav, forceReanalyze: true, preserveNativeSampleRate: true);
+            Assert.Equal(136.00, reloaded.DetectedBpm, 2);
+            Assert.Equal(0.245, reloaded.FirstBeatSec, 3);
+            Assert.True(reloaded.HasSavedGain);
+            Assert.Equal(-3.4, reloaded.SavedGainDb, 1);
+
+            // 4. Verify LoadTrackToDeck automatically restores per-track GainDb & supports 0.01% pitch steps (6.31% -> 6.32%)
+            using var mixer = new DjMixerEngineService();
+            mixer.LoadTrackToDeck(DjDeckId.DeckB, reloaded);
+            Assert.Equal(-3.4, mixer.DeckB.GainDb, 1);
+
+            mixer.DeckB.PitchPercent = 6.31;
+            Assert.Equal(1.0631, mixer.DeckB.SpeedMultiplier, 6);
+            mixer.DeckB.PitchPercent = 6.32;
+            Assert.Equal(1.0632, mixer.DeckB.SpeedMultiplier, 6);
+
+            // 5. Verify Beat-Quantized Loop snaps LoopStartFrame exactly to the nearest Beat Marker even when triggered mid-beat!
+            double beatPeriodSec = 60.0 / 136.0;
+            double beat2ExactFrames = (0.245 + 2.0 * beatPeriodSec) * reloaded.SampleRate;
+            mixer.DeckB.IsPlaying = true;
+            mixer.DeckB.PlayheadFrame = beat2ExactFrames + 0.15 * beatPeriodSec * reloaded.SampleRate; // slightly past Beat 2
+            mixer.ToggleAutoLoop(DjDeckId.DeckB, 1.0);
+            Assert.True(mixer.DeckB.LoopActive);
+            Assert.Equal(beat2ExactFrames, mixer.DeckB.LoopStartFrame, 1);
+
+            // 6. Verify StopAndReturnToStart stops playback, clears active loop, and rewinds PlayheadFrame to 0.0
+            mixer.StopAndReturnToStart(DjDeckId.DeckB);
+            Assert.False(mixer.DeckB.IsPlaying);
+            Assert.False(mixer.DeckB.LoopActive);
+            Assert.Equal(0.0, mixer.DeckB.PlayheadFrame, 4);
+
+            // 6b. Verify Pitch resets to 0.00% on new track load + ALT+Click Cue Set & Normal Click Jump-and-Pause + Per-Track Cue Persistence
+            mixer.DeckB.PitchPercent = -4.23;
+            mixer.LoadTrackToDeck(DjDeckId.DeckB, reloaded);
+            Assert.Equal(0.0, mixer.DeckB.PitchPercent, 6);
+
+            mixer.DeckB.PlayheadFrame = 15000;
+            mixer.DeckB.IsPlaying = true;
+            Assert.True(mixer.TriggerHotCue(DjDeckId.DeckB, 0, clearOnly: false, setCuePoint: true)); // ALT+Click sets CUE 1
+            decoder.SaveTrackCues(reloaded, updateMainCue: false);
+            mixer.DeckB.PlayheadFrame = 38000;
+            Assert.True(mixer.TriggerHotCue(DjDeckId.DeckB, 0, clearOnly: false, setCuePoint: false)); // Click jumps to CUE 1 & pauses
+            Assert.False(mixer.DeckB.IsPlaying);
+            Assert.Equal(15000.0, mixer.DeckB.PlayheadFrame, 2);
+
+            var reloadedWithCues = decoder.LoadAndAnalyzeTrack(tempWav, forceReanalyze: false, preserveNativeSampleRate: true);
+            Assert.Equal(15000L, reloadedWithCues.HotCueFrames[0]);
+
+            // 7. Verify 2-Deck MasterGainDb prevents dual-deck clipping when summing two hot tracks
+            float[] hotBuf = new float[256];
+            Array.Fill(hotBuf, 0.85f);
+            using var masterMixer = new DjMixerEngineService { PureNativeQualityMode = true };
+            masterMixer.LoadTrackToDeck(DjDeckId.DeckA, new DjLoadedTrack { Title = "Hot A", SampleRate = 48000, TotalFrames = 256, Left = hotBuf, Right = hotBuf, DetectedBpm = 128 });
+            masterMixer.LoadTrackToDeck(DjDeckId.DeckB, new DjLoadedTrack { Title = "Hot B", SampleRate = 48000, TotalFrames = 256, Left = hotBuf, Right = hotBuf, DetectedBpm = 128 });
+            masterMixer.DeckA.IsPlaying = true;
+            masterMixer.DeckB.IsPlaying = true;
+            masterMixer.MasterGainDb = -6.02; // ~0.50x master trim -> (0.85 + 0.85) * 0.50 = ~0.85 unclipped!
+            float[] mixL = new float[64];
+            float[] mixR = new float[64];
+            masterMixer.MixStereoBuffer(mixL, mixR, 64, 48000);
+            Assert.InRange(mixL[0], 0.83f, 0.87f);
+            // Deck A & Deck B channel VU meters must remain at 100% of their true deck level (0.85), completely unaffected by MasterGainDb!
+            Assert.Equal(0.85f, masterMixer.DeckA.PeakLeft, 2);
+            Assert.Equal(0.85f, masterMixer.DeckB.PeakLeft, 2);
+        }
+        finally
+        {
+            if (File.Exists(tempWav))
+                File.Delete(tempWav);
+        }
+    }
+
+    [Fact]
+    public void DjStemsAndIsolatorPads_ShouldIsolateVocalsPreserveFullBassInInstruSoloBassAndKillKickAndHiHatsAt24DbPerOct()
+    {
+        int sr = 192000;
+        int n = sr / 2;
+        float[] bass70 = new float[n];
+        float[] vocal1400 = new float[n];
+        float[] synthSideL = new float[n];
+        float[] synthSideR = new float[n];
+        float[] hihat9000 = new float[n];
+        for (int i = 0; i < n; i++)
+        {
+            bass70[i] = 0.5f * MathF.Sin((float)(2.0 * Math.PI * 70.0 * i / sr));
+            vocal1400[i] = 0.5f * MathF.Sin((float)(2.0 * Math.PI * 1400.0 * i / sr));
+            float syn = 0.5f * MathF.Sin((float)(2.0 * Math.PI * 750.0 * i / sr));
+            synthSideL[i] = syn;
+            synthSideR[i] = -syn;
+            hihat9000[i] = 0.5f * MathF.Sin((float)(2.0 * Math.PI * 9000.0 * i / sr));
+        }
+
+        static float MeasureSteady(float[] inL, float[] inR, int rate, Action<DjDeckChannelState> cfg)
+        {
+            using var m = new DjMixerEngineService { PureNativeQualityMode = true };
+            m.LoadTrackToDeck(DjDeckId.DeckA, new DjLoadedTrack { Title = "Stem", SampleRate = rate, TotalFrames = inL.Length, Left = inL, Right = inR, DetectedBpm = 128 });
+            m.DeckA.IsPlaying = true;
+            cfg(m.DeckA);
+            int frames = rate / 4;
+            float[] oL = new float[frames];
+            float[] oR = new float[frames];
+            m.MixStereoBuffer(oL, oR, frames, rate);
+            float pk = 0f;
+            for (int i = frames / 2; i < frames; i++)
+                pk = Math.Max(pk, Math.Max(Math.Abs(oL[i]), Math.Abs(oR[i])));
+            return pk;
+        }
+
+        // Vocal Stem: passes center vocal, strips 70 Hz kick/bass, strips 9 kHz hi-hat, and rejects stereo synth
+        Assert.True(MeasureSteady(vocal1400, vocal1400, sr, d => d.PadVocalActive = true) > 0.45f);
+        Assert.True(MeasureSteady(bass70, bass70, sr, d => d.PadVocalActive = true) < 0.035f);
+        Assert.True(MeasureSteady(synthSideL, synthSideR, sr, d => d.PadVocalActive = true) < 0.03f);
+        Assert.True(MeasureSteady(hihat9000, hihat9000, sr, d => d.PadVocalActive = true) < 0.04f);
+
+        // Instru Stem: preserves full 70 Hz kick/bass & stereo synth while cancelling center vocal
+        Assert.True(MeasureSteady(bass70, bass70, sr, d => d.PadInstruActive = true) > 0.47f);
+        Assert.True(MeasureSteady(synthSideL, synthSideR, sr, d => d.PadInstruActive = true) > 0.45f);
+        Assert.True(MeasureSteady(vocal1400, vocal1400, sr, d => d.PadInstruActive = true) < 0.035f);
+
+        // Bass Solo, 24 dB/oct Kick Kill & 24 dB/oct HiHat Kill
+        Assert.True(MeasureSteady(bass70, bass70, sr, d => d.PadBassActive = true) > 0.50f);
+        Assert.True(MeasureSteady(vocal1400, vocal1400, sr, d => d.PadBassActive = true) < 0.02f);
+        Assert.True(MeasureSteady(bass70, bass70, sr, d => d.PadKickKillActive = true) < 0.035f);
+        Assert.True(MeasureSteady(hihat9000, hihat9000, sr, d => d.PadHiHatKillActive = true) < 0.035f);
+    }
+
+    [Fact]
     public void PresetAndProfileService_ShouldMatchPresetsAndRoundtripJsonProfile()
     {
         var svc = new PresetAndProfileService();

@@ -206,23 +206,54 @@ public sealed class DjTrackDecoderService
         double detectedBpm;
         double firstBeatSec;
         string musicalKey;
+        bool userCustomBpm = false;
+        bool userCustomBeatGrid = false;
+        bool hasSavedGain = false;
+        double savedGainDb = 0.0;
+        bool hasSavedCue = false;
+        double savedCueSec = 0.0;
+        double[]? savedHotCueSecs = null;
+
+        _cache.TryGetValue(filePath, out var existingCached);
+        if (existingCached != null)
+        {
+            hasSavedGain = existingCached.HasSavedGain;
+            savedGainDb = existingCached.SavedGainDb;
+            hasSavedCue = existingCached.HasSavedCue;
+            savedCueSec = existingCached.SavedCueSec;
+            savedHotCueSecs = existingCached.SavedHotCueSecs;
+        }
 
         if (!forceReanalyze
-            && _cache.TryGetValue(filePath, out var cached)
-            && cached.FileSizeBytes == fi.Length
-            && cached.LastWriteUtcTicks == fi.LastWriteTimeUtc.Ticks
-            && cached.Bpm > 30.0
-            && !string.IsNullOrWhiteSpace(cached.MusicalKey))
+            && existingCached != null
+            && existingCached.FileSizeBytes == fi.Length
+            && existingCached.LastWriteUtcTicks == fi.LastWriteTimeUtc.Ticks
+            && existingCached.Bpm > 30.0
+            && !string.IsNullOrWhiteSpace(existingCached.MusicalKey))
         {
-            detectedBpm = cached.Bpm;
-            firstBeatSec = cached.FirstBeatSec;
-            musicalKey = cached.MusicalKey;
+            detectedBpm = existingCached.Bpm;
+            firstBeatSec = existingCached.FirstBeatSec;
+            musicalKey = existingCached.MusicalKey;
+            userCustomBpm = existingCached.UserCustomBpm;
+            userCustomBeatGrid = existingCached.UserCustomBeatGrid;
         }
         else
         {
             AnalyzeBpmFromOnsetEnvelope(kickOnset200Hz, 200, out detectedBpm, out firstBeatSec);
             if (tagBpm >= 60.0 && tagBpm <= 200.0)
                 detectedBpm = tagBpm;
+
+            // Never overwrite user's manually calibrated BPM or dragged beat-grid start during folder batch re-analysis!
+            if (existingCached != null && existingCached.UserCustomBpm && existingCached.Bpm > 30.0)
+            {
+                detectedBpm = existingCached.Bpm;
+                userCustomBpm = true;
+            }
+            if (existingCached != null && existingCached.UserCustomBeatGrid && existingCached.FirstBeatSec >= 0.0)
+            {
+                firstBeatSec = existingCached.FirstBeatSec;
+                userCustomBeatGrid = true;
+            }
 
             musicalKey = !string.IsNullOrWhiteSpace(tagKey) && tagKey != "—"
                 ? tagKey
@@ -239,15 +270,23 @@ public sealed class DjTrackDecoderService
                 DurationSec = (double)totalFrames / sampleRate,
                 Bpm = detectedBpm,
                 FirstBeatSec = firstBeatSec,
-                MusicalKey = musicalKey
+                MusicalKey = musicalKey,
+                UserCustomBpm = userCustomBpm,
+                UserCustomBeatGrid = userCustomBeatGrid,
+                HasSavedGain = hasSavedGain,
+                SavedGainDb = savedGainDb,
+                HasSavedCue = hasSavedCue,
+                SavedCueSec = savedCueSec,
+                SavedHotCueSecs = savedHotCueSecs
             };
             _cache[filePath] = entry;
             SaveCacheToDisk();
         }
 
-        long initialCueFrame = Math.Clamp((long)Math.Round(firstBeatSec * sampleRate), 0L, Math.Max(0, totalFrames - 1));
+        double effectiveCueSec = hasSavedCue ? savedCueSec : firstBeatSec;
+        long initialCueFrame = Math.Clamp((long)Math.Round(effectiveCueSec * sampleRate), 0L, Math.Max(0, totalFrames - 1));
 
-        return new DjLoadedTrack
+        var loadedTrack = new DjLoadedTrack
         {
             FilePath = filePath,
             Artist = string.IsNullOrWhiteSpace(artist) ? "Unknown Artist" : artist,
@@ -260,11 +299,139 @@ public sealed class DjTrackDecoderService
             DetectedBpm = detectedBpm,
             FirstBeatSec = firstBeatSec,
             MusicalKey = musicalKey,
+            UserCustomBpm = userCustomBpm,
+            UserCustomBeatGrid = userCustomBeatGrid,
+            HasSavedGain = hasSavedGain,
+            SavedGainDb = savedGainDb,
             OverviewPeaks = overviewPeaks,
             OverviewBassRatio = overviewBass,
             BeatPeaks = beatPeaks,
             BeatBassRatio = beatBass,
             CueFrame = initialCueFrame
+        };
+
+        if (savedHotCueSecs != null)
+        {
+            int count = Math.Min(4, savedHotCueSecs.Length);
+            for (int i = 0; i < count; i++)
+            {
+                loadedTrack.HotCueFrames[i] = savedHotCueSecs[i] >= 0.0
+                    ? Math.Clamp((long)Math.Round(savedHotCueSecs[i] * sampleRate), 0L, Math.Max(0, totalFrames - 1))
+                    : -1L;
+            }
+        }
+
+        return loadedTrack;
+    }
+
+    /// <summary>
+    /// Persists user-calibrated BPM and/or beat-grid start point (FirstBeatSec) linked permanently to this track.
+    /// </summary>
+    public void SaveTrackBeatGridAndBpm(DjLoadedTrack track, double? customBpm, double? customFirstBeatSec)
+    {
+        if (track == null || string.IsNullOrWhiteSpace(track.FilePath))
+            return;
+
+        if (customBpm.HasValue && customBpm.Value >= 35.0 && customBpm.Value <= 260.0)
+        {
+            track.DetectedBpm = Math.Round(customBpm.Value, 2);
+            track.UserCustomBpm = true;
+        }
+
+        if (customFirstBeatSec.HasValue && double.IsFinite(customFirstBeatSec.Value))
+        {
+            double clampedBeat = Math.Clamp(customFirstBeatSec.Value, 0.0, Math.Max(0.0, track.DurationSec));
+            track.FirstBeatSec = clampedBeat;
+            track.UserCustomBeatGrid = true;
+            track.CueFrame = Math.Clamp((long)Math.Round(clampedBeat * track.SampleRate), 0L, Math.Max(0, track.TotalFrames - 1));
+        }
+
+        var entry = GetOrCreateCacheEntry(track);
+        entry.Bpm = track.DetectedBpm;
+        entry.FirstBeatSec = track.FirstBeatSec;
+        if (customBpm.HasValue) entry.UserCustomBpm = true;
+        if (customFirstBeatSec.HasValue) entry.UserCustomBeatGrid = true;
+        _cache[track.FilePath] = entry;
+        SaveCacheToDisk();
+    }
+
+    /// <summary>
+    /// Persists the mixer channel GAIN (in dB) linked permanently to this track so loading the song
+    /// into Deck A or Deck B in the future automatically restores its exact Gain setting!
+    /// </summary>
+    public void SaveTrackGainDb(DjLoadedTrack track, double gainDb)
+    {
+        if (track == null || string.IsNullOrWhiteSpace(track.FilePath))
+            return;
+
+        double clamped = Math.Clamp(Math.Round(gainDb, 1), -24.0, 12.0);
+        track.HasSavedGain = true;
+        track.SavedGainDb = clamped;
+
+        var entry = GetOrCreateCacheEntry(track);
+        entry.HasSavedGain = true;
+        entry.SavedGainDb = clamped;
+        _cache[track.FilePath] = entry;
+        SaveCacheToDisk();
+    }
+
+    /// <summary>
+    /// Persists the Main Cue point and all 4 Hot Cue slots (stored in sample-rate-independent seconds) linked to this track.
+    /// </summary>
+    public void SaveTrackCues(DjLoadedTrack track, bool updateMainCue = false)
+    {
+        if (track == null || string.IsNullOrWhiteSpace(track.FilePath) || track.SampleRate <= 0)
+            return;
+
+        var entry = GetOrCreateCacheEntry(track);
+        if (updateMainCue)
+        {
+            entry.HasSavedCue = true;
+            entry.SavedCueSec = Math.Clamp((double)track.CueFrame / track.SampleRate, 0.0, track.DurationSec);
+        }
+
+        double[] hotSecs = new double[4];
+        for (int i = 0; i < 4; i++)
+        {
+            hotSecs[i] = track.HotCueFrames[i] >= 0
+                ? Math.Clamp((double)track.HotCueFrames[i] / track.SampleRate, 0.0, track.DurationSec)
+                : -1.0;
+        }
+        entry.SavedHotCueSecs = hotSecs;
+        _cache[track.FilePath] = entry;
+        SaveCacheToDisk();
+    }
+
+    private DjTrackCacheEntry GetOrCreateCacheEntry(DjLoadedTrack track)
+    {
+        if (_cache.TryGetValue(track.FilePath, out var existing))
+            return existing;
+
+        long len = 0;
+        long ticks = 0;
+        try
+        {
+            if (File.Exists(track.FilePath))
+            {
+                var fi = new FileInfo(track.FilePath);
+                len = fi.Length;
+                ticks = fi.LastWriteTimeUtc.Ticks;
+            }
+        }
+        catch { }
+
+        return new DjTrackCacheEntry
+        {
+            FilePath = track.FilePath,
+            FileSizeBytes = len,
+            LastWriteUtcTicks = ticks,
+            Artist = track.Artist,
+            Title = track.Title,
+            Remix = track.Remix,
+            DurationSec = track.DurationSec,
+            Bpm = track.DetectedBpm,
+            FirstBeatSec = track.FirstBeatSec,
+            MusicalKey = track.MusicalKey
         };
     }
 

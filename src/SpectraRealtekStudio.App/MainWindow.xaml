@@ -156,6 +156,239 @@
                                                     <Trigger Property="IsDragging" Value="True">
                                                         <Setter TargetName="ThumbCircle" Property="Fill" Value="{StaticResource Cyan}"/>
                                                         <Setter TargetName="ThumbCircle" Property="Stroke" Value="#FFFFFF"/>
+                                                        <Setter TargetName="ThumbCircle" Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#22E8FF" BlurRadius="14" ShadowDepth="0" Opacity="0.95"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pro DJ Vertical Fader Style — Cyan Accent (Glows Neon Cyan when Grabbed/Dragged!) -->
+        <Style x:Key="SpectraDjVerticalCyanFaderStyle" TargetType="Slider">
+            <Setter Property="Orientation" Value="Vertical"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Width="28" HorizontalAlignment="Center" Background="Transparent">
+                            <Border Width="6" Background="#070B16" BorderBrush="#283862" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Center" Margin="0,4"/>
+                            <Track x:Name="PART_Track" HorizontalAlignment="Center">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" Opacity="0" IsTabStop="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" Opacity="0" IsTabStop="False"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="24" Height="13" Cursor="Hand" Focusable="False">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border x:Name="Cap" Background="#DCE6FA" BorderBrush="#52648E" BorderThickness="1.3" CornerRadius="2.5">
+                                                    <Rectangle x:Name="CapLine" Height="2" Margin="3,0" Fill="#1B2848" VerticalAlignment="Center" RadiusX="1" RadiusY="1"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Cap" Property="Background" Value="#ECF4FF"/>
+                                                        <Setter TargetName="Cap" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                                                        <Setter TargetName="CapLine" Property="Fill" Value="#0A7A96"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="Cap" Property="Background" Value="#FFFFFF"/>
+                                                        <Setter TargetName="Cap" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                                                        <Setter TargetName="CapLine" Property="Fill" Value="{StaticResource Cyan}"/>
+                                                        <Setter TargetName="Cap" Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#22E8FF" BlurRadius="16" ShadowDepth="0" Opacity="0.96"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                    <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=Slider}}" Value="GRABBED">
+                                                        <Setter TargetName="Cap" Property="Background" Value="#FFFFFF"/>
+                                                        <Setter TargetName="Cap" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                                                        <Setter TargetName="CapLine" Property="Fill" Value="{StaticResource Cyan}"/>
+                                                        <Setter TargetName="Cap" Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#22E8FF" BlurRadius="16" ShadowDepth="0" Opacity="0.96"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pro DJ Vertical Fader Style — Crimson/Red Accent (Glows Neon Crimson when Grabbed/Dragged!) -->
+        <Style x:Key="SpectraDjVerticalRedFaderStyle" TargetType="Slider">
+            <Setter Property="Orientation" Value="Vertical"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Width="28" HorizontalAlignment="Center" Background="Transparent">
+                            <Border Width="6" Background="#070B16" BorderBrush="#3C2238" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Center" Margin="0,4"/>
+                            <Track x:Name="PART_Track" HorizontalAlignment="Center">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" Opacity="0" IsTabStop="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" Opacity="0" IsTabStop="False"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="24" Height="13" Cursor="Hand" Focusable="False">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border x:Name="Cap" Background="#DCE6FA" BorderBrush="#684862" BorderThickness="1.3" CornerRadius="2.5">
+                                                    <Rectangle x:Name="CapLine" Height="2" Margin="3,0" Fill="#36182A" VerticalAlignment="Center" RadiusX="1" RadiusY="1"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Cap" Property="Background" Value="#FFF0F5"/>
+                                                        <Setter TargetName="Cap" Property="BorderBrush" Value="{StaticResource Red}"/>
+                                                        <Setter TargetName="CapLine" Property="Fill" Value="#A81E42"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="Cap" Property="Background" Value="#FFFFFF"/>
+                                                        <Setter TargetName="Cap" Property="BorderBrush" Value="{StaticResource Red}"/>
+                                                        <Setter TargetName="CapLine" Property="Fill" Value="{StaticResource Red}"/>
+                                                        <Setter TargetName="Cap" Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#FF4D6D" BlurRadius="16" ShadowDepth="0" Opacity="0.96"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                    <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=Slider}}" Value="GRABBED">
+                                                        <Setter TargetName="Cap" Property="Background" Value="#FFFFFF"/>
+                                                        <Setter TargetName="Cap" Property="BorderBrush" Value="{StaticResource Red}"/>
+                                                        <Setter TargetName="CapLine" Property="Fill" Value="{StaticResource Red}"/>
+                                                        <Setter TargetName="Cap" Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#FF4D6D" BlurRadius="16" ShadowDepth="0" Opacity="0.96"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pro DJ Horizontal Fader Style — Cyan Glow (Master Crossfader & Deck A FX Sliders) -->
+        <Style x:Key="SpectraDjHorizontalCyanFaderStyle" TargetType="Slider">
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="22" VerticalAlignment="Center" Background="Transparent">
+                            <Border Height="6" Background="#070B16" BorderBrush="#283862" BorderThickness="1" CornerRadius="3" VerticalAlignment="Center" Margin="4,0"/>
+                            <Track x:Name="PART_Track" VerticalAlignment="Center">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" Opacity="0" IsTabStop="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" Opacity="0" IsTabStop="False"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="13" Height="20" Cursor="Hand" Focusable="False">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border x:Name="Cap" Background="#DCE6FA" BorderBrush="#52648E" BorderThickness="1.3" CornerRadius="2.5">
+                                                    <Rectangle x:Name="CapLine" Width="2" Margin="0,3" Fill="#1B2848" HorizontalAlignment="Center" RadiusX="1" RadiusY="1"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Cap" Property="Background" Value="#ECF4FF"/>
+                                                        <Setter TargetName="Cap" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                                                        <Setter TargetName="CapLine" Property="Fill" Value="#0A7A96"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="Cap" Property="Background" Value="#FFFFFF"/>
+                                                        <Setter TargetName="Cap" Property="BorderBrush" Value="{StaticResource Cyan}"/>
+                                                        <Setter TargetName="CapLine" Property="Fill" Value="{StaticResource Cyan}"/>
+                                                        <Setter TargetName="Cap" Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#22E8FF" BlurRadius="16" ShadowDepth="0" Opacity="0.96"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pro DJ Horizontal Fader Style — Crimson/Red Glow (Deck B FX Sliders) -->
+        <Style x:Key="SpectraDjHorizontalRedFaderStyle" TargetType="Slider">
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="22" VerticalAlignment="Center" Background="Transparent">
+                            <Border Height="6" Background="#070B16" BorderBrush="#3C2238" BorderThickness="1" CornerRadius="3" VerticalAlignment="Center" Margin="4,0"/>
+                            <Track x:Name="PART_Track" VerticalAlignment="Center">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" Opacity="0" IsTabStop="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" Opacity="0" IsTabStop="False"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="13" Height="20" Cursor="Hand" Focusable="False">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border x:Name="Cap" Background="#DCE6FA" BorderBrush="#684862" BorderThickness="1.3" CornerRadius="2.5">
+                                                    <Rectangle x:Name="CapLine" Width="2" Margin="0,3" Fill="#36182A" HorizontalAlignment="Center" RadiusX="1" RadiusY="1"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Cap" Property="Background" Value="#FFF0F5"/>
+                                                        <Setter TargetName="Cap" Property="BorderBrush" Value="{StaticResource Red}"/>
+                                                        <Setter TargetName="CapLine" Property="Fill" Value="#A81E42"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="Cap" Property="Background" Value="#FFFFFF"/>
+                                                        <Setter TargetName="Cap" Property="BorderBrush" Value="{StaticResource Red}"/>
+                                                        <Setter TargetName="CapLine" Property="Fill" Value="{StaticResource Red}"/>
+                                                        <Setter TargetName="Cap" Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#FF4D6D" BlurRadius="16" ShadowDepth="0" Opacity="0.96"/>
+                                                            </Setter.Value>
+                                                        </Setter>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
@@ -1345,16 +1578,31 @@
             <!-- TAB 7: LIVE AUDIO SPECTRUM & STUDIO VISUALIZER (60 FPS WASAPI) -->
             <!-- ================================================================= -->
             <TabItem x:Name="TabVisualizer" Header="7. Visualizer" ToolTip="Real-time 60 FPS WASAPI loopback audio spectrum (up to 256-band FFT), Mirror Wave, Stereo Oscilloscope, Spectrogram Waterfall, Phase Vectorscope, and Radial Halo">
-                <Grid Margin="14,12">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                <Grid x:Name="TabVisualizerHost">
+                    <!-- Placeholder card displayed inside Tab 7 while Visualizer is popped out into a floating resizable window -->
+                    <Border x:Name="BorderVisPopoutPlaceholder" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Cyan}" BorderThickness="1" CornerRadius="8" Padding="28" Margin="32"
+                            HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="📊 Live 60 FPS Visualizer is Active in Floating Popout Window" Foreground="{StaticResource Cyan}" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock Text="Resize the floating Visualizer window anywhere on screen while mixing on Tab 9 DJ — or dock it back into Tab 7 anytime."
+                                       Foreground="{StaticResource Muted}" FontSize="12.5" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Content="↙ Dock Visualizer Back Here" Style="{StaticResource CyanActionButton}" Padding="14,7" Margin="0,0,10,0" Click="BtnVisPopout_Click"/>
+                                <Button Content="⧉ Bring Floating Window to Front" Padding="14,7" Margin="0" Click="BtnVisBringPopoutFront_Click"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
 
-                    <!-- Visualizer Control Toolbar (Responsive WrapPanel — zero clipping at any window width) -->
-                    <Border Grid.Row="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="10,7" Margin="0,0,0,10">
+                    <Grid x:Name="GridVisualizerContent" Margin="14,12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Visualizer Control Toolbar (Responsive WrapPanel — zero clipping at any window width) -->
+                        <Border x:Name="BorderVisToolbar" Grid.Row="0" Background="{StaticResource CardBg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="10,7" Margin="0,0,0,10">
                         <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,10,2">
                                 <TextBlock Text="Mode:" VerticalAlignment="Center" Foreground="{StaticResource Cyan}" FontWeight="SemiBold" Margin="0,0,5,0"/>
@@ -1444,16 +1692,20 @@
                                         ToolTip="Play a smooth full-range frequency sweep across your selected Range (click again to stop) so you can watch every frequency light up live!"/>
                                 <Button Content="▶ Test" Style="{StaticResource CyanActionButton}" Padding="8,5" Margin="0,0,5,0" Click="BtnTestEqTone_Click"
                                         ToolTip="Play a harmonic studio chord to test the live spectrum immediately"/>
-                                <Button x:Name="BtnVisFocus" Content="⛶ Focus" Padding="8,5" Margin="0" Click="BtnVisFocus_Click"
-                                        ToolTip="Expand the visualizer by hiding the top header bars for an immersive cinema view (press Esc or click again to restore)"/>
+                                <Button x:Name="BtnVisFocus" Content="⛶ Focus" Padding="8,5" Margin="0,0,5,0" Click="BtnVisFocus_Click"
+                                        ToolTip="Expand the visualizer by hiding toolbars/headers for an immersive cinema view (press Esc or double-click spectrum to restore)"/>
+                                <Button x:Name="BtnVisPopout" Content="⧉ Popout" Style="{StaticResource AccentButton}" Padding="9,5" Margin="0,0,5,0" Click="BtnVisPopout_Click"
+                                        ToolTip="Pop out the live 60 FPS Visualizer into its own freely resizable floating window (stays live at 60 FPS while mixing on Tab 9 DJ!)"/>
+                                <Button x:Name="BtnVisPinTop" Content="📌 Pin" Padding="8,5" Margin="0" Visibility="Collapsed" Click="BtnVisPinTop_Click"
+                                        ToolTip="Pin floating Visualizer window Always-On-Top above all Windows applications"/>
                             </StackPanel>
                         </WrapPanel>
                     </Border>
 
                     <!-- Main 60 FPS Visualizer Viewport -->
                     <Border Grid.Row="1" Background="#070A14" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" ClipToBounds="True"
-                            ToolTip="Live 60 FPS audio visualizer captured directly from Windows WASAPI loopback (0% CPU when switching away from Tab 7)">
-                        <Grid x:Name="VisualizerViewport" SizeChanged="VisualizerViewport_SizeChanged">
+                            ToolTip="Live 60 FPS audio visualizer captured directly from Windows WASAPI loopback (Double-click to toggle Focus / Minimal view)">
+                        <Grid x:Name="VisualizerViewport" SizeChanged="VisualizerViewport_SizeChanged" MouseLeftButtonDown="VisualizerViewport_MouseLeftButtonDown">
                             <Image x:Name="ImgVisualizer" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
                             <TextBlock x:Name="TxtVisHeaderTag" Text="256-BAND LOGARITHMIC FFT SPECTRUM (5 Hz — 48 kHz)"
                                        Foreground="#56699C" FontSize="10.5" FontWeight="Bold" FontFamily="Consolas"
@@ -1471,7 +1723,7 @@
                     <Canvas x:Name="CanvasVisFreqAxis" Grid.Row="2" Height="20" Margin="0,4,0,6" ClipToBounds="False" SizeChanged="CanvasVisFreqAxis_SizeChanged"/>
 
                     <!-- Live Mastering Telemetry Strip -->
-                    <Border Grid.Row="3" Background="#0A0E1B" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,7">
+                    <Border x:Name="BorderVisTelemetry" Grid.Row="3" Background="#0A0E1B" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Padding="14,7">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -1500,6 +1752,7 @@
                             </StackPanel>
                         </Grid>
                     </Border>
+                    </Grid>
                 </Grid>
             </TabItem>
 
@@ -1748,12 +2001,14 @@
                     <!-- ROW 0: TOP DUAL STACKED 60 FPS BEAT-MATCHING WAVEFORMS & QUICK DJ BAR -->
                     <!-- ========================================================================= -->
                     <Border Grid.Row="0" Background="#050811" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" ClipToBounds="True" Margin="0,0,0,7"
-                            ToolTip="Dual Stacked Beat-Matching Waveforms — Top: Deck A (Cyan), Bottom: Deck B (Crimson). Drag horizontally on either lane to scrub or align beats to the center white playhead line!">
+                            ToolTip="Dual Stacked Beat-Matching Waveforms — Scroll Mouse Wheel to ZOOM IN/OUT for precise beat marking; Drag to scrub; Double-Click any beat marker to drag beat start; or click '2-PT' on Deck A/B to set exact BPM!">
                         <Grid x:Name="DjTopWaveformViewport" SizeChanged="DjTopWaveformViewport_SizeChanged"
+                              PreviewMouseWheel="DjTopWaveform_PreviewMouseWheel"
                               MouseLeftButtonDown="DjTopWaveform_MouseLeftButtonDown"
                               MouseMove="DjTopWaveform_MouseMove"
                               MouseLeftButtonUp="DjTopWaveform_MouseLeftButtonUp">
                             <Image x:Name="ImgDjTopWaveforms" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                            <Image x:Name="ImgDjBeatCalibOverlay" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
 
                             <!-- Deck A / B Lane Badges on Left Edge -->
                             <Border Background="#CC0C1428" BorderBrush="{StaticResource Cyan}" BorderThickness="1" CornerRadius="3" Padding="5,1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6,5,0,0" IsHitTestVisible="False">
@@ -1763,21 +2018,52 @@
                                 <TextBlock x:Name="TxtDjWaveBadgeB" Text="B • DECK 2" Foreground="{StaticResource Red}" FontFamily="Consolas" FontSize="9.5" FontWeight="Bold"/>
                             </Border>
 
-                            <!-- Quick Top-Right DJ Studio Action Bar (☑ Load As-Is, ● REC MIX, ⇄ Auto-Mix, Crate Toggle, ⛶ Focus) -->
-                            <Border Background="#D80B1020" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="8,3" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,6,0">
+                            <!-- Floating 2-Point Manual BPM & Beat-Grid Calibration Bar (shown when 2-PT or Beat Marker Drag is active) -->
+                            <Border x:Name="BorderDjCalibBar" Background="#EA0B1226" BorderBrush="{StaticResource Amber}" BorderThickness="1.2" CornerRadius="5" Padding="8,3"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0" Visibility="Collapsed">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <CheckBox x:Name="ChkDjLoadAsIs" Content="Load As-Is (Pure Native)" IsChecked="True" VerticalAlignment="Center" Margin="0,0,8,0"
-                                              Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="10.5"
-                                              Checked="ChkDjLoadAsIs_Changed" Unchecked="ChkDjLoadAsIs_Changed"
-                                              ToolTip="When checked (Recommended): loads tracks at their exact original sample rate (up to 192 kHz) with zero downsampling, zero anti-imaging filter coloration, and 1:1 bit-exact 0 dB unity playback. Uncheck for 48 kHz RAM-Saver mode."/>
-                                    <Button x:Name="BtnDjRecMix" Content="● REC MIX" Style="{StaticResource AccentButton}" Padding="8,2.5" FontSize="10.5" FontWeight="Bold" Margin="0,0,5,0" Click="BtnDjRecMix_Click"
-                                            ToolTip="One-click Record Live DJ Mix directly to your SpectraRecordings folder (lossless WAV via Tab 8 Recorder)"/>
-                                    <Button x:Name="BtnDjAutoMix" Content="⇄ Auto-Mix" Style="{StaticResource CyanActionButton}" Padding="8,2.5" FontSize="10.5" FontWeight="Bold" Margin="0,0,5,0" Click="BtnDjAutoMix_Click"
-                                            ToolTip="Smoothly crossfade from the active deck to the incoming deck over 5 seconds (auto-starts incoming deck if paused)"/>
-                                    <Button x:Name="BtnDjToggleCrate" Content="Crate ▾" Padding="7,2.5" FontSize="10.5" Margin="0,0,5,0" Click="BtnDjToggleCrate_Click"
-                                            ToolTip="Expand or collapse the bottom music browser crate"/>
-                                    <Button x:Name="BtnDjFocus" Content="⛶ Focus" Padding="7,2.5" FontSize="10.5" Margin="0" Click="BtnDjFocus_Click"
-                                            ToolTip="Toggle Cinema Focus Mode (hides top app headers for maximum DJ console space; press Esc to exit)"/>
+                                    <TextBlock x:Name="TxtDjCalibLabel" Text="🎯 2-PT BPM (Deck A):" Foreground="{StaticResource Amber}" FontFamily="Consolas" FontSize="10.5" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <StackPanel x:Name="PanelDjCalibBeatBtns" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
+                                        <Button x:Name="BtnDjSpan1" Content="1 Beat" Padding="5,1.5" FontSize="9.5" Margin="0,0,3,0" Click="BtnDjCalibSpan_Click" Tag="1" ToolTip="Distance between Point 1 and Point 2 equals 1 Beat"/>
+                                        <Button x:Name="BtnDjSpan4" Content="4 Beats" Padding="5,1.5" FontSize="9.5" Margin="0,0,3,0" Click="BtnDjCalibSpan_Click" Tag="4" BorderBrush="{StaticResource Amber}" Foreground="{StaticResource Amber}" ToolTip="Distance between Point 1 and Point 2 equals 4 Beats (1 Bar)"/>
+                                        <Button x:Name="BtnDjSpan8" Content="8 Beats" Padding="5,1.5" FontSize="9.5" Margin="0,0,3,0" Click="BtnDjCalibSpan_Click" Tag="8" ToolTip="Distance between Point 1 and Point 2 equals 8 Beats (2 Bars)"/>
+                                        <Button x:Name="BtnDjSpan16" Content="16 Beats" Padding="5,1.5" FontSize="9.5" Margin="0" Click="BtnDjCalibSpan_Click" Tag="16" ToolTip="Distance between Point 1 and Point 2 equals 16 Beats (4 Bars)"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="TxtDjCalibReadout" Text="136.00 BPM" Foreground="{StaticResource Green}" FontFamily="Consolas" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <Button Content="✓ Lock &amp; Save" Style="{StaticResource CyanActionButton}" Padding="7,2" FontSize="10" FontWeight="Bold" Margin="0" Click="BtnDjCalibLock_Click"
+                                            ToolTip="Lock beat markers and save calibrated BPM &amp; Beat Start permanently to this track"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Quick Top-Right Collapsible DJ Studio Action Bar (🔍 Zoom, ☑ Load As-Is, ● REC MIX, ⇄ Auto-Mix, 📊 Visualizer, Crate Toggle, ⛶ Focus + Collapse Toggle) -->
+                            <Border x:Name="BorderDjTopBar" Background="#D80B1020" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="5" Padding="8,3" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,6,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <StackPanel x:Name="PanelDjTopBarItems" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <Button Content="🔍−" Padding="5,2" FontSize="9.5" FontWeight="Bold" Margin="0,0,2,0" Click="BtnDjWaveZoomOut_Click"
+                                                    ToolTip="Zoom Out top beat waveforms (or hover waveform &amp; scroll Mouse Wheel Down)"/>
+                                            <Button x:Name="BtnDjWaveZoomReset" Content="1.0x" Padding="5,2" FontSize="9.5" FontFamily="Consolas" FontWeight="Bold" Margin="0,0,2,0" Click="BtnDjWaveZoomReset_Click"
+                                                    ToolTip="Current Waveform Zoom — Click to reset to 1.0x (Scroll Mouse Wheel over waveforms to zoom up to 16x for sample-accurate beat marking!)"/>
+                                            <Button Content="🔍+" Padding="5,2" FontSize="9.5" FontWeight="Bold" Margin="0" Click="BtnDjWaveZoomIn_Click"
+                                                    ToolTip="Zoom In top beat waveforms up to 16x sample-accurate detail (or hover waveform &amp; scroll Mouse Wheel Up)"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkDjLoadAsIs" Content="Load As-Is (Pure Native)" IsChecked="True" VerticalAlignment="Center" Margin="0,0,8,0"
+                                                  Foreground="{StaticResource Green}" FontWeight="Bold" FontSize="10.5"
+                                                  Checked="ChkDjLoadAsIs_Changed" Unchecked="ChkDjLoadAsIs_Changed"
+                                                  ToolTip="When checked (Recommended): loads tracks at their exact original sample rate (up to 192 kHz) with zero downsampling, zero anti-imaging filter coloration, and 1:1 bit-exact 0 dB unity playback. Uncheck for 48 kHz RAM-Saver mode."/>
+                                        <Button x:Name="BtnDjRecMix" Content="● REC MIX" Style="{StaticResource AccentButton}" Padding="8,2.5" FontSize="10.5" FontWeight="Bold" Margin="0,0,5,0" Click="BtnDjRecMix_Click"
+                                                ToolTip="One-click Record Live DJ Mix directly to your SpectraRecordings folder (lossless WAV via Tab 8 Recorder)"/>
+                                        <Button x:Name="BtnDjAutoMix" Content="⇄ Auto-Mix" Style="{StaticResource CyanActionButton}" Padding="8,2.5" FontSize="10.5" FontWeight="Bold" Margin="0,0,5,0" Click="BtnDjAutoMix_Click"
+                                                ToolTip="Smoothly crossfade from the active deck to the incoming deck over 5 seconds (auto-starts incoming deck if paused)"/>
+                                        <Button x:Name="BtnDjPopoutVis" Content="📊 Visualizer" Padding="7,2.5" FontSize="10.5" FontWeight="Bold" Margin="0,0,5,0" Click="BtnVisPopout_Click"
+                                                ToolTip="Pop out (or dock back) the resizable Live 60 FPS Audio Visualizer window so you can see the spectrum while mixing!"/>
+                                        <Button x:Name="BtnDjToggleCrate" Content="Crate ▾" Padding="7,2.5" FontSize="10.5" Margin="0,0,5,0" Click="BtnDjToggleCrate_Click"
+                                                ToolTip="Expand or collapse the bottom music browser crate"/>
+                                        <Button x:Name="BtnDjFocus" Content="⛶ Focus" Padding="7,2.5" FontSize="10.5" Margin="0,0,5,0" Click="BtnDjFocus_Click"
+                                                ToolTip="Toggle Cinema Focus Mode (hides top app headers for maximum DJ console space; press Esc to exit)"/>
+                                    </StackPanel>
+                                    <Button x:Name="BtnDjCollapseTopBar" Content="»" Padding="6,2.5" FontSize="10.5" FontWeight="Bold" Margin="0" Click="BtnDjCollapseTopBar_Click"
+                                            ToolTip="Collapse or expand this DJ toolbar into a single compact icon button so the top waveform stays 100% clear!"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -1789,7 +2075,7 @@
                     <Grid Grid.Row="1" Margin="0,0,0,4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="236"/>
+                            <ColumnDefinition Width="248"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
@@ -1823,6 +2109,8 @@
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <Button x:Name="BtnDjTwoPtA" Content="2-PT" Padding="5,2" FontSize="9.5" FontWeight="Bold" Margin="0,0,4,0" Click="BtnDjTwoPtA_Click"
+                                                ToolTip="Manual 2-Point BPM Calibrator: place 2 draggable markers on Deck A's waveform (across 1, 4, 8, or 16 beats) to calculate &amp; save the exact BPM!"/>
                                         <Button Content="TAP" Padding="6,2" FontSize="9.5" FontWeight="Bold" Margin="0,0,4,0" Click="BtnDjTapA_Click"
                                                 ToolTip="Tap rhythmically to manually override Deck A BPM"/>
                                         <Button x:Name="BtnDjMtA" Content="MT" Padding="6,2" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource Cyan}" BorderBrush="{StaticResource Cyan}" Margin="0,0,6,0" Click="BtnDjMtA_Click"
@@ -1878,7 +2166,7 @@
                                                         <ColumnDefinition Width="22"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="FLANGER" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                                    <Slider x:Name="SldDjFx1A" Grid.Column="1" Minimum="0" Maximum="1" Value="0.55" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxA_ValueChanged" Tag="0"/>
+                                                    <Slider x:Name="SldDjFx1A" Style="{StaticResource SpectraDjHorizontalCyanFaderStyle}" Grid.Column="1" Minimum="0" Maximum="1" Value="0.55" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxA_ValueChanged" Tag="0"/>
                                                     <Button x:Name="BtnDjFx1A" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxA_Click" Tag="0" ToolTip="Toggle Stereo Flanger on Deck A"/>
                                                 </Grid>
                                                 <Grid Margin="0,0,0,3">
@@ -1888,7 +2176,7 @@
                                                         <ColumnDefinition Width="22"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="REVERB" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                                    <Slider x:Name="SldDjFx2A" Grid.Column="1" Minimum="0" Maximum="1" Value="0.45" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxA_ValueChanged" Tag="1"/>
+                                                    <Slider x:Name="SldDjFx2A" Style="{StaticResource SpectraDjHorizontalCyanFaderStyle}" Grid.Column="1" Minimum="0" Maximum="1" Value="0.45" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxA_ValueChanged" Tag="1"/>
                                                     <Button x:Name="BtnDjFx2A" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxA_Click" Tag="1" ToolTip="Toggle Hall Reverb / Echo on Deck A"/>
                                                 </Grid>
                                                 <Grid>
@@ -1898,7 +2186,7 @@
                                                         <ColumnDefinition Width="22"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="WAHWAH" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                                    <Slider x:Name="SldDjFx3A" Grid.Column="1" Minimum="0" Maximum="1" Value="0.60" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxA_ValueChanged" Tag="2"/>
+                                                    <Slider x:Name="SldDjFx3A" Style="{StaticResource SpectraDjHorizontalCyanFaderStyle}" Grid.Column="1" Minimum="0" Maximum="1" Value="0.60" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxA_ValueChanged" Tag="2"/>
                                                     <Button x:Name="BtnDjFx3A" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxA_Click" Tag="2" ToolTip="Toggle Swept Wah-Wah Filter on Deck A"/>
                                                 </Grid>
                                             </StackPanel>
@@ -1910,17 +2198,17 @@
                                                 <TextBlock Text="STEMS &amp; ISOLATOR PADS" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
                                                 <UniformGrid Rows="2" Columns="3">
                                                     <Button x:Name="BtnDjPadVocalA" Content="Vocal" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="Vocal"
-                                                            ToolTip="Focus center-channel lead vocals"/>
+                                                            ToolTip="Vocal / Acapella Stem Isolator: 24 dB/oct removes Kick/Bass (&lt; 210 Hz) &amp; Hi-Hats (&gt; 4.3 kHz) and extracts center vocals via 4-band Mid/Side masking"/>
                                                     <Button x:Name="BtnDjPadInstruA" Content="Instru" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="Instru"
-                                                            ToolTip="Instant Instrumental: cancel center lead vocals while preserving stereo instruments &amp; bass"/>
+                                                            ToolTip="Instrumental Stem (Vocal Remover): cancels center lead vocals (210–4,300 Hz) while keeping 100% of Kick/Bass, Stereo Synths &amp; Hi-Hats"/>
                                                     <Button x:Name="BtnDjPadBassA" Content="Bass" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="Bass"
-                                                            ToolTip="Boost deep sub-bass punch"/>
+                                                            ToolTip="Bass &amp; Kick Stem Isolator: solos deep sub-bass &amp; kick (&lt; 210 Hz, 24 dB/oct LR4) while muting vocals, mids &amp; highs (combine with Vocal for Vocal+Bass!)"/>
                                                     <Button x:Name="BtnDjPadKickA" Content="Kick Kill" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="Kick"
-                                                            ToolTip="Kill low kick/bass band (&lt; 240 Hz) for beat-drop transitions"/>
+                                                            ToolTip="24 dB/oct Linkwitz-Riley Total Kick &amp; Sub-Bass Kill (&lt; 210 Hz = -∞ dB) for clean bass-swap transitions"/>
                                                     <Button x:Name="BtnDjPadHiHatA" Content="HiHat Kill" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="HiHat"
-                                                            ToolTip="Kill high treble/hi-hat band (&gt; 3.8 kHz)"/>
+                                                            ToolTip="24 dB/oct Linkwitz-Riley Total Hi-Hat &amp; Cymbal Kill (&gt; 2.9 kHz = -∞ dB)"/>
                                                     <Button x:Name="BtnDjPadGateA" Content="Stems FX" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadA_Click" Tag="Gate"
-                                                            ToolTip="BPM-synced 1/8-note rhythmic trance gate / beat chopper"/>
+                                                            ToolTip="Smooth click-free BPM-synced 1/8-note rhythmic trance gate / beat chopper"/>
                                                 </UniformGrid>
                                             </StackPanel>
                                         </Border>
@@ -1933,15 +2221,19 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- 4 Hot Cues (2x2 Grid) -->
+                                        <!-- 4 Hot Cues (2x2 Grid: ALT+Click Set, Click Jump Ready, Right-Click Clear) -->
                                         <Border Grid.Row="0" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4" Margin="0,0,0,5">
                                             <StackPanel>
-                                                <TextBlock Text="HOT CUES (R-CLICK CLEAR)" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                <TextBlock Text="HOT CUES (ALT+CLICK SET)" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
                                                 <UniformGrid Rows="2" Columns="2">
-                                                    <Button x:Name="BtnDjHot1A" Content="CUE 1" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="0"/>
-                                                    <Button x:Name="BtnDjHot2A" Content="CUE 2" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="1"/>
-                                                    <Button x:Name="BtnDjHot3A" Content="CUE 3" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="2"/>
-                                                    <Button x:Name="BtnDjHot4A" Content="CUE 4" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="3"/>
+                                                    <Button x:Name="BtnDjHot1A" Content="CUE 1" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="0"
+                                                            ToolTip="Click to jump to CUE 1 (paused, ready for ▶ PLAY). Hold ALT + Click to set/update CUE 1; Right-Click to clear."/>
+                                                    <Button x:Name="BtnDjHot2A" Content="CUE 2" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="1"
+                                                            ToolTip="Click to jump to CUE 2 (paused, ready for ▶ PLAY). Hold ALT + Click to set/update CUE 2; Right-Click to clear."/>
+                                                    <Button x:Name="BtnDjHot3A" Content="CUE 3" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="2"
+                                                            ToolTip="Click to jump to CUE 3 (paused, ready for ▶ PLAY). Hold ALT + Click to set/update CUE 3; Right-Click to clear."/>
+                                                    <Button x:Name="BtnDjHot4A" Content="CUE 4" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueA_Click" MouseRightButtonUp="BtnDjHotCueA_RightClick" Tag="3"
+                                                            ToolTip="Click to jump to CUE 4 (paused, ready for ▶ PLAY). Hold ALT + Click to set/update CUE 4; Right-Click to clear."/>
                                                 </UniformGrid>
                                             </StackPanel>
                                         </Border>
@@ -1981,38 +2273,49 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="122"/>
-                                            <ColumnDefinition Width="46"/>
+                                            <ColumnDefinition Width="134"/>
+                                            <ColumnDefinition Width="54"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Vinyl Jog Platter -->
-                                        <Grid Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Image x:Name="ImgDjPlatterA" Width="116" Height="116" Cursor="Hand"
+                                        <!-- Vinyl Jog Platter + Square Stop-to-Start Button Next to Pitch Control -->
+                                        <Grid Grid.Row="0" Grid.Column="0">
+                                            <Image x:Name="ImgDjPlatterA" Width="116" Height="116" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand"
                                                    MouseLeftButtonDown="ImgDjPlatterA_MouseLeftButtonDown"
                                                    MouseMove="ImgDjPlatterA_MouseMove"
                                                    MouseLeftButtonUp="ImgDjPlatterA_MouseLeftButtonUp"
                                                    ToolTip="60 FPS Interactive Vinyl Platter — drag with mouse to scratch or backspin!"/>
-                                            <StackPanel Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0">
+                                            <StackPanel Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,4,0,0">
                                                 <Button x:Name="BtnDjVinylA" Content="VINYL" Padding="4,1" FontSize="8.5" FontWeight="Bold" Foreground="{StaticResource Cyan}" BorderBrush="{StaticResource Cyan}" Margin="0,0,0,2" Click="BtnDjVinylA_Click"
                                                         ToolTip="VINYL mode ON = mouse drag scratches vinyl; OFF = mouse drag nudges pitch"/>
                                                 <Button x:Name="BtnDjSlipA" Content="SLIP" Padding="4,1" FontSize="8.5" FontWeight="Bold" Click="BtnDjSlipA_Click"
                                                         ToolTip="SLIP mode: underlying beat playhead keeps moving forward during scratches &amp; loops"/>
                                             </StackPanel>
+                                            <Button x:Name="BtnDjStopStartA" Width="22" Height="22" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0"
+                                                    Click="BtnDjStopStartA_Click"
+                                                    ToolTip="Stop Deck A and return to the start of the track (0:00.0)">
+                                                <Rectangle Width="8" Height="8" Fill="{StaticResource Cyan}" RadiusX="0.8" RadiusY="0.8"/>
+                                            </Button>
                                         </Grid>
 
-                                        <!-- Vertical Pitch / Tempo Fader -->
-                                        <Border Grid.Row="0" Grid.Column="1" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="3,4" Margin="4,0,0,0">
+                                        <!-- Vertical Pitch / Tempo Fader (0.01% Mouse-Wheel + Fine Drag) -->
+                                        <Border Grid.Row="0" Grid.Column="1" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="3,4" Margin="4,0,0,0"
+                                                PreviewMouseWheel="DjPitchBorderA_PreviewMouseWheel"
+                                                ToolTip="Ultra-Fine Tempo / Pitch Control (0.01% precision). Hover &amp; scroll Mouse Wheel for ±0.01% steps (Shift+Wheel = ±0.10%, Shift+Drag = ultra-fine drag, Double-click = 0.00%)!">
                                             <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="*"/>
                                                     <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
-                                                <TextBlock x:Name="TxtDjPitchA" Grid.Row="0" Text="+0.0%" Foreground="{StaticResource Cyan}" FontFamily="Consolas" FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,2"
-                                                           MouseLeftButtonDown="TxtDjPitchA_ResetClick" Cursor="Hand" ToolTip="Click to reset pitch to 0.0%"/>
-                                                <Slider x:Name="SldDjPitchA" Grid.Row="1" Orientation="Vertical" Minimum="-16" Maximum="16" Value="0" HorizontalAlignment="Center"
+                                                <TextBlock x:Name="TxtDjPitchA" Grid.Row="0" Text="+0.00%" Foreground="{StaticResource Cyan}" FontFamily="Consolas" FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,2"
+                                                           MouseLeftButtonDown="TxtDjPitchA_ResetClick" Cursor="Hand" ToolTip="Click to reset pitch to +0.00% (or scroll Mouse Wheel for ±0.01% fine steps)"/>
+                                                <Slider x:Name="SldDjPitchA" Style="{StaticResource SpectraDjVerticalCyanFaderStyle}" Grid.Row="1" Orientation="Vertical" Minimum="-10" Maximum="10" Value="0" SmallChange="0.01" LargeChange="0.10" IsSnapToTickEnabled="False" HorizontalAlignment="Center"
                                                         ValueChanged="SldDjPitchA_ValueChanged" MouseDoubleClick="SldDjPitchA_MouseDoubleClick"
-                                                        ToolTip="Tempo / Pitch Fader (-16% to +16%). Double-click to reset to 0.0%"/>
+                                                        PreviewMouseLeftButtonDown="SldDjPitchA_PreviewMouseLeftButtonDown"
+                                                        PreviewMouseMove="SldDjPitchA_PreviewMouseMove"
+                                                        PreviewMouseLeftButtonUp="SldDjPitchA_PreviewMouseLeftButtonUp"
+                                                        LostMouseCapture="SldDjPitchA_LostMouseCapture"
+                                                        ToolTip="Tempo / Pitch Fader (0.01% precision). Drag handle to adjust, scroll Mouse Wheel for ±0.01%, hold Shift while dragging for fine mode, or ALT+Click / double-click for +0.00%"/>
                                                 <UniformGrid Grid.Row="2" Rows="1" Columns="2" Margin="0,2,0,0">
                                                     <Button Content="-" Padding="0,1" FontSize="9.5" FontWeight="Bold" Margin="0.5" PreviewMouseLeftButtonDown="BtnDjBendMinusA_Down" PreviewMouseLeftButtonUp="BtnDjBendA_Up" ToolTip="Momentary slow-down pitch bend"/>
                                                     <Button Content="+" Padding="0,1" FontSize="9.5" FontWeight="Bold" Margin="0.5" PreviewMouseLeftButtonDown="BtnDjBendPlusA_Down" PreviewMouseLeftButtonUp="BtnDjBendA_Up" ToolTip="Momentary speed-up pitch bend"/>
@@ -2023,8 +2326,8 @@
                                         <!-- Bottom Transport Row: CUE | ▶ PLAY | SYNC -->
                                         <UniformGrid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Rows="1" Columns="3" Margin="0,5,0,0">
                                             <Button x:Name="BtnDjCueA" Content="CUE" Padding="4,6" FontSize="11" FontWeight="Bold" Margin="0,0,3,0"
-                                                    PreviewMouseLeftButtonDown="BtnDjCueA_Down" PreviewMouseLeftButtonUp="BtnDjCueA_Up"
-                                                    ToolTip="Set or return to Cue point (hold while paused for momentary preview)"/>
+                                                    Click="BtnDjCueA_Click"
+                                                    ToolTip="Click to jump to Main Cue point (paused, ready to press ▶ PLAY). Hold ALT + Click to set Main Cue at current position!"/>
                                             <Button x:Name="BtnDjPlayA" Content="▶ PLAY" Style="{StaticResource CyanActionButton}" Padding="4,6" FontSize="11" FontWeight="Bold" Margin="1.5,0"
                                                     Click="BtnDjPlayA_Click"
                                                     ToolTip="Start or pause Deck A playback"/>
@@ -2061,27 +2364,27 @@
                                     <!-- Left Strip: Deck A HIGH / MID / LOW / FILTER Rotary Knobs -->
                                     <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <Canvas x:Name="KnobDjHighA" Width="34" Height="34" Tag="A:High" Cursor="SizeNS" Background="Transparent"
-                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
-                                                ToolTip="Deck A HIGH EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                ToolTip="Deck A HIGH EQ (-∞ Kill to +12 dB). Drag, scroll wheel (0.1 dB), or double-click to reset to 0 dB"/>
                                         <TextBlock Text="HIGH" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
 
                                         <Canvas x:Name="KnobDjMidA" Width="34" Height="34" Tag="A:Mid" Cursor="SizeNS" Background="Transparent"
-                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
-                                                ToolTip="Deck A MID EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                ToolTip="Deck A MID EQ (-∞ Kill to +12 dB). Drag, scroll wheel (0.1 dB), or double-click to reset to 0 dB"/>
                                         <TextBlock Text="MID" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
 
                                         <Canvas x:Name="KnobDjLowA" Width="34" Height="34" Tag="A:Low" Cursor="SizeNS" Background="Transparent"
-                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
-                                                ToolTip="Deck A LOW Bass EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                ToolTip="Deck A LOW Bass EQ (-∞ Kill to +12 dB). Drag, scroll wheel (0.1 dB), or double-click to reset to 0 dB"/>
                                         <TextBlock Text="LOW" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
 
                                         <Canvas x:Name="KnobDjFilterA" Width="36" Height="36" Tag="A:Filter" Cursor="SizeNS" Background="Transparent"
-                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
-                                                ToolTip="Deck A Color FILTER (Turn left for Low-Pass sweep, right for High-Pass sweep; double-click for center bypass)"/>
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                ToolTip="Deck A Color FILTER (Turn left for Low-Pass sweep, right for High-Pass sweep; scroll wheel or double-click for center bypass)"/>
                                         <TextBlock Text="FILTER" Foreground="{StaticResource Cyan}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center"/>
                                     </StackPanel>
 
-                                    <!-- Center Strip: GAIN A/B Knobs + Volume Faders + Center Dual LED VU Meter + 🎧 PFL -->
+                                    <!-- Center Strip: GAIN A/B + Center Master Gain Knob + Volume Faders + Dual LED VU Meter + 🎧 PFL -->
                                     <Grid Grid.Column="1" Margin="2,0">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
@@ -2090,38 +2393,49 @@
                                         </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="26"/>
+                                            <ColumnDefinition Width="36"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Top GAIN Knobs -->
+                                        <!-- Top GAIN Knobs (Automatically Saved & Restored Per Track!) + Center 2-Deck Master Gain -->
                                         <StackPanel Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" Margin="0,0,0,3">
                                             <Canvas x:Name="KnobDjGainA" Width="30" Height="30" Tag="A:Gain" Cursor="SizeNS" Background="Transparent"
-                                                    MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
-                                                    ToolTip="Deck A Pre-Amp GAIN (-24 to +12 dB). Double-click to reset"/>
+                                                    MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                    ToolTip="Deck A Pre-Amp GAIN (-24 to +12 dB) — Automatically saved &amp; restored for each song! Drag, scroll wheel (0.1 dB), or double-click to reset to 0 dB"/>
                                             <TextBlock Text="GAIN" Foreground="{StaticResource Muted}" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,3">
+                                            <Canvas x:Name="KnobDjMasterGain" Width="22" Height="22" Tag="M:MasterGain" Cursor="SizeNS" Background="Transparent"
+                                                    MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                    ToolTip="2-Deck Master Output GAIN (-24.0 to +12.0 dB) — Limits combined Deck A + Deck B mix level to prevent clipping! Drag, scroll wheel (0.1 dB), or double-click for 0.0 dB"/>
+                                            <TextBlock Text="MSTR" Foreground="{StaticResource Green}" FontSize="7.5" FontWeight="Bold" HorizontalAlignment="Center"/>
                                         </StackPanel>
 
                                         <StackPanel Grid.Row="0" Grid.Column="2" HorizontalAlignment="Center" Margin="0,0,0,3">
                                             <Canvas x:Name="KnobDjGainB" Width="30" Height="30" Tag="B:Gain" Cursor="SizeNS" Background="Transparent"
-                                                    MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
-                                                    ToolTip="Deck B Pre-Amp GAIN (-24 to +12 dB). Double-click to reset"/>
+                                                    MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                    ToolTip="Deck B Pre-Amp GAIN (-24 to +12 dB) — Automatically saved &amp; restored for each song! Drag, scroll wheel (0.1 dB), or double-click to reset to 0 dB"/>
                                             <TextBlock Text="GAIN" Foreground="{StaticResource Muted}" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center"/>
                                         </StackPanel>
 
                                         <!-- Channel Volume Fader A | Dual LED VU Meters | Channel Volume Fader B -->
-                                        <Slider x:Name="SldDjVolA" Grid.Row="1" Grid.Column="0" Orientation="Vertical" Minimum="0" Maximum="1" Value="1.0"
+                                        <Slider x:Name="SldDjVolA" Style="{StaticResource SpectraDjVerticalCyanFaderStyle}" Grid.Row="1" Grid.Column="0" Orientation="Vertical" Minimum="0" Maximum="1" Value="1.0"
+                                                SmallChange="0.01" LargeChange="0.05"
                                                 HorizontalAlignment="Center" Height="118" ValueChanged="SldDjVolA_ValueChanged"
-                                                ToolTip="Deck A Channel Volume Fader (100% = 0.0 dB Unity)"/>
+                                                PreviewMouseLeftButtonDown="SldDjVol_PreviewMouseLeftButtonDown"
+                                                ToolTip="Deck A Channel Volume Fader (100% = 0.0 dB Unity). Drag thumb to adjust; ALT+Click bar above/below thumb to jump to Max/Min!"/>
 
-                                        <Border Grid.Row="1" Grid.Column="1" Background="#070A14" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3" Padding="2" Height="118" VerticalAlignment="Center">
+                                        <Border Grid.Row="1" Grid.Column="1" Width="26" HorizontalAlignment="Center" Background="#070A14" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3" Padding="2" Height="118" VerticalAlignment="Center">
                                             <Image x:Name="ImgDjVuMeters" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"
                                                    ToolTip="Live Deck A (Left) &amp; Deck B (Right) LED Peak Level Meters"/>
                                         </Border>
 
-                                        <Slider x:Name="SldDjVolB" Grid.Row="1" Grid.Column="2" Orientation="Vertical" Minimum="0" Maximum="1" Value="1.0"
+                                        <Slider x:Name="SldDjVolB" Style="{StaticResource SpectraDjVerticalRedFaderStyle}" Grid.Row="1" Grid.Column="2" Orientation="Vertical" Minimum="0" Maximum="1" Value="1.0"
+                                                SmallChange="0.01" LargeChange="0.05"
                                                 HorizontalAlignment="Center" Height="118" ValueChanged="SldDjVolB_ValueChanged"
-                                                ToolTip="Deck B Channel Volume Fader (100% = 0.0 dB Unity)"/>
+                                                PreviewMouseLeftButtonDown="SldDjVol_PreviewMouseLeftButtonDown"
+                                                ToolTip="Deck B Channel Volume Fader (100% = 0.0 dB Unity). Drag thumb to adjust; ALT+Click bar above/below thumb to jump to Max/Min!"/>
 
                                         <!-- Headphone Cue (🎧) Buttons -->
                                         <Button x:Name="BtnDjPflA" Grid.Row="2" Grid.Column="0" Content="🎧" Padding="4,2" FontSize="10" Margin="2,4,2,0" Click="BtnDjPflA_Click"
@@ -2133,23 +2447,23 @@
                                     <!-- Right Strip: Deck B HIGH / MID / LOW / FILTER Rotary Knobs -->
                                     <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <Canvas x:Name="KnobDjHighB" Width="34" Height="34" Tag="B:High" Cursor="SizeNS" Background="Transparent"
-                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
-                                                ToolTip="Deck B HIGH EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                ToolTip="Deck B HIGH EQ (-∞ Kill to +12 dB). Drag, scroll wheel (0.1 dB), or double-click to reset to 0 dB"/>
                                         <TextBlock Text="HIGH" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
 
                                         <Canvas x:Name="KnobDjMidB" Width="34" Height="34" Tag="B:Mid" Cursor="SizeNS" Background="Transparent"
-                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
-                                                ToolTip="Deck B MID EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                ToolTip="Deck B MID EQ (-∞ Kill to +12 dB). Drag, scroll wheel (0.1 dB), or double-click to reset to 0 dB"/>
                                         <TextBlock Text="MID" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
 
                                         <Canvas x:Name="KnobDjLowB" Width="34" Height="34" Tag="B:Low" Cursor="SizeNS" Background="Transparent"
-                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
-                                                ToolTip="Deck B LOW Bass EQ (-∞ Kill to +12 dB). Drag up/down; double-click to reset to 0 dB"/>
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                ToolTip="Deck B LOW Bass EQ (-∞ Kill to +12 dB). Drag, scroll wheel (0.1 dB), or double-click to reset to 0 dB"/>
                                         <TextBlock Text="LOW" Foreground="{StaticResource Muted}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
 
                                         <Canvas x:Name="KnobDjFilterB" Width="36" Height="36" Tag="B:Filter" Cursor="SizeNS" Background="Transparent"
-                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp"
-                                                ToolTip="Deck B Color FILTER (Turn left for Low-Pass sweep, right for High-Pass sweep; double-click for center bypass)"/>
+                                                MouseLeftButtonDown="DjKnob_MouseLeftButtonDown" MouseMove="DjKnob_MouseMove" MouseLeftButtonUp="DjKnob_MouseLeftButtonUp" MouseWheel="DjKnob_MouseWheel"
+                                                ToolTip="Deck B Color FILTER (Turn left for Low-Pass sweep, right for High-Pass sweep; scroll wheel or double-click for center bypass)"/>
                                         <TextBlock Text="FILTER" Foreground="{StaticResource Red}" FontSize="8.5" FontWeight="Bold" HorizontalAlignment="Center"/>
                                     </StackPanel>
                                 </Grid>
@@ -2163,7 +2477,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="A" Foreground="{StaticResource Cyan}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                        <Slider x:Name="SldDjCrossfader" Grid.Column="1" Minimum="-1" Maximum="1" Value="0" VerticalAlignment="Center"
+                                        <Slider x:Name="SldDjCrossfader" Style="{StaticResource SpectraDjHorizontalCyanFaderStyle}" Grid.Column="1" Minimum="-1" Maximum="1" Value="0" VerticalAlignment="Center"
                                                 ValueChanged="SldDjCrossfader_ValueChanged" MouseDoubleClick="SldDjCrossfader_MouseDoubleClick"
                                                 ToolTip="Master DJ Crossfader (Left = Deck A, Center = Both, Right = Deck B). Double-click to snap to center"/>
                                         <TextBlock Grid.Column="2" Text="B" Foreground="{StaticResource Red}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="5,0,0,0"/>
@@ -2207,8 +2521,10 @@
                                         </Border>
                                         <Button x:Name="BtnDjMtB" Content="MT" Padding="6,2" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource Red}" BorderBrush="{StaticResource Red}" Margin="0,0,4,0" Click="BtnDjMtB_Click"
                                                 ToolTip="Master Tempo (Keylock): keeps vocals &amp; instruments in their original musical pitch when changing BPM speed"/>
-                                        <Button Content="TAP" Padding="6,2" FontSize="9.5" FontWeight="Bold" Click="BtnDjTapB_Click"
+                                        <Button Content="TAP" Padding="6,2" FontSize="9.5" FontWeight="Bold" Margin="0,0,4,0" Click="BtnDjTapB_Click"
                                                 ToolTip="Tap rhythmically to manually override Deck B BPM"/>
+                                        <Button x:Name="BtnDjTwoPtB" Content="2-PT" Padding="5,2" FontSize="9.5" FontWeight="Bold" Click="BtnDjTwoPtB_Click"
+                                                ToolTip="Manual 2-Point BPM Calibrator: place 2 draggable markers on Deck B's waveform (across 1, 4, 8, or 16 beats) to calculate &amp; save the exact BPM!"/>
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,6,0">
@@ -2246,23 +2562,29 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="46"/>
-                                            <ColumnDefinition Width="122"/>
+                                            <ColumnDefinition Width="54"/>
+                                            <ColumnDefinition Width="134"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Vertical Pitch / Tempo Fader -->
-                                        <Border Grid.Row="0" Grid.Column="0" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="3,4" Margin="0,0,4,0">
+                                        <!-- Vertical Pitch / Tempo Fader (0.01% Mouse-Wheel + Fine Drag) -->
+                                        <Border Grid.Row="0" Grid.Column="0" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="3,4" Margin="0,0,4,0"
+                                                PreviewMouseWheel="DjPitchBorderB_PreviewMouseWheel"
+                                                ToolTip="Ultra-Fine Tempo / Pitch Control (0.01% precision). Hover &amp; scroll Mouse Wheel for ±0.01% steps (Shift+Wheel = ±0.10%, Shift+Drag = ultra-fine drag, Double-click = 0.00%)!">
                                             <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="*"/>
                                                     <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
-                                                <TextBlock x:Name="TxtDjPitchB" Grid.Row="0" Text="+0.0%" Foreground="{StaticResource Red}" FontFamily="Consolas" FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,2"
-                                                           MouseLeftButtonDown="TxtDjPitchB_ResetClick" Cursor="Hand" ToolTip="Click to reset pitch to 0.0%"/>
-                                                <Slider x:Name="SldDjPitchB" Grid.Row="1" Orientation="Vertical" Minimum="-16" Maximum="16" Value="0" HorizontalAlignment="Center"
+                                                <TextBlock x:Name="TxtDjPitchB" Grid.Row="0" Text="+0.00%" Foreground="{StaticResource Red}" FontFamily="Consolas" FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,2"
+                                                           MouseLeftButtonDown="TxtDjPitchB_ResetClick" Cursor="Hand" ToolTip="Click to reset pitch to +0.00% (or scroll Mouse Wheel for ±0.01% fine steps)"/>
+                                                <Slider x:Name="SldDjPitchB" Style="{StaticResource SpectraDjVerticalRedFaderStyle}" Grid.Row="1" Orientation="Vertical" Minimum="-10" Maximum="10" Value="0" SmallChange="0.01" LargeChange="0.10" IsSnapToTickEnabled="False" HorizontalAlignment="Center"
                                                         ValueChanged="SldDjPitchB_ValueChanged" MouseDoubleClick="SldDjPitchB_MouseDoubleClick"
-                                                        ToolTip="Tempo / Pitch Fader (-16% to +16%). Double-click to reset to 0.0%"/>
+                                                        PreviewMouseLeftButtonDown="SldDjPitchB_PreviewMouseLeftButtonDown"
+                                                        PreviewMouseMove="SldDjPitchB_PreviewMouseMove"
+                                                        PreviewMouseLeftButtonUp="SldDjPitchB_PreviewMouseLeftButtonUp"
+                                                        LostMouseCapture="SldDjPitchB_LostMouseCapture"
+                                                        ToolTip="Tempo / Pitch Fader (0.01% precision). Drag handle to adjust, scroll Mouse Wheel for ±0.01%, hold Shift while dragging for fine mode, or ALT+Click / double-click for +0.00%"/>
                                                 <UniformGrid Grid.Row="2" Rows="1" Columns="2" Margin="0,2,0,0">
                                                     <Button Content="-" Padding="0,1" FontSize="9.5" FontWeight="Bold" Margin="0.5" PreviewMouseLeftButtonDown="BtnDjBendMinusB_Down" PreviewMouseLeftButtonUp="BtnDjBendB_Up" ToolTip="Momentary slow-down pitch bend"/>
                                                     <Button Content="+" Padding="0,1" FontSize="9.5" FontWeight="Bold" Margin="0.5" PreviewMouseLeftButtonDown="BtnDjBendPlusB_Down" PreviewMouseLeftButtonUp="BtnDjBendB_Up" ToolTip="Momentary speed-up pitch bend"/>
@@ -2270,14 +2592,19 @@
                                             </Grid>
                                         </Border>
 
-                                        <!-- Vinyl Jog Platter -->
-                                        <Grid Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Image x:Name="ImgDjPlatterB" Width="116" Height="116" Cursor="Hand"
+                                        <!-- Vinyl Jog Platter + Square Stop-to-Start Button Next to Pitch Control -->
+                                        <Grid Grid.Row="0" Grid.Column="1">
+                                            <Button x:Name="BtnDjStopStartB" Width="22" Height="22" Padding="0" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="2,2,0,0"
+                                                    Click="BtnDjStopStartB_Click"
+                                                    ToolTip="Stop Deck B and return to the start of the track (0:00.0)">
+                                                <Rectangle Width="8" Height="8" Fill="{StaticResource Red}" RadiusX="0.8" RadiusY="0.8"/>
+                                            </Button>
+                                            <Image x:Name="ImgDjPlatterB" Width="116" Height="116" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand"
                                                    MouseLeftButtonDown="ImgDjPlatterB_MouseLeftButtonDown"
                                                    MouseMove="ImgDjPlatterB_MouseMove"
                                                    MouseLeftButtonUp="ImgDjPlatterB_MouseLeftButtonUp"
                                                    ToolTip="60 FPS Interactive Vinyl Platter — drag with mouse to scratch or backspin!"/>
-                                            <StackPanel Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0">
+                                            <StackPanel Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,0,0">
                                                 <Button x:Name="BtnDjVinylB" Content="VINYL" Padding="4,1" FontSize="8.5" FontWeight="Bold" Foreground="{StaticResource Red}" BorderBrush="{StaticResource Red}" Margin="0,0,0,2" Click="BtnDjVinylB_Click"
                                                         ToolTip="VINYL mode ON = mouse drag scratches vinyl; OFF = mouse drag nudges pitch"/>
                                                 <Button x:Name="BtnDjSlipB" Content="SLIP" Padding="4,1" FontSize="8.5" FontWeight="Bold" Click="BtnDjSlipB_Click"
@@ -2288,8 +2615,8 @@
                                         <!-- Bottom Transport Row: CUE | ▶ PLAY | SYNC -->
                                         <UniformGrid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Rows="1" Columns="3" Margin="0,5,0,0">
                                             <Button x:Name="BtnDjCueB" Content="CUE" Padding="4,6" FontSize="11" FontWeight="Bold" Margin="0,0,3,0"
-                                                    PreviewMouseLeftButtonDown="BtnDjCueB_Down" PreviewMouseLeftButtonUp="BtnDjCueB_Up"
-                                                    ToolTip="Set or return to Cue point (hold while paused for momentary preview)"/>
+                                                    Click="BtnDjCueB_Click"
+                                                    ToolTip="Click to jump to Main Cue point (paused, ready to press ▶ PLAY). Hold ALT + Click to set Main Cue at current position!"/>
                                             <Button x:Name="BtnDjPlayB" Content="▶ PLAY" Style="{StaticResource AccentButton}" Padding="4,6" FontSize="11" FontWeight="Bold" Margin="1.5,0"
                                                     Click="BtnDjPlayB_Click"
                                                     ToolTip="Start or pause Deck B playback"/>
@@ -2308,12 +2635,16 @@
 
                                         <Border Grid.Row="0" Background="#0B0F1E" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="6,4" Margin="0,0,0,5">
                                             <StackPanel>
-                                                <TextBlock Text="HOT CUES (R-CLICK CLEAR)" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
+                                                <TextBlock Text="HOT CUES (ALT+CLICK SET)" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
                                                 <UniformGrid Rows="2" Columns="2">
-                                                    <Button x:Name="BtnDjHot1B" Content="CUE 1" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="0"/>
-                                                    <Button x:Name="BtnDjHot2B" Content="CUE 2" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="1"/>
-                                                    <Button x:Name="BtnDjHot3B" Content="CUE 3" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="2"/>
-                                                    <Button x:Name="BtnDjHot4B" Content="CUE 4" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="3"/>
+                                                    <Button x:Name="BtnDjHot1B" Content="CUE 1" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="0"
+                                                            ToolTip="Click to jump to CUE 1 (paused, ready for ▶ PLAY). Hold ALT + Click to set/update CUE 1; Right-Click to clear."/>
+                                                    <Button x:Name="BtnDjHot2B" Content="CUE 2" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="1"
+                                                            ToolTip="Click to jump to CUE 2 (paused, ready for ▶ PLAY). Hold ALT + Click to set/update CUE 2; Right-Click to clear."/>
+                                                    <Button x:Name="BtnDjHot3B" Content="CUE 3" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="2"
+                                                            ToolTip="Click to jump to CUE 3 (paused, ready for ▶ PLAY). Hold ALT + Click to set/update CUE 3; Right-Click to clear."/>
+                                                    <Button x:Name="BtnDjHot4B" Content="CUE 4" Padding="4,5" FontSize="9.5" FontWeight="Bold" Margin="1.5" Click="BtnDjHotCueB_Click" MouseRightButtonUp="BtnDjHotCueB_RightClick" Tag="3"
+                                                            ToolTip="Click to jump to CUE 4 (paused, ready for ▶ PLAY). Hold ALT + Click to set/update CUE 4; Right-Click to clear."/>
                                                 </UniformGrid>
                                             </StackPanel>
                                         </Border>
@@ -2362,7 +2693,7 @@
                                                         <ColumnDefinition Width="22"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="FLANGER" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                                    <Slider x:Name="SldDjFx1B" Grid.Column="1" Minimum="0" Maximum="1" Value="0.55" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxB_ValueChanged" Tag="0"/>
+                                                    <Slider x:Name="SldDjFx1B" Style="{StaticResource SpectraDjHorizontalRedFaderStyle}" Grid.Column="1" Minimum="0" Maximum="1" Value="0.55" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxB_ValueChanged" Tag="0"/>
                                                     <Button x:Name="BtnDjFx1B" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxB_Click" Tag="0" ToolTip="Toggle Stereo Flanger on Deck B"/>
                                                 </Grid>
                                                 <Grid Margin="0,0,0,3">
@@ -2372,7 +2703,7 @@
                                                         <ColumnDefinition Width="22"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="REVERB" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                                    <Slider x:Name="SldDjFx2B" Grid.Column="1" Minimum="0" Maximum="1" Value="0.45" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxB_ValueChanged" Tag="1"/>
+                                                    <Slider x:Name="SldDjFx2B" Style="{StaticResource SpectraDjHorizontalRedFaderStyle}" Grid.Column="1" Minimum="0" Maximum="1" Value="0.45" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxB_ValueChanged" Tag="1"/>
                                                     <Button x:Name="BtnDjFx2B" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxB_Click" Tag="1" ToolTip="Toggle Hall Reverb / Echo on Deck B"/>
                                                 </Grid>
                                                 <Grid>
@@ -2382,7 +2713,7 @@
                                                         <ColumnDefinition Width="22"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="WAHWAH" Foreground="{StaticResource Text}" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                                    <Slider x:Name="SldDjFx3B" Grid.Column="1" Minimum="0" Maximum="1" Value="0.60" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxB_ValueChanged" Tag="2"/>
+                                                    <Slider x:Name="SldDjFx3B" Style="{StaticResource SpectraDjHorizontalRedFaderStyle}" Grid.Column="1" Minimum="0" Maximum="1" Value="0.60" VerticalAlignment="Center" Margin="3,0" ValueChanged="SldDjFxB_ValueChanged" Tag="2"/>
                                                     <Button x:Name="BtnDjFx3B" Grid.Column="2" Content="+" Padding="0" FontSize="10" FontWeight="Bold" Click="BtnDjFxB_Click" Tag="2" ToolTip="Toggle Swept Wah-Wah Filter on Deck B"/>
                                                 </Grid>
                                             </StackPanel>
@@ -2393,17 +2724,17 @@
                                                 <TextBlock Text="STEMS &amp; ISOLATOR PADS" Foreground="{StaticResource Muted}" FontSize="9" FontWeight="Bold" Margin="0,0,0,3"/>
                                                 <UniformGrid Rows="2" Columns="3">
                                                     <Button x:Name="BtnDjPadVocalB" Content="Vocal" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="Vocal"
-                                                            ToolTip="Focus center-channel lead vocals"/>
+                                                            ToolTip="Vocal / Acapella Stem Isolator: 24 dB/oct removes Kick/Bass (&lt; 210 Hz) &amp; Hi-Hats (&gt; 4.3 kHz) and extracts center vocals via 4-band Mid/Side masking"/>
                                                     <Button x:Name="BtnDjPadInstruB" Content="Instru" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="Instru"
-                                                            ToolTip="Instant Instrumental: cancel center lead vocals while preserving stereo instruments &amp; bass"/>
+                                                            ToolTip="Instrumental Stem (Vocal Remover): cancels center lead vocals (210–4,300 Hz) while keeping 100% of Kick/Bass, Stereo Synths &amp; Hi-Hats"/>
                                                     <Button x:Name="BtnDjPadBassB" Content="Bass" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="Bass"
-                                                            ToolTip="Boost deep sub-bass punch"/>
+                                                            ToolTip="Bass &amp; Kick Stem Isolator: solos deep sub-bass &amp; kick (&lt; 210 Hz, 24 dB/oct LR4) while muting vocals, mids &amp; highs (combine with Vocal for Vocal+Bass!)"/>
                                                     <Button x:Name="BtnDjPadKickB" Content="Kick Kill" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="Kick"
-                                                            ToolTip="Kill low kick/bass band (&lt; 240 Hz) for beat-drop transitions"/>
+                                                            ToolTip="24 dB/oct Linkwitz-Riley Total Kick &amp; Sub-Bass Kill (&lt; 210 Hz = -∞ dB) for clean bass-swap transitions"/>
                                                     <Button x:Name="BtnDjPadHiHatB" Content="HiHat Kill" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="HiHat"
-                                                            ToolTip="Kill high treble/hi-hat band (&gt; 3.8 kHz)"/>
+                                                            ToolTip="24 dB/oct Linkwitz-Riley Total Hi-Hat &amp; Cymbal Kill (&gt; 2.9 kHz = -∞ dB)"/>
                                                     <Button x:Name="BtnDjPadGateB" Content="Stems FX" Padding="2,4" FontSize="9.5" FontWeight="SemiBold" Margin="1.5" Click="BtnDjStemPadB_Click" Tag="Gate"
-                                                            ToolTip="BPM-synced 1/8-note rhythmic trance gate / beat chopper"/>
+                                                            ToolTip="Smooth click-free BPM-synced 1/8-note rhythmic trance gate / beat chopper"/>
                                                 </UniformGrid>
                                             </StackPanel>
                                         </Border>
